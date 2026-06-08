@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Hub v2.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        body { background-color: #070b12; }
+        .panel-card { background-color: #0d1527; border: 1px solid #1e293b; }
+        input[type="date"] { color-scheme: dark; }
+    </style>
+</head>
+<body class="text-slate-200 font-sans p-4 md:p-6 min-h-screen flex flex-col">
+    <div class="max-w-5xl mx-auto space-y-4 flex flex-col flex-1 w-full">
+        
+        <!-- TOP BAR (Ceas & Status) -->
+        <div class="flex flex-row justify-between items-center panel-card py-1.5 px-4 rounded-2xl gap-3">
+            <div id="live-clock" class="text-3xl md:text-5xl font-mono font-bold tracking-widest text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                00:00:00
+            </div>
+            <div id="connection-status" class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/50 border border-slate-800">
+                <span id="status-dot" class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></span>
+                <span id="status-text" class="text-[9px] font-mono font-bold uppercase tracking-wider text-red-400">Offline</span>
+            </div>
+        </div>
+
+        <!-- MAIN GRID / MOBILE ORDERING -->
+        <div class="flex flex-col md:grid md:grid-cols-3 gap-4 items-stretch">
+            
+            <!-- MOBILE: SESSION START/END ON ONE ROW -->
+            <div class="order-1 md:order-none flex flex-col gap-4">
+                <div class="panel-card p-3 rounded-2xl flex flex-row md:flex-col justify-around md:justify-center items-center md:items-start gap-4">
+                    <div class="text-center md:text-left">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Start</div>
+                        <div id="session-start-display" class="text-2xl md:text-3xl font-mono font-black text-slate-100">--:--:--</div>
+                    </div>
+                    <div class="w-px h-10 bg-slate-800 md:hidden"></div>
+                    <div class="text-center md:text-left">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Stop</div>
+                        <div id="session-end-display" class="text-2xl md:text-3xl font-mono font-black text-amber-500">--:--:--</div>
+                    </div>
+                    <div class="hidden md:block mt-2 border-t border-slate-800/60 pt-2 w-full">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Elapsed Time</div>
+                        <div id="elapsedTimeDisplay" class="text-3xl font-mono font-black text-yellow-500">0h 0m 0s</div>
+                    </div>
+                </div>
+
+                <!-- MAINTENANCE CARD (PC Only in this slot) -->
+                <div class="hidden md:flex panel-card p-4 rounded-2xl flex-col justify-center">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            Maintenance (<span id="maint-limit-text" class="cursor-pointer text-blue-400 underline decoration-dotted" onclick="changeMaintLimit()">100</span>H)
+                        </div>
+                        <div id="maint-hours-left" class="text-xs font-mono font-black text-emerald-400">0.0h</div>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                        <div id="maint-progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BUTTON CONTROL -->
+            <div class="order-2 md:order-none panel-card p-4 rounded-2xl flex flex-col items-center justify-center">
+                <button id="mainBtn" onclick="gestiuneGenerator()" class="w-36 h-36 rounded-full bg-emerald-600 hover:bg-emerald-500 border-4 border-emerald-800 text-3xl font-black uppercase tracking-wider text-white transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.2)] focus:outline-none flex items-center justify-center">
+                    Sync...
+                </button>
+            </div>
+
+            <!-- FUELING BOX (Mobile: under button) -->
+            <div class="order-3 md:order-none flex flex-col gap-4">
+                <div class="panel-card p-3 rounded-2xl flex flex-col justify-center">
+                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Alimentare Motorină</div>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="fuelInput" placeholder="Litri" class="w-24 bg-slate-950 px-3 py-3 rounded-lg border border-slate-800 text-white text-lg font-mono focus:outline-none focus:border-blue-500">
+                        <button onclick="adaugaAlimentare()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-3 rounded-lg font-black uppercase text-xs tracking-wider transition-all whitespace-nowrap">Adaugă</button>
+                    </div>
+                </div>
+
+                <!-- MAINTENANCE CARD (Mobile Only in this slot) -->
+                <div class="order-4 md:hidden panel-card p-3 rounded-2xl flex flex-col justify-center">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Maintenance (100H)</div>
+                        <div id="maint-hours-left-mobile" class="text-xs font-mono font-black text-emerald-400">0.0h</div>
+                    </div>
+                    <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                        <div id="maint-progress-bar-mobile" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-full rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- TODAY STATS -->
+                <div class="order-5 grid grid-cols-2 gap-3">
+                    <div class="panel-card p-4 rounded-2xl">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fuel Today</div>
+                        <div id="fuel-today-display" class="text-2xl font-mono font-black text-emerald-400 mt-1">0.00 L</div>
+                        <div id="avg-consumption-display" class="hidden md:block text-[11px] text-slate-500 mt-1 font-mono">Consum istoric: -- L/h</div>
+                    </div>
+                    <div class="panel-card p-4 rounded-2xl">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Runtime Today</div>
+                        <div id="runtime-today-display" class="text-2xl font-mono font-black text-blue-400 mt-1">0h 0m</div>
+                        <div id="starts-today-display" class="hidden md:block text-[11px] text-slate-500 mt-1 font-mono">Porniri azi: 0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGS TABLE -->
+        <div class="order-6 panel-card p-4 rounded-2xl space-y-4 flex-1 flex flex-col min-h-0">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3 shrink-0">
+                <h2 class="text-base font-black uppercase tracking-wider text-slate-300">Operational Logs</h2>
+                <div class="flex items-center gap-2">
+                    <input type="date" id="filterStart" onchange="filterLogs()" class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-sm text-slate-300 focus:outline-none">
+                    <input type="date" id="filterEnd" onchange="filterLogs()" class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-sm text-slate-300 focus:outline-none">
+                    <button onclick="clearDateFilters()" class="w-8 h-8 bg-red-950/40 hover:bg-red-900/60 border border-red-800 rounded-lg text-red-500 flex items-center justify-center transition-all">
+                        <span class="text-xl font-black">✖</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto flex-1 border border-slate-800/40 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-[#0d1527] z-10">
+                        <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-800">
+                            <th class="p-3 font-bold">Data</th>
+                            <th class="p-3 font-bold">Start</th>
+                            <th class="p-3 font-bold">Stop</th>
+                            <th class="p-3 font-bold">Fuel</th>
+                            <th class="p-3 font-bold">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody" class="text-base font-mono divide-y divide-slate-800/40"></tbody>
+                </table>
+            </div>
+
+            <div id="table-summary" class="bg-slate-950/60 p-3 rounded-xl text-base font-mono text-slate-400 flex justify-between border border-slate-900 shrink-0">
+                <div>Zile: <span id="summary-days" class="text-slate-100 font-black">0</span></div>
+                <div>Total interval: <span id="summary-hours" class="text-amber-400 font-black">0h 0m</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dbUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const sb = supabase.createClient(dbUrl, dbKey);
+
+        let allLogsRaw = [];
+        let timerInterval = null;
+
+        function parseUTC(dateStr) {
+            if (!dateStr) return null;
+            return new Date(dateStr.includes('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z');
+        }
+
+        function formatRoDate(dateStr) {
+            if (!dateStr) return '--';
+            const d = new Date(dateStr);
+            return isNaN(d) ? '--' : d.toLocaleDateString('ro-RO');
+        }
+
+        function formatRoTime(dateStr) {
+            if (!dateStr) return '--';
+            const d = parseUTC(dateStr);
+            return isNaN(d) ? '--' : d.toLocaleTimeString('ro-RO', { hour12: false });
+        }
+
+        setInterval(() => {
+            document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('ro-RO', { hour12: false });
+        }, 1000);
+
+        async function checkConnection() {
+            try {
+                const { error } = await sb.from('generator_logs').select('id').limit(1);
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                if (!error) {
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]";
+                    text.className = "text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400";
+                    text.textContent = "Online";
+                } else throw error;
+            } catch (e) {
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                dot.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]";
+                text.className = "text-[10px] font-mono font-bold uppercase tracking-wider text-red-400";
+                text.textContent = "Offline";
+            }
+        }
+        setInterval(checkConnection, 5000);
+
+        function calculateMaintenance() {
+            const limit = parseFloat(localStorage.getItem('maint_limit') || '100');
+            let totalMins = 0;
+            allLogsRaw.forEach(l => {
+                if(l.ora_start && l.ora_stop && !l.observatii?.includes('Alimentare')) {
+                    totalMins += Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000);
+                }
+            });
+            const totalHours = totalMins / 60;
+            const percent = Math.min(100, (totalHours / limit) * 100);
+            
+            const hoursLeft = Math.max(0, limit - totalHours).toFixed(1) + 'h';
+            const accum = totalHours.toFixed(1);
+
+            document.getElementById('maint-hours-left').textContent = hoursLeft;
+            document.getElementById('maint-progress-bar').style.width = `${percent}%`;
+            
+            if (document.getElementById('maint-hours-left-mobile')) {
+                document.getElementById('maint-hours-left-mobile').textContent = hoursLeft;
+                document.getElementById('maint-progress-bar-mobile').style.width = `${percent}%`;
+            }
+        }
+
+        function calculateTodayStats() {
+            const todayStr = new Date().toLocaleDateString('sv-SE');
+            let fuelToday = 0;
+            let minsToday = 0;
+            let startsToday = 0;
+
+            let totalFuel = 0;
+            let totalMins = 0;
+
+            allLogsRaw.forEach(l => {
+                const mins = (l.ora_start && l.ora_stop) ? Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000) : 0;
+                
+                // Historical totals
+                if (l.litri_motorina) totalFuel += parseFloat(l.litri_motorina);
+                if (!l.observatii?.includes('Alimentare')) {
+                    totalMins += mins;
+                }
+
+                // Today's stats
+                if (l.data === todayStr) {
+                    if (l.litri_motorina && l.observatii?.includes('Alimentare')) fuelToday += parseFloat(l.litri_motorina);
+                    if (l.ora_start && !l.observatii?.includes('Alimentare')) startsToday++;
+                    if (!l.observatii?.includes('Alimentare')) minsToday += mins;
+                }
+            });
+
+            document.getElementById('fuel-today-display').textContent = `${fuelToday.toFixed(2)} L`;
+            const h = Math.floor(minsToday / 60);
+            const m = minsToday % 60;
+            document.getElementById('runtime-today-display').textContent = `${h}h ${m}m`;
+            
+            if (document.getElementById('starts-today-display')) {
+                document.getElementById('starts-today-display').textContent = `Porniri azi: ${startsToday}`;
+            }
+
+            if (document.getElementById('avg-consumption-display')) {
+                const totalHours = totalMins / 60;
+                if (totalHours > 0) {
+                    const avg = (totalFuel / totalHours).toFixed(1);
+                    document.getElementById('avg-consumption-display').textContent = `Consum istoric: ${avg} L/h`;
+                }
+            }
+        }
+
+        async function init() {
+            const todayISO = new Date().toLocaleDateString('sv-SE');
+            if (!document.getElementById('filterStart').value) document.getElementById('filterStart').value = todayISO;
+            if (!document.getElementById('filterEnd').value) document.getElementById('filterEnd').value = todayISO;
+
+            await checkConnection();
+            const { data, error } = await sb.from('generator_logs').select('*').order('id', {ascending: false});
+            if (error) return;
+            
+            allLogsRaw = data;
+            calculateMaintenance();
+            calculateTodayStats();
+
+            const latestRunning = data.find(l => !l.ora_stop && l.ora_start);
+            const latestFinished = data.find(l => l.ora_start && l.ora_stop);
+            
+            const btn = document.getElementById('mainBtn');
+            if (latestRunning) {
+                document.getElementById('session-start-display').textContent = formatRoTime(latestRunning.ora_start);
+                document.getElementById('session-end-display').textContent = '--:--:--';
+                btn.textContent = 'STOP';
+                btn.className = "w-36 h-36 rounded-full bg-red-700 border-4 border-red-900 text-2xl font-black uppercase tracking-wider text-white transition-all animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.4)] flex items-center justify-center";
+                startElapsedTimer(latestRunning.ora_start);
+            } else {
+                if (latestFinished) {
+                    document.getElementById('session-start-display').textContent = formatRoTime(latestFinished.ora_start);
+                    document.getElementById('session-end-display').textContent = formatRoTime(latestFinished.ora_stop);
+                }
+                btn.textContent = 'START';
+                btn.className = "w-36 h-36 rounded-full bg-emerald-600 border-4 border-emerald-800 text-2xl font-black uppercase tracking-wider text-white transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] flex items-center justify-center";
+                stopElapsedTimer();
+            }
+
+            filterLogs();
+        }
+
+        function startElapsedTimer(startTime) {
+            stopElapsedTimer();
+            const start = parseUTC(startTime).getTime();
+            timerInterval = setInterval(() => {
+                const diff = new Date().getTime() - start;
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                if(document.getElementById('elapsedTimeDisplay')) 
+                    document.getElementById('elapsedTimeDisplay').textContent = `${h}h ${m}m ${s}s`;
+            }, 1000);
+        }
+
+        function stopElapsedTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            if(document.getElementById('elapsedTimeDisplay'))
+                document.getElementById('elapsedTimeDisplay').textContent = "0h 0m 0s";
+        }
+
+        function filterLogs() {
+            const startVal = document.getElementById('filterStart').value;
+            const endVal = document.getElementById('filterEnd').value;
+            let filtered = allLogsRaw.filter(l => (!startVal || l.data >= startVal) && (!endVal || l.data <= endVal));
+
+            const logsBody = document.getElementById('logsBody');
+            let uniqueDays = new Set();
+            let totalMins = 0;
+
+            logsBody.innerHTML = filtered.map(l => {
+                if (l.data) uniqueDays.add(l.data);
+                let mins = (l.ora_start && l.ora_stop) ? Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000) : 0;
+                totalMins += mins;
+                return `
+                    <tr class="border-b border-slate-800/40 hover:bg-slate-900/30 transition-colors font-normal text-slate-300">
+                        <td class="p-3">${formatRoDate(l.data)}</td>
+                        <td class="p-3 text-blue-400">${formatRoTime(l.ora_start)}</td>
+                        <td class="p-3 text-slate-400">${formatRoTime(l.ora_stop)}</td>
+                        <td class="p-3 ${l.litri_motorina ? 'text-emerald-400' : 'text-slate-500'}">${l.litri_motorina || 0}L</td>
+                        <td class="p-3 text-blue-400">${Math.floor(mins/60)}h ${mins%60}m</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('summary-days').textContent = uniqueDays.size;
+            document.getElementById('summary-hours').textContent = `${Math.floor(totalMins/60)}h ${totalMins%60}m`;
+        }
+
+        function clearDateFilters() {
+            const todayISO = new Date().toLocaleDateString('sv-SE');
+            document.getElementById('filterStart').value = todayISO;
+            document.getElementById('filterEnd').value = todayISO;
+            filterLogs();
+        }
+
+        async function gestiuneGenerator() {
+            const btn = document.getElementById('mainBtn');
+            const originalText = btn.textContent.trim().toUpperCase();
+            const isStarting = originalText === 'START';
+            
+            // UX Anti-Spam: Dezactivează butonul
+            btn.disabled = true;
+            btn.textContent = isStarting ? "SE PORNEȘTE..." : "SE OPREȘTE...";
+            btn.classList.add('opacity-75', 'cursor-wait');
+
+            const now = new Date();
+            try {
+                if (isStarting) {
+                    await sb.from('generator_logs').insert([{ ora_start: now.toISOString(), data: now.toLocaleDateString('sv-SE') }]);
+                    sendSystemNotification("🚀 Generator", "Generatorul a fost PORNIT!");
+                } else {
+                    const { data } = await sb.from('generator_logs').select('id, ora_start').is('ora_stop', null).order('id', {ascending: false}).limit(1);
+                    if (data?.[0]) {
+                        const mins = Math.floor((now - parseUTC(data[0].ora_start)) / 60000);
+                        await sb.from('generator_logs').update({ ora_stop: now.toISOString(), total_sesiune: `${Math.floor(mins/60)}h ${mins%60}m` }).eq('id', data[0].id);
+                        sendSystemNotification("🛑 Generator", "Generatorul a fost OPRIT!");
+                    }
+                }
+                await init();
+            } catch (err) {
+                console.error('Error in gestiuneGenerator:', err);
+                alert('Eroare: ' + (err.message || 'Server error'));
+            } finally {
+                // Reactivează butonul
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+                // Textul final va fi setat de funcția init() apelată în try, 
+                // dar ca fallback în caz de eroare punem textul original
+                if (!btn.textContent.includes('START') && !btn.textContent.includes('STOP')) {
+                    btn.textContent = originalText;
+                }
+            }
+        }
+
+        async function adaugaAlimentare() {
+            const litri = document.getElementById('fuelInput').value;
+            if (!litri || isNaN(litri)) return;
+            
+            const btn = event.target; // Butonul de adăugare
+            const originalText = btn.textContent;
+            
+            // UX Anti-Spam
+            btn.disabled = true;
+            btn.textContent = "SE ADAUGĂ...";
+            btn.classList.add('opacity-75', 'cursor-wait');
+
+            const now = new Date();
+            try {
+                await sb.from('generator_logs').insert([{ 
+                    data: now.toLocaleDateString('sv-SE'), 
+                    litri_motorina: parseFloat(litri), 
+                    ora_start: now.toISOString(), 
+                    ora_stop: now.toISOString(), 
+                    observatii: 'Alimentare motorină' 
+                }]);
+                sendSystemNotification("⛽ Alimentare Nouă", `S-au alimentat ${litri} litri!`);
+                document.getElementById('fuelInput').value = '';
+                await init();
+            } catch (err) {
+                console.error('Error in adaugaAlimentare:', err);
+                alert('Eroare: ' + (err.message || 'Server error'));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key.toLowerCase() === 'b') { e.preventDefault(); window.location.href = '../../index.html'; }
+        });
+
+        // --- REALTIME & NOTIFICATIONS LOGIC ---
+        // Solicitare permisiune la încărcare
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+
+        function sendSystemNotification(title, body) {
+            if (Notification.permission === "granted") {
+                const n = new Notification(title, { 
+                    body, 
+                    icon: "../../icons/128x128.png",
+                    silent: false
+                });
+                // Notificarea dispare automat după 5 secunde
+                setTimeout(() => n.close(), 5000);
+            }
+        }
+
+        // Subscripție Realtime pentru notificări și refresh date
+        const logSubscription = sb.channel('generator_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'generator_logs' }, payload => {
+                console.log('Realtime event received:', payload);
+                
+                if (payload.eventType === 'INSERT') {
+                    const rec = payload.new;
+                    if (rec.litri_motorina && rec.observatii?.includes('Alimentare')) {
+                        sendSystemNotification("⛽ Alimentare Nouă", `S-au alimentat ${rec.litri_motorina} litri!`);
+                    } else if (rec.ora_start && !rec.ora_stop) {
+                        sendSystemNotification("🚀 Generator", "Generatorul a fost PORNIT!");
+                    }
+                } else if (payload.eventType === 'UPDATE') {
+                    const rec = payload.new;
+                    const old = payload.old;
+                    if (rec.ora_stop && !payload.old?.ora_stop) {
+                        sendSystemNotification("🛑 Generator", "Generatorul a fost OPRIT!");
+                    }
+                }
+                
+                // Reîmprospătează datele pe ecran la orice schimbare
+                init();
+            })
+            .subscribe();
+
+        // Automatizare Reset Zilnic (Miezul Nopții)
+        let lastDate = new Date().toLocaleDateString('sv-SE');
+        setInterval(() => {
+            const today = new Date().toLocaleDateString('sv-SE');
+            if (today !== lastDate) {
+                lastDate = today;
+                init(); 
+            }
+        }, 30000);
+
+        function changeMaintLimit() {
+            const current = localStorage.getItem('maint_limit') || '100';
+            const val = prompt("Introdu limita nouă pentru mentenanță (ore):", current);
+            if (val && !isNaN(val)) {
+                localStorage.setItem('maint_limit', val);
+                document.getElementById('maint-limit-text').textContent = val;
+                calculateMaintenance();
+            }
+        }
+
+        window.onload = () => {
+            const limit = localStorage.getItem('maint_limit') || '100';
+            document.getElementById('maint-limit-text').textContent = limit;
+            init();
+        };
+    </script>
+</body>
+</html>

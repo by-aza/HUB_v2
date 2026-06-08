@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f1117;
+            color: #ededed;
+            margin: 0;
+        }
+
+        /* Header Fix și Bară Mov Subțire */
+        .fixed-header { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: #0f1117; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000; }
+        .header-divider-mov { position: fixed; top: 70px; left: 0; width: 100%; height: 1px; background: #6a0dad; z-index: 1000; }
+        .content-area { margin-top: 80px; padding: 0 20px 40px; }
+
+        .glass-card {
+            background: rgba(23, 23, 23, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:active {
+            transform: scale(0.98);
+            background: rgba(30, 30, 30, 0.9);
+        }
+
+        .sub-button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .sub-button:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="fixed-header">
+        <div class="flex items-center gap-3">
+            <img src="icons/128x128.png" alt="Logo" style="width: 40px;">
+            <h1 class="text-xl font-bold gradient-text">HUB Service Auto</h1>
+        </div>
+    </header>
+    <div class="header-divider-mov"></div>
+
+    <main class="content-area space-y-6">
+        <!-- MODUL: DEVIZE -->
+        <section>
+            <div class="glass-card hub-card rounded-3xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-blue-500/10 rounded-xl">
+                        <i data-lucide="file-text" class="text-blue-500 w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Devize</h2>
+                </div>
+                <div class="grid gap-3">
+                    <a href="modules/devize/deviz.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-text" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Deviz Estimativ</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/devize/cautare_devize.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="search" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Căutare Deviz</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/devize/contracte.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="folder" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Contracte</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODUL: STOCURI -->
+        <section>
+            <div class="glass-card hub-card rounded-3xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-emerald-500/10 rounded-xl">
+                        <i data-lucide="package" class="text-emerald-500 w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Stocuri</h2>
+                </div>
+                <div class="grid gap-3">
+                    <a href="modules/stocuri/consumabile.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="droplets" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Consumabile</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/stocuri/piese_stoc.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="layers" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Piese Stoc</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/stocuri/comenzi_piese.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="shopping-cart" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Comenzi piese</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODUL: FLOTA AUTO -->
+        <section>
+            <div class="glass-card hub-card rounded-3xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-purple-500/10 rounded-xl">
+                        <i data-lucide="car" class="text-purple-500 w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Flota Auto</h2>
+                </div>
+                <div class="grid gap-3">
+                    <a href="modules/flota/lista_masini.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="list" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Lista Mașini</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/flota/baza-vin.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <span class="w-5 text-neutral-400">🏷️</span>
+                            <span class="font-medium">Bază Date VIN</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/flota/adauga_masina.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="plus-circle" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Adaugă mașină</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODUL: ALTE FORMULARE -->
+        <section>
+            <div class="glass-card hub-card rounded-3xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-amber-500/10 rounded-xl">
+                        <i data-lucide="form-input" class="text-amber-500 w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Alte formulare</h2>
+                </div>
+                <div class="grid gap-3">
+                    <a href="modules/formulare/detailing.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Detailing</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/formulare/constatari.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="clipboard-check" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Constatări service</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/formulare/telefoane-clienti.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="phone" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Telefoane Clienți</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/formulare/evidenta-awb.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="truck" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Evidență AWB</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                    <a href="modules/formulare/generator.html" class="sub-button flex items-center justify-between p-4 rounded-2xl w-full text-left">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="cpu" class="w-5 h-5 text-neutral-400"></i>
+                            <span class="font-medium">Evidență Generator</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-600"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

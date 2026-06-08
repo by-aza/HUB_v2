@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidență AWB - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
+    <header class="shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div class="px-4 pt-4 pb-3 flex flex-col gap-3">
+            <div class="grid grid-cols-3 items-center gap-3">
+                <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
+                    <- Înapoi
+                </a>
+                <div class="justify-self-center text-xl font-bold text-purple-400 tracking-wide">
+                    EVIDENȚĂ AWB
+                </div>
+                <button id="btn-open-add" type="button" class="justify-self-end inline-flex items-center rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors">
+                    + AWB NOU
+                </button>
+            </div>
+
+            <div class="mx-auto w-full max-w-4xl rounded-2xl bg-slate-900/60 border border-slate-800/60 px-6 py-4 text-center">
+                <div class="text-xs uppercase tracking-widest text-slate-400">
+                    SUMA COLETELOR
+                </div>
+                <div id="total-suma" class="mt-1 text-2xl sm:text-3xl font-extrabold text-cyan-300">
+                    0 RON
+                </div>
+            </div>
+
+            <div class="mx-auto w-full max-w-4xl">
+                <input
+                    id="search-input"
+                    type="search"
+                    placeholder="Caută client, AWB, oraș..."
+                    class="w-full rounded-2xl bg-slate-900/60 border border-slate-800/70 px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60"
+                />
+            </div>
+
+            <div class="mx-auto w-full max-w-4xl flex flex-wrap gap-2">
+                <button type="button" data-filter="toate" class="filter-pill rounded-full px-4 py-2 text-sm font-semibold bg-slate-900/60 border border-slate-800/70 text-slate-200 hover:bg-slate-900 transition-colors ring-2 ring-purple-500/30">
+                    Toate
+                </button>
+                <button type="button" data-filter="in_tranzit" class="filter-pill rounded-full px-4 py-2 text-sm font-semibold bg-slate-900/30 border border-slate-800/70 text-orange-300 hover:bg-slate-900/60 transition-colors">
+                    În tranzit
+                </button>
+                <button type="button" data-filter="livrat" class="filter-pill rounded-full px-4 py-2 text-sm font-semibold bg-slate-900/30 border border-slate-800/70 text-emerald-300 hover:bg-slate-900/60 transition-colors">
+                    Livrat
+                </button>
+                <button type="button" data-filter="retur" class="filter-pill rounded-full px-4 py-2 text-sm font-semibold bg-slate-900/30 border border-slate-800/70 text-rose-300 hover:bg-slate-900/60 transition-colors">
+                    Retur
+                </button>
+                <button type="button" data-filter="arhiva" class="filter-pill rounded-full px-4 py-2 text-sm font-semibold bg-slate-900/30 border border-slate-800/70 text-slate-400 hover:bg-slate-900/60 transition-colors">
+                    Arhivă
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="awb-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 max-w-4xl mx-auto w-full">
+        <div id="awb-empty" class="flex-1 grid place-items-center rounded-2xl border border-dashed border-slate-800/70 bg-slate-900/20 text-slate-500">
+            Se încarcă...
+        </div>
+        <div id="awb-list" class="flex flex-col gap-2"></div>
+    </div>
+
+    <div id="modal-add" class="hidden fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-black/70"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+            <div class="w-full max-w-2xl rounded-2xl border border-slate-800/70 bg-slate-950 shadow-xl">
+                <div class="px-5 py-4 border-b border-slate-800/70 flex items-center justify-between">
+                    <div class="text-lg font-bold text-slate-100">Adaugă AWB</div>
+                    <button id="btn-close-add" type="button" class="rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">Închide</button>
+                </div>
+                <form id="form-add-awb" class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Curier</span>
+                        <select id="add-curier" required class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60">
+                            <option value="Cargus">Cargus</option>
+                            <option value="Dragon Star">Dragon Star</option>
+                            <option value="Fan Courier">Fan Courier</option>
+                            <option value="Sameday">Sameday</option>
+                            <option value="DPD">DPD</option>
+                        </select>
+                    </label>
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Număr AWB</span>
+                        <input id="add-nr-awb" required autocomplete="off" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Nume Client</span>
+                        <input id="add-nume-client" required autocomplete="off" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Oraș Destinație</span>
+                        <input id="add-oras" required autocomplete="off" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <label class="grid gap-1 sm:col-span-2">
+                        <span class="text-xs font-semibold text-slate-400">Denumire Piesă</span>
+                        <input id="add-piesa" required autocomplete="off" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Preț</span>
+                        <input id="add-pret" required type="number" inputmode="decimal" min="0" step="0.01" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <label class="grid gap-1">
+                        <span class="text-xs font-semibold text-slate-400">Telefon Client</span>
+                        <input id="add-telefon" required inputmode="tel" autocomplete="off" class="rounded-xl bg-slate-900/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-purple-500/60" />
+                    </label>
+                    <div class="sm:col-span-2 flex items-center justify-between gap-2 pt-2">
+                        <button id="btn-cancel-add" type="button" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">Anulează</button>
+                        <button id="btn-save-add" type="submit" class="rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors">Salvează</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-status" class="hidden fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-black/70"></div>
+        <div class="relative h-full w-full grid place-items-center p-4">
+            <div class="w-full max-w-md rounded-2xl border border-slate-800/70 bg-slate-950 shadow-xl">
+                <div class="px-5 py-4 border-b border-slate-800/70 flex items-center justify-between">
+                    <div class="text-lg font-bold text-slate-100">Actualizează Stare AWB</div>
+                    <button id="btn-close-status" type="button" class="rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">Închide</button>
+                </div>
+                <div class="p-5 grid gap-3">
+                    <div id="status-subtitle" class="text-sm text-slate-400"></div>
+                    <button id="btn-mark-livrat" type="button" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-extrabold text-white transition-colors">Marchează LIVRAT</button>
+                    <button id="btn-mark-retur" type="button" class="w-full rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-3 text-sm font-extrabold text-white transition-colors">Marchează RETUR</button>
+                    <button id="btn-mark-arhiva" type="button" class="w-full rounded-xl bg-slate-700 hover:bg-slate-600 px-4 py-3 text-sm font-extrabold text-white transition-colors">ARHIVEAZĂ</button>
+
+                    <div id="retur-area" class="hidden mt-2 grid gap-2 rounded-2xl border border-slate-800/70 bg-slate-900/30 p-4">
+                        <label class="grid gap-1">
+                            <span class="text-xs font-semibold text-slate-400">Motiv Retur</span>
+                            <textarea id="retur-motiv" rows="3" class="rounded-xl bg-slate-950/60 border border-slate-800/70 px-3 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60"></textarea>
+                        </label>
+                        <button id="btn-confirm-retur" type="button" class="w-full rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2.5 text-sm font-extrabold text-white transition-colors">Confirmă RETUR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const awbContainer = document.getElementById('awb-container');
+        const awbListEl = document.getElementById('awb-list');
+        const awbEmptyEl = document.getElementById('awb-empty');
+        const totalSumaEl = document.getElementById('total-suma');
+        const searchInput = document.getElementById('search-input');
+        const filterPills = Array.from(document.querySelectorAll('.filter-pill'));
+
+        const modalAdd = document.getElementById('modal-add');
+        const btnOpenAdd = document.getElementById('btn-open-add');
+        const btnCloseAdd = document.getElementById('btn-close-add');
+        const btnCancelAdd = document.getElementById('btn-cancel-add');
+        const formAdd = document.getElementById('form-add-awb');
+        const btnSaveAdd = document.getElementById('btn-save-add');
+
+        const modalStatus = document.getElementById('modal-status');
+        const btnCloseStatus = document.getElementById('btn-close-status');
+        const statusSubtitle = document.getElementById('status-subtitle');
+        const btnMarkLivrat = document.getElementById('btn-mark-livrat');
+        const btnMarkRetur = document.getElementById('btn-mark-retur');
+        const btnMarkArhiva = document.getElementById('btn-mark-arhiva');
+        const returArea = document.getElementById('retur-area');
+        const returMotiv = document.getElementById('retur-motiv');
+        const btnConfirmRetur = document.getElementById('btn-confirm-retur');
+
+        let allAwbs = [];
+        let activeFilter = 'toate';
+        let searchQuery = '';
+        let selectedAwbId = null;
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        })[ch]);
+
+        const normalizePhone = (value) => String(value ?? '').replace(/[^\d]/g, '');
+
+        const formatMoney = (value) => {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return '0';
+            return new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
+        };
+
+        const isConfigured = () => supabaseUrl && supabaseKey && !supabaseUrl.includes('PUNE_') && !supabaseKey.includes('PUNE_');
+
+        const openModal = (el) => el.classList.remove('hidden');
+        const closeModal = (el) => el.classList.add('hidden');
+
+        const setModalSaving = (buttons, saving, textOverride) => {
+            buttons.forEach((btn) => {
+                btn.disabled = saving;
+                btn.classList.toggle('opacity-60', saving);
+                btn.classList.toggle('cursor-not-allowed', saving);
+                if (textOverride) btn.textContent = saving ? textOverride.saving : textOverride.idle;
+            });
+        };
+
+        const updateTotal = () => {
+            const sum = allAwbs
+                .filter((a) => !a.is_archived && a.stare === 'in_tranzit')
+                .reduce((acc, a) => acc + (Number(a.pret) || 0), 0);
+            totalSumaEl.textContent = `${formatMoney(sum)} RON`;
+        };
+
+        const applyLocalFilters = () => {
+            const q = searchQuery.trim().toLowerCase();
+            return allAwbs.filter((a) => {
+                if (activeFilter === 'arhiva') {
+                    if (!a.is_archived) return false;
+                } else {
+                    if (a.is_archived) return false;
+                    if (activeFilter !== 'toate' && a.stare !== activeFilter) return false;
+                }
+
+                if (!q) return true;
+                const hay = [
+                    a.nume_client,
+                    a.oras,
+                    a.nr_awb,
+                    a.piesa,
+                ].map((v) => String(v ?? '').toLowerCase()).join(' ');
+                return hay.includes(q);
+            });
+        };
+
+        const statusLabel = (awb) => {
+            if (awb.is_archived) return 'Arhivă';
+            if (awb.stare === 'livrat') return 'Livrat';
+            if (awb.stare === 'retur') return 'Retur';
+            return 'În tranzit';
+        };
+
+        const statusTheme = (awb) => {
+            if (awb.is_archived) {
+                return {
+                    cardBorder: 'border-slate-800/80',
+                    price: 'text-slate-400',
+                    pill: 'bg-slate-900/30 border-slate-800/70 text-slate-400 hover:bg-slate-900/60',
+                };
+            }
+            if (awb.stare === 'livrat') {
+                return {
+                    cardBorder: 'border-emerald-500/40',
+                    price: 'text-emerald-300',
+                    pill: 'bg-emerald-950/30 border-emerald-700/50 text-emerald-200 hover:bg-emerald-950/50',
+                };
+            }
+            if (awb.stare === 'retur') {
+                return {
+                    cardBorder: 'border-rose-500/40',
+                    price: 'text-rose-300',
+                    pill: 'bg-rose-950/30 border-rose-700/50 text-rose-200 hover:bg-rose-950/50',
+                };
+            }
+            return {
+                cardBorder: 'border-orange-500/40',
+                price: 'text-orange-300',
+                pill: 'bg-orange-950/30 border-orange-700/50 text-orange-200 hover:bg-orange-950/50',
+            };
+        };
+
+        const renderAwbs = () => {
+            const list = applyLocalFilters();
+
+            awbListEl.innerHTML = list.map((awb) => {
+                const t = statusTheme(awb);
+                const tel = normalizePhone(awb.telefon_client);
+                const wa = tel ? `https://wa.me/${tel}` : 'https://wa.me/';
+                const price = `${formatMoney(awb.pret)} RON`;
+
+                return `
+                    <div class="rounded-2xl border ${t.cardBorder} bg-slate-900/30 p-2.5 shadow-sm hub-card">
+                        <div class="flex items-start justify-between gap-3 leading-tight">
+                            <div class="min-w-0">
+                                <div class="truncate text-base font-extrabold text-slate-100">${escapeHtml(awb.nume_client)}</div>
+                                <div class="mt-1 text-xs text-slate-500">${escapeHtml(awb.curier)} • ${escapeHtml(awb.nr_awb)}</div>
+                            </div>
+                            <div class="shrink-0 text-right">
+                                <div class="text-lg font-extrabold ${t.price}">${escapeHtml(price)}</div>
+                            </div>
+                        </div>
+                        <hr class="border-slate-700 my-1.5">
+                        <div class="flex justify-between items-center gap-3 text-sm leading-tight text-slate-300">
+                            <div class="min-w-0 truncate">
+                                AWB: <span class="font-semibold text-slate-100">${escapeHtml(awb.nr_awb)}</span> | ${escapeHtml(awb.oras)} | ${escapeHtml(awb.piesa)}
+                            </div>
+                            ${awb.stare === 'retur' ? `<span class="shrink-0 text-red-400 text-sm italic">Motiv: ${escapeHtml(awb.motiv_retur || 'Nespecificat')}</span>` : ''}
+                        </div>
+                        <div class="mt-1.5 flex flex-wrap gap-2">
+                            <button type="button" data-awb-id="${escapeHtml(awb.id)}" class="status-btn rounded-full py-1 px-2.5 text-sm font-semibold border ${t.pill} transition-colors">
+                                ${escapeHtml(statusLabel(awb))}
+                            </button>
+                            <a href="${tel ? `tel:${tel}` : '#'}" class="rounded-full py-1 px-2.5 text-sm font-semibold border border-slate-800/70 bg-slate-900/30 text-slate-200 hover:bg-slate-900/60 transition-colors">
+                                📞 APEL
+                            </a>
+                            <a href="${escapeHtml(wa)}" target="_blank" rel="noopener noreferrer" class="rounded-full py-1 px-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-slate-100 border-none transition-colors">
+                                💬 WA
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const hasAny = list.length > 0;
+            awbEmptyEl.classList.toggle('hidden', hasAny);
+            if (!hasAny) awbEmptyEl.textContent = 'Niciun AWB găsit.';
+        };
+
+        const fetchAWBs = async () => {
+            if (!isConfigured()) {
+                awbEmptyEl.textContent = 'Completează supabaseUrl și supabaseKey în script.';
+                awbListEl.innerHTML = '';
+                totalSumaEl.textContent = '0 RON';
+                return;
+            }
+
+            awbEmptyEl.textContent = 'Se încarcă...';
+            awbEmptyEl.classList.remove('hidden');
+
+            const { data, error } = await supabaseClient
+                .from('evidenta_awb')
+                .select('*')
+                .order('data_crearii', { ascending: false });
+
+            if (error) {
+                awbEmptyEl.textContent = 'Eroare la încărcare.';
+                awbListEl.innerHTML = '';
+                totalSumaEl.textContent = '0 RON';
+                return;
+            }
+
+            allAwbs = Array.isArray(data) ? data : [];
+            updateTotal();
+            renderAwbs();
+        };
+
+        const setActiveFilter = (filter) => {
+            activeFilter = filter;
+            filterPills.forEach((btn) => {
+                const isActive = btn.dataset.filter === filter;
+                btn.classList.toggle('ring-2', isActive);
+                btn.classList.toggle('ring-purple-500/30', isActive);
+                btn.classList.toggle('ring-transparent', !isActive);
+            });
+            renderAwbs();
+        };
+
+        const resetReturArea = () => {
+            returMotiv.value = '';
+            returArea.classList.add('hidden');
+        };
+
+        const openStatusModalFor = (awbId) => {
+            selectedAwbId = awbId;
+            const awb = allAwbs.find((a) => String(a.id) === String(awbId));
+            const title = awb ? `${awb.nume_client ?? ''} • ${awb.nr_awb ?? ''}`.trim() : '';
+            statusSubtitle.textContent = title;
+            resetReturArea();
+            btnMarkArhiva.disabled = !!(awb && awb.is_archived);
+            btnMarkArhiva.classList.toggle('opacity-60', !!(awb && awb.is_archived));
+            btnMarkArhiva.classList.toggle('cursor-not-allowed', !!(awb && awb.is_archived));
+            openModal(modalStatus);
+        };
+
+        const updateAwb = async (id, payload, savingButtons) => {
+            if (!isConfigured()) return;
+            setModalSaving(savingButtons, true);
+
+            const { error } = await supabaseClient
+                .from('evidenta_awb')
+                .update(payload)
+                .eq('id', id);
+
+            setModalSaving(savingButtons, false);
+            if (error) return;
+            closeModal(modalStatus);
+            resetReturArea();
+            await fetchAWBs();
+        };
+
+        btnOpenAdd.addEventListener('click', () => openModal(modalAdd));
+        btnCloseAdd.addEventListener('click', () => closeModal(modalAdd));
+        btnCancelAdd.addEventListener('click', () => closeModal(modalAdd));
+        btnCloseStatus.addEventListener('click', () => {
+            closeModal(modalStatus);
+            resetReturArea();
+        });
+
+        modalAdd.addEventListener('click', (e) => {
+            if (e.target === modalAdd.firstElementChild) closeModal(modalAdd);
+        });
+        modalStatus.addEventListener('click', (e) => {
+            if (e.target === modalStatus.firstElementChild) {
+                closeModal(modalStatus);
+                resetReturArea();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            closeModal(modalAdd);
+            closeModal(modalStatus);
+            resetReturArea();
+        });
+
+        filterPills.forEach((btn) => {
+            btn.addEventListener('click', () => setActiveFilter(btn.dataset.filter || 'toate'));
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value || '';
+            renderAwbs();
+        });
+
+        awbContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.status-btn');
+            if (!btn) return;
+            const awbId = btn.dataset.awbId;
+            if (!awbId) return;
+            openStatusModalFor(awbId);
+        });
+
+        formAdd.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isConfigured()) return;
+
+            const curier = document.getElementById('add-curier').value;
+            const nr_awb = document.getElementById('add-nr-awb').value.trim();
+            const nume_client = document.getElementById('add-nume-client').value.trim();
+            const oras = document.getElementById('add-oras').value.trim();
+            const piesa = document.getElementById('add-piesa').value.trim();
+            const pret = Number(document.getElementById('add-pret').value);
+            const telefon_client = document.getElementById('add-telefon').value.trim();
+
+            if (!nr_awb || !nume_client || !oras || !piesa || !telefon_client || !Number.isFinite(pret)) return;
+
+            setModalSaving([btnSaveAdd], true, { idle: 'Salvează', saving: 'Se salvează...' });
+
+            const { error } = await supabaseClient.from('evidenta_awb').insert({
+                data_crearii: new Date().toISOString(),
+                curier,
+                nr_awb,
+                nume_client,
+                oras,
+                piesa,
+                pret,
+                telefon_client,
+                stare: 'in_tranzit',
+                motiv_retur: null,
+                is_archived: false,
+            });
+
+            setModalSaving([btnSaveAdd], false, { idle: 'Salvează', saving: 'Se salvează...' });
+            if (error) return;
+
+            formAdd.reset();
+            closeModal(modalAdd);
+            await fetchAWBs();
+        });
+
+        btnMarkLivrat.addEventListener('click', async () => {
+            if (!selectedAwbId) return;
+            await updateAwb(selectedAwbId, { stare: 'livrat', motiv_retur: null, is_archived: false }, [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]);
+        });
+
+        btnMarkArhiva.addEventListener('click', async () => {
+            if (!selectedAwbId) return;
+            await updateAwb(selectedAwbId, { is_archived: true }, [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]);
+        });
+
+        btnMarkRetur.addEventListener('click', () => {
+            returArea.classList.toggle('hidden');
+            returMotiv.focus();
+        });
+
+        btnConfirmRetur.addEventListener('click', async () => {
+            if (!selectedAwbId) return;
+            const motiv = returMotiv.value.trim();
+            if (!motiv) {
+                returMotiv.focus();
+                return;
+            }
+            await updateAwb(selectedAwbId, { stare: 'retur', motiv_retur: motiv, is_archived: false }, [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]);
+        });
+
+        const startRealtime = () => {
+            if (!isConfigured()) return;
+            supabaseClient
+                .channel('awb-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'evidenta_awb' }, () => { fetchAWBs(); })
+                .subscribe();
+        };
+
+        fetchAWBs();
+        startRealtime();
+    </script>
+</body>
+</html>

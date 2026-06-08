@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Detailing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200 antialiased">
+    <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+        <div class="px-4 py-3 flex items-center justify-between gap-3">
+            <h1 class="text-lg sm:text-2xl font-extrabold tracking-wide">Detailing</h1>
+            <button type="button" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition-colors" onclick="openCreateModal()">
+                + Programare
+            </button>
+        </div>
+        <div class="px-4 pb-3 md:hidden">
+            <div class="grid grid-cols-3 gap-2">
+                <button type="button" class="tab-btn inline-flex items-center justify-center rounded-xl border border-slate-800 bg-purple-600 text-white px-3 py-2 text-xs font-bold" data-tab="col-pending" onclick="switchTab('col-pending', this)">
+                    📅 Programări
+                </button>
+                <button type="button" class="tab-btn inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800 px-3 py-2 text-xs font-bold transition-colors" data-tab="col-progress" onclick="switchTab('col-progress', this)">
+                    🛠️ În Lucru
+                </button>
+                <button type="button" class="tab-btn inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800 px-3 py-2 text-xs font-bold transition-colors" data-tab="col-done" onclick="switchTab('col-done', this)">
+                    ✅ Gata
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden p-4">
+        <div class="grid md:grid-cols-3 gap-4 h-full">
+            <section class="column flex flex-col bg-slate-900/40 border border-slate-800 rounded-xl p-3 overflow-hidden" id="col-pending">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold">Programări</h2>
+                    <span class="inline-flex items-center justify-center rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-xs font-bold text-slate-300" id="count-pending">0</span>
+                </div>
+                <div class="cards-list mt-3 space-y-3 overflow-y-auto flex-1 pr-1"></div>
+            </section>
+
+            <section class="column hidden flex flex-col md:flex bg-slate-900/40 border border-slate-800 rounded-xl p-3 overflow-hidden" id="col-progress">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold">În Lucru</h2>
+                    <span class="inline-flex items-center justify-center rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-xs font-bold text-slate-300" id="count-progress">0</span>
+                </div>
+                <div class="cards-list mt-3 space-y-3 overflow-y-auto flex-1 pr-1"></div>
+            </section>
+
+            <section class="column hidden flex flex-col md:flex bg-slate-900/40 border border-slate-800 rounded-xl p-3 overflow-hidden" id="col-done">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold">Finalizate</h2>
+                    <span class="inline-flex items-center justify-center rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-xs font-bold text-slate-300" id="count-done">0</span>
+                </div>
+                <div class="cards-list mt-3 space-y-3 overflow-y-auto flex-1 pr-1"></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modalProgramare" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl p-4">
+            <div class="text-lg font-extrabold text-purple-300">Programare Nouă</div>
+            <form id="formProgramare" class="mt-4 grid gap-3" onsubmit="salveazaProgramare(event)">
+                <input type="hidden" id="progId" name="id" value="">
+                <input type="text" id="progNrInmatriculare" name="nr_inmatriculare" placeholder="Număr Înmatriculare" oninput="this.value = this.value.toUpperCase().replace(/\s/g, '')" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="progTelefon" name="telefon" placeholder="Telefon" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="progAutovehicul" name="autovehicul" placeholder="Model mașină (ex: VW Golf, Ford Mustang)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="progPachet" name="pachet" placeholder="Pachet / Serviciu" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="number" id="progPret" name="pret_estimat" placeholder="Preț Estimat" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="datetime-local" id="progDataProgramare" name="data_programare" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 [color-scheme:dark]" required>
+                <textarea id="progObservatii" name="observatii" placeholder="Observații..." class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 min-h-24"></textarea>
+                <div class="flex items-center gap-3 pt-1">
+                    <button type="button" class="flex-1 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" onclick="closeModal('modalProgramare')">Anulează</button>
+                    <button type="submit" data-role="save" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition-colors">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalEdit" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl p-4">
+            <div class="text-lg font-extrabold text-purple-300">Editează Programarea</div>
+            <form id="formEdit" class="mt-4 grid gap-3" onsubmit="saveEdit(event)">
+                <input type="hidden" id="editId" name="id" value="">
+                <input type="text" id="editNrInmatriculare" name="nr_inmatriculare" placeholder="Număr Înmatriculare" oninput="this.value = this.value.toUpperCase().replace(/\s/g, '')" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="editTelefon" name="telefon" placeholder="Telefon" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="editAutovehicul" name="autovehicul" placeholder="Model mașină (ex: VW Golf, Ford Mustang)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="text" id="editPachet" name="pachet" placeholder="Pachet / Serviciu" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="number" id="editPret" name="pret_estimat" placeholder="Preț Estimat" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
+                <input type="datetime-local" id="editDataProgramare" name="data_programare" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 [color-scheme:dark]" required>
+                <textarea id="editObservatii" name="observatii" placeholder="Observații..." class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 min-h-24"></textarea>
+                <div class="flex items-center gap-3 pt-1">
+                    <button type="button" class="flex-1 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" onclick="closeModal('modalEdit')">Anulează</button>
+                    <button type="submit" data-role="save" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition-colors">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalReady" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl p-4">
+            <div class="text-lg font-extrabold text-purple-300">Mașina e gata!</div>
+            <div class="mt-2 text-sm text-slate-400">Trimite mesaj clientului pe WhatsApp.</div>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a id="readyWaLink" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/40 bg-slate-950/40 hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" href="#" target="_blank" rel="noopener noreferrer">
+                    Trimite mesaj WhatsApp
+                </a>
+                <button class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" type="button" onclick="hideReadyModal()">Închide</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseClient = window.supabase.createClient('https://xyovkxmtbvgcwavuyxxu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74');
+        let editContext = null;
+        let currentEditId = null;
+
+        function switchTab(columnId, btnElement) {
+            const activeClasses = ['bg-purple-600', 'text-white'];
+            const inactiveClasses = ['bg-slate-900', 'text-slate-200', 'hover:bg-slate-800', 'transition-colors'];
+
+            document.querySelectorAll('.tab-btn').forEach((btn) => {
+                activeClasses.forEach((c) => btn.classList.remove(c));
+                btn.classList.add(...inactiveClasses);
+            });
+
+            if (btnElement) {
+                inactiveClasses.forEach((c) => btnElement.classList.remove(c));
+                btnElement.classList.add(...activeClasses);
+            }
+
+            if (window.innerWidth < 768) {
+                document.querySelectorAll('.column').forEach((col) => col.classList.add('hidden'));
+                const activeCol = document.getElementById(columnId);
+                if (activeCol) activeCol.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (e.altKey && e.key.toLowerCase() === "b") {
+                window.location.href = "../../index.html";
+            }
+        });
+
+        function openModal(modalId) {
+            const overlay = document.getElementById(modalId);
+            if (!overlay) return;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            const overlay = document.getElementById(modalId);
+            if (!overlay) return;
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        }
+
+        function openCreateModal() {
+            const form = document.getElementById('formProgramare');
+            if (form) form.reset();
+            const idInput = document.getElementById('progId');
+            if (idInput) idInput.value = '';
+            openModal('modalProgramare');
+        }
+
+        function hideReadyModal() {
+            closeModal('modalReady');
+        }
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        })[ch]);
+
+        const isConfigured = () => {
+            return !!supabaseClient && typeof supabaseClient.from === 'function';
+        };
+
+        const pad2 = (n) => String(n).padStart(2, '0');
+
+        const parseDate = (value) => {
+            if (!value) return null;
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return null;
+            return d;
+        };
+
+        const formatDateShort = (dateString) => {
+            const d = parseDate(dateString);
+            if (!d) return '';
+            return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+        };
+
+        const formatDateTime = (dateStr) => {
+            const raw = String(dateStr ?? '').trim();
+            if (!raw) return '';
+            const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+            if (m) return `${m[3]}-${m[2]}-${m[1]} ${m[4]}:${m[5]}`;
+            const d = parseDate(raw);
+            if (!d) return raw;
+            return `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        };
+
+        const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+        const formatDuration = (ms) => {
+            const totalMinutes = Math.max(0, Math.round(ms / 60000));
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours <= 0) return `${minutes}m`;
+            if (minutes <= 0) return `${hours}h`;
+            return `${hours}h ${minutes}m`;
+        };
+
+        const getHoursMinutes = (ms) => {
+            const totalMinutes = Math.max(0, Math.round(ms / 60000));
+            return {
+                hours: Math.floor(totalMinutes / 60),
+                minutes: totalMinutes % 60,
+            };
+        };
+
+        const phoneToTel = (raw) => String(raw ?? '').replace(/\D/g, '');
+
+        const buildWhatsAppUrlFinal = (telefon, autovehicul, pret) => {
+            const digits = String(telefon ?? '').replace(/\D/g, '').replace(/^0/, '');
+            if (!digits) return '';
+            const message = `Buna ziua, mașina ${autovehicul} este gata! Prețul final este ${pret} RON.`;
+            return `https://wa.me/40${digits}?text=${encodeURIComponent(message)}`;
+        };
+
+        const statusToColumnId = (status) => {
+            if (status === 'In lucru') return 'col-progress';
+            if (status === 'Finalizate') return 'col-done';
+            return 'col-pending';
+        };
+
+        const statusToCardBorder = (status) => {
+            if (status === 'In lucru') return 'border-l-4 border-blue-400';
+            if (status === 'Finalizate') return 'border-l-4 border-slate-500';
+            return 'border-l-4 border-amber-400';
+        };
+
+        async function fetchDetailing() {
+            const cols = [
+                document.querySelector('#col-pending .cards-list'),
+                document.querySelector('#col-progress .cards-list'),
+                document.querySelector('#col-done .cards-list'),
+            ];
+            cols.forEach((el) => { if (el) el.innerHTML = ''; });
+            document.getElementById('count-pending').innerText = '0';
+            document.getElementById('count-progress').innerText = '0';
+            document.getElementById('count-done').innerText = '0';
+
+            if (!isConfigured()) return;
+
+            const { data, error } = await supabaseClient
+                .from('detailing')
+                .select('id, nr_inmatriculare, telefon, autovehicul, pachet, pret_estimat, data_programare, observatii, status, data_inceperii, data_finalizarii')
+                .order('data_programare', { ascending: false });
+
+            if (error) return;
+
+            renderCards(Array.isArray(data) ? data : []);
+        }
+
+        function renderCards(rows) {
+            const colPending = document.querySelector('#col-pending .cards-list');
+            const colProgress = document.querySelector('#col-progress .cards-list');
+            const colDone = document.querySelector('#col-done .cards-list');
+            if (colPending) colPending.innerHTML = '';
+            if (colProgress) colProgress.innerHTML = '';
+            if (colDone) colDone.innerHTML = '';
+
+            let countPending = 0;
+            let countProgress = 0;
+            let countDone = 0;
+
+            rows.forEach((row) => {
+                const status = String(row.status ?? 'Programari').trim();
+                const columnId = statusToColumnId(status);
+                const cardBorder = statusToCardBorder(status);
+
+                if (columnId === 'col-progress') countProgress += 1;
+                else if (columnId === 'col-done') countDone += 1;
+                else countPending += 1;
+
+                const telRaw = String(row.telefon ?? '').trim();
+                const telClean = phoneToTel(telRaw);
+                const pretValue = row.pret_estimat ?? row.pret ?? '';
+
+                let timeLabel = '';
+                if (status === 'In lucru') {
+                    const ds = formatDateShort(row.data_inceperii);
+                    timeLabel = ds ? `${ds} - ...` : '';
+                } else if (status === 'Finalizate') {
+                    const start = parseDate(row.data_inceperii);
+                    const end = parseDate(row.data_finalizarii);
+                    if (start && end && sameDay(start, end)) {
+                        const { hours, minutes } = getHoursMinutes(end.getTime() - start.getTime());
+                        timeLabel = `${formatDateShort(start)} (${hours}h ${minutes}m)`;
+                    } else if (start && end) {
+                        timeLabel = `${formatDateShort(start)} - ${formatDateShort(end)}`;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = `card ${cardBorder} bg-slate-900 border border-slate-700 rounded-lg p-4 hub-card`;
+                card.innerHTML = `
+                    <div class="card-edit-zone cursor-pointer hover:bg-slate-800/50 rounded p-1 transition-colors -mx-1">
+                        <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-lg font-extrabold text-slate-100 leading-tight uppercase">${escapeHtml(String(row.nr_inmatriculare || '').toUpperCase())}</h3>
+                        </div>
+                        ${timeLabel ? `<span class="text-xs font-semibold text-slate-400 whitespace-nowrap text-right">${escapeHtml(timeLabel)}</span>` : ``}
+                    </div>
+                        <p class="text-sm font-bold text-slate-200 mt-1 mb-2">📅 ${escapeHtml(formatDateTime(row.data_programare))}</p>
+                    </div>
+                    <div class="mt-3 text-sm text-slate-300">
+                        <div>📞 ${telClean ? `<a href="tel:${escapeHtml(telClean)}" onclick="event.stopPropagation()" class="text-slate-200 font-semibold hover:text-slate-100">${escapeHtml(telRaw)}</a>` : `${escapeHtml(telRaw)}`}</div>
+                        <div class="mt-1">🚗 <span class="text-slate-200 font-semibold">${escapeHtml(row.autovehicul || '')}</span></div>
+                        <div class="mt-1">🛠️ <span class="text-slate-200 font-semibold">${escapeHtml(row.pachet || '')}</span></div>
+                        <div class="mt-1">💰 <span class="font-bold text-emerald-400">${escapeHtml(pretValue)} RON</span></div>
+                        ${row.observatii ? `<div class="mt-2 text-xs text-slate-400 italic whitespace-pre-wrap">📝 ${escapeHtml(row.observatii)}</div>` : ``}
+                    </div>
+                    <div class="actions mt-3 flex gap-2"></div>
+                `;
+
+                const actions = card.querySelector('.actions');
+                if (actions) {
+                    if (status === 'Programari') {
+                        const btnStart = document.createElement('button');
+                        btnStart.type = 'button';
+                        btnStart.className = 'flex-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+                        btnStart.textContent = '▶️ Începe';
+                        btnStart.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            btnStart.disabled = true;
+                            const { error } = await supabaseClient
+                                .from('detailing')
+                                .update({ status: 'In lucru', data_inceperii: new Date().toISOString() })
+                                .eq('id', row.id);
+                            if (!error) await fetchDetailing();
+                            btnStart.disabled = false;
+                        });
+
+                        const btnDelete = document.createElement('button');
+                        btnDelete.type = 'button';
+                        btnDelete.className = 'rounded-xl bg-slate-700 hover:bg-slate-600 px-3 py-2 text-xs font-bold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+                        btnDelete.textContent = '🗑️';
+                        btnDelete.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            const confirmed = confirm('Ștergi programarea?');
+                            if (!confirmed) return;
+                            btnDelete.disabled = true;
+                            const { error } = await supabaseClient.from('detailing').delete().eq('id', row.id);
+                            if (!error) await fetchDetailing();
+                            btnDelete.disabled = false;
+                        });
+
+                        actions.appendChild(btnStart);
+                        actions.appendChild(btnDelete);
+                    }
+
+                    if (status === 'In lucru') {
+                        const btnFinish = document.createElement('button');
+                        btnFinish.type = 'button';
+                        btnFinish.className = 'flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+                        btnFinish.textContent = '✅ Finalizează';
+                        btnFinish.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            btnFinish.disabled = true;
+                            const { error } = await supabaseClient
+                                .from('detailing')
+                                .update({ status: 'Finalizate', data_finalizarii: new Date().toISOString() })
+                                .eq('id', row.id);
+                            if (!error) await fetchDetailing();
+                            btnFinish.disabled = false;
+                        });
+                        actions.appendChild(btnFinish);
+                    }
+
+                    if (status === 'Finalizate') {
+                        const waUrl = buildWhatsAppUrlFinal(telRaw, row.autovehicul || '', pretValue);
+                        const wa = document.createElement('a');
+                        wa.className = 'flex-1 inline-flex items-center justify-center rounded-xl border border-emerald-500/40 bg-slate-950/40 hover:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-200 transition-colors';
+                        wa.href = waUrl || '#';
+                        wa.target = '_blank';
+                        wa.rel = 'noopener noreferrer';
+                        wa.textContent = 'WhatsApp';
+                        wa.setAttribute('onclick', 'event.stopPropagation()');
+                        wa.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (!waUrl) e.preventDefault();
+                        });
+                        actions.appendChild(wa);
+                    }
+                }
+
+                const editZone = card.querySelector('.card-edit-zone');
+                if (editZone) {
+                    editZone.addEventListener('click', () => {
+                        if (status === 'Finalizate') return;
+                        openEditForRow(row);
+                    });
+                }
+
+                const targetCol = document.querySelector(`#${columnId} .cards-list`);
+                if (targetCol) targetCol.appendChild(card);
+            });
+
+            document.getElementById('count-pending').innerText = String(countPending);
+            document.getElementById('count-progress').innerText = String(countProgress);
+            document.getElementById('count-done').innerText = String(countDone);
+        }
+
+        function toDatetimeLocalValue(value) {
+            const d = parseDate(value);
+            if (!d) return '';
+            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+
+        function openEditForRow(row) {
+            currentEditId = row.id ?? null;
+            editContext = {
+                id: row.id,
+                status: row.status ?? 'Programari',
+                data_inceperii: row.data_inceperii ?? null,
+                data_finalizarii: row.data_finalizarii ?? null,
+            };
+
+            document.getElementById('editId').value = row.id ?? '';
+            document.getElementById('editNrInmatriculare').value = row.nr_inmatriculare ?? '';
+            document.getElementById('editTelefon').value = row.telefon ?? '';
+            document.getElementById('editAutovehicul').value = row.autovehicul ?? '';
+            document.getElementById('editPachet').value = row.pachet ?? '';
+            document.getElementById('editPret').value = row.pret_estimat ?? row.pret ?? '';
+            document.getElementById('editDataProgramare').value = toDatetimeLocalValue(row.data_programare);
+            document.getElementById('editObservatii').value = row.observatii ?? '';
+
+            openModal('modalEdit');
+        }
+
+        async function saveEdit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            if (!form) return;
+
+            if (!currentEditId) {
+                alert('Eroare: lipsește ID-ul pentru editare.');
+                return;
+            }
+
+            const btn = form.querySelector('[data-role="save"]');
+            if (btn) btn.disabled = true;
+
+            const nr_inmatriculare = (form.querySelector('[name="nr_inmatriculare"]')?.value || '').trim().toUpperCase().replace(/\s/g, '');
+            const telefon = (form.querySelector('[name="telefon"]')?.value || '').trim();
+            const autovehicul = (form.querySelector('[name="autovehicul"]')?.value || '').trim();
+            const pachet = (form.querySelector('[name="pachet"]')?.value || '').trim();
+            const pretRaw = (form.querySelector('[name="pret_estimat"]')?.value || '').trim();
+            const data_programare = (form.querySelector('[name="data_programare"]')?.value || '').trim();
+            const observatii = (form.querySelector('[name="observatii"]')?.value || '').trim();
+
+            const pret_estimat = pretRaw ? Number(pretRaw) : null;
+
+            const { error } = await supabaseClient
+                .from('detailing')
+                .update({
+                    nr_inmatriculare,
+                    telefon,
+                    autovehicul,
+                    pachet,
+                    pret_estimat,
+                    data_programare: data_programare || null,
+                    observatii,
+                })
+                .eq('id', currentEditId);
+
+            if (error) {
+                console.error(error);
+                alert(error.message);
+                if (btn) btn.disabled = false;
+                return;
+            }
+
+            closeModal('modalEdit');
+            currentEditId = null;
+            await fetchDetailing();
+
+            editContext = null;
+            form.reset();
+            if (btn) btn.disabled = false;
+        }
+
+        async function salveazaProgramare(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            if (!form) return;
+
+            const btn = form.querySelector('[data-role="save"]');
+            if (btn) btn.disabled = true;
+
+            const idRaw = (form.querySelector('[name="id"]')?.value || '').trim();
+            const nr_inmatriculare = (form.querySelector('[name="nr_inmatriculare"]')?.value || '').trim().toUpperCase().replace(/\s/g, '');
+            const telefon = (form.querySelector('[name="telefon"]')?.value || '').trim();
+            const autovehicul = (form.querySelector('[name="autovehicul"]')?.value || '').trim();
+            const pachet = (form.querySelector('[name="pachet"]')?.value || '').trim();
+            const pretRaw = (form.querySelector('[name="pret_estimat"]')?.value || '').trim();
+            const data_programare = (form.querySelector('[name="data_programare"]')?.value || '').trim();
+            const observatii = (form.querySelector('[name="observatii"]')?.value || '').trim();
+
+            const pret_estimat = pretRaw ? Number(pretRaw) : null;
+
+            const payload = {
+                nr_inmatriculare,
+                telefon,
+                autovehicul,
+                pachet,
+                pret_estimat,
+                data_programare: data_programare || null,
+                observatii,
+            };
+
+            if (idRaw) payload.id = /^\d+$/.test(idRaw) ? Number(idRaw) : idRaw;
+
+            payload.status = 'Programari';
+            payload.data_inceperii = null;
+            payload.data_finalizarii = null;
+
+            const { error } = await supabaseClient.from('detailing').upsert(payload);
+
+            if (error) {
+                console.error(error);
+                alert(error.message);
+                if (btn) btn.disabled = false;
+                return;
+            }
+
+            closeModal('modalProgramare');
+            form.reset();
+            await fetchDetailing();
+
+            if (btn) btn.disabled = false;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.innerWidth < 768) {
+                const btn = document.querySelector('.tab-btn[data-tab="col-pending"]');
+                switchTab('col-pending', btn);
+            }
+            fetchDetailing();
+        });
+    </script>
+</body>
+</html>

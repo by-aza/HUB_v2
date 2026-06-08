@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaugă Mașină - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f1117; color: #ededed; margin: 0; }
+        .glass-card { background: rgba(23, 23, 23, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gradient-text { background: linear-gradient(135deg, #fff 0%, #888 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .fixed-header { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: #0f1117; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000; }
+        .header-divider-mov { position: fixed; top: 70px; left: 0; width: 100%; height: 1px; background: #6a0dad; z-index: 1000; }
+        .content-area { margin-top: 80px; padding: 20px; }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    <header class="fixed-header">
+        <div class="flex items-center gap-3">
+            <img src="../../icons/128x128.png" alt="Logo" style="width: 40px;">
+            <h1 class="text-xl font-bold gradient-text">Adaugă Mașină</h1>
+        </div>
+        <a href="../../index.html" class="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span class="text-sm font-medium">Înapoi</span>
+        </a>
+    </header>
+    <div class="header-divider-mov"></div>
+
+    <main class="content-area">
+        <div class="glass-card rounded-3xl p-8 text-center border-dashed border-2 border-neutral-800">
+            <p class="text-neutral-500 italic">Conținutul pentru Adaugă Mașină va fi implementat aici.</p>
+        </div>
+    </main>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

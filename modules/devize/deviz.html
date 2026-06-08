@@ -1,0 +1,987 @@
+
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+<meta charset="UTF-8">
+<title>Deviz Reparație</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="manifest" href="/manifest.json">
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js');
+        });
+    }
+</script>
+
+<style>
+
+
+/* ============================================
+   RESET + FUNDAL
+============================================ */
+body {
+    font-family: Arial, sans-serif;
+    background: #020617;
+    color: #e2e8f0;
+    margin: 0;
+    padding: 0;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.section-title {
+    font-size: 15px;
+    font-weight: bold;
+    display: block;
+    margin: 10px 0 5px 2mm;
+}
+
+/* ============================================
+   PAGINA A4
+============================================ */
+.page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    color: #000;
+    margin: 10mm auto;
+    padding: 18mm 12mm 12mm 12mm; /* mutat mai jos pentru print */
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   WATERMARK
+============================================ */
+.watermark {
+    position: absolute;
+    top: 60mm;
+    left: 30mm;
+    width: 150mm;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ============================================
+   BUTOANE
+============================================ */
+.btn-container {
+    margin: 20px;
+}
+
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.btn-back {
+    background-color: #555;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 15px;
+    display: inline-block;
+}
+
+.btn-print { background-color: #0275d8; color: white; }
+    .btn-new   { background-color: #ff9800; color: white; }
+    .btn-add   { background-color: #5cb85c; color: white; }
+.btn-clear { background-color: #c62828; color: white; }
+.btn-save  { background-color: #1565c0; color: white; }
+.btn-load  { background-color: #00897b; color: white; }
+
+/* ============================================
+   TITLU DEVIZ
+============================================ */
+.title-deviz {
+    font-size: 18px !important;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 15px;
+    text-align: left !important;
+    margin-left: 5mm;
+}
+
+/* ============================================
+   DATE AUTOVEHICUL
+============================================ */
+.info-section div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-section strong {
+    font-size: 15px !important;
+}
+
+.label {
+    font-size: 15px !important;
+}
+
+.obs-title {
+    font-size: 15px !important;
+}
+
+.page input {
+    background: transparent;
+    border-bottom: 1px dashed #888;
+    padding: 3px;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+/* ============================================
+   LINII GRI ÎNTRE SECȚIUNI
+============================================ */
+.section-line {
+    border-bottom: 1px solid #666;
+    margin: 20px 0;
+}
+
+/* ============================================
+   TABEL PIESE
+============================================ */
+.page table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+}
+
+.page th {
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* VARIANTA B — echilibrată */
+.page th:nth-child(1) { width: 72%; } /* Piesă/Serviciu */
+.page th:nth-child(2) { width: 8%; }  /* Cant. */
+.page th:nth-child(3) { width: 10%; } /* Preț */
+.page th:nth-child(4) { width: 10%; } /* Total */
+
+.page td {
+    padding: 5px;
+}
+
+.qty   { width: 50px; text-align: center; }
+.price { width: 70px; text-align: center; }
+.row-total {
+    width: 70px;
+    font-size: 13px !important;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Celula piesă + checkbox */
+.piesa-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.piesa-cell input[type="text"] {
+    width: 95%;
+}
+
+.apply-discount {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* buton ștergere rând */
+.delete-btn {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* ============================================
+   TOTALURI
+============================================ */
+.total-block {
+    margin-bottom: 18px;
+}
+
+.total-block .label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.discount-input-inline {
+    width: 40px !important;
+    padding: 0 !important;
+    border-bottom: 1px dashed #888 !important;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center !important;
+}
+
+.value {
+    display: block;
+    margin-left: 20px;
+    margin-top: 3px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.total-final .value {
+    font-size: 15px;
+}
+
+/* ============================================
+   OBSERVAȚII
+============================================ */
+.observatii { margin-top: 40px; }
+
+.obs-title { font-size: 15px; font-weight: bold; }
+
+.obs-list {
+    margin-left: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.obs-small {
+    margin-top: 30px;
+    padding-left: 20px;
+    text-indent: -10px;
+    font-size: 8px;
+    font-weight: bold;
+    line-height: 1.3;
+    white-space: pre-line;
+}
+
+/* ============================================
+   PRINT MODE
+============================================ */
+@page { size: A4; margin: 0; }
+
+@media print {
+
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .btn-container { display: none !important; }
+
+    th:last-child, td:last-child { display: none !important; }
+
+    input {
+        border: none !important;
+        background: transparent !important;
+        pointer-events: none !important;
+        width: auto !important;
+    }
+
+    table, th, td { border: none !important; }
+
+    .page {
+        margin: 0 !important;
+        padding-top: 22mm !important; /* FIX margine sus */
+        padding-left: 12mm !important;
+        padding-right: 12mm !important;
+        padding-bottom: 12mm !important;
+    }
+
+  
+    .watermark {
+        position: fixed !important;
+        top: 60mm !important;
+        left: 30mm !important;
+        width: 150mm !important;
+        opacity: 0.08 !important;
+    }
+	
+/* FORȚĂM tabelul să respecte lățimile în print */
+table {
+    table-layout: fixed !important;
+}
+
+/* Lățimi exacte în milimetri (Chrome respectă mm în print) */
+th:nth-child(1), td:nth-child(1) { width: 120mm !important; }
+th:nth-child(2), td:nth-child(2) { width: 15mm !important; text-align:center !important; }
+th:nth-child(3), td:nth-child(3) { width: 25mm !important; text-align:center !important; }
+th:nth-child(4), td:nth-child(4) { width: 25mm !important; text-align:center !important; }
+
+/* Caseta Piesă/Serviciu să ocupe toată lățimea */
+.piesa-cell input[type="text"] {
+    width: 100% !important;
+}	
+/* Aliniere perfectă pentru Cant. și Preț în print */
+td:nth-child(2) input,
+td:nth-child(3) input {
+    display: block !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+	
+}
+
+</style>
+
+</head>
+
+<body class="bg-slate-950 text-slate-200 min-h-screen">
+    <div class="print:hidden fixed top-0 inset-x-0 z-50 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <a href="../../index.html" class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
+                <- Înapoi
+            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-new" type="button" class="print:hidden rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                    🆕 Deviz Nou
+                </button>
+                <button id="btn-save" type="button" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-white transition-colors">
+                    Salvează
+                </button>
+                <button id="btn-load" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                    Încarcă Deviz
+                </button>
+                <button id="btn-print" type="button" class="rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-sm font-bold text-white transition-colors">
+                    Printează
+                </button>
+                <span id="labelUltimulDeviz" class="print:hidden text-slate-400 font-medium ml-4 whitespace-nowrap">Ultimul deviz: ...</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="print:hidden pt-16">
+        <div class="max-w-6xl mx-auto px-4 py-4 space-y-4">
+            <div class="flex flex-wrap gap-4 bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 items-end">
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">ID Deviz</span>
+                    <input id="screen-id-deviz" autocomplete="off" class="w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
+                </label>
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">Data</span>
+                    <input id="screen-data-deviz" type="date" class="w-32 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 [color-scheme:dark]" />
+                </label>
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">Autovehicul</span>
+                    <input id="screen-autovehicul" autocomplete="off" class="w-48 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
+                </label>
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">Nr. înmatriculare</span>
+                    <input id="screen-nr-auto" autocomplete="off" oninput="this.value = this.value.toUpperCase().replace(/\\s/g, '')" class="w-28 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
+                </label>
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">Serie VIN</span>
+                    <input id="screen-vin" autocomplete="off" class="w-52 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 font-mono tracking-wider" />
+                </label>
+                <div class="ml-auto text-sm font-bold text-slate-100">
+                    TOTAL: <span id="screen-grand-total" class="text-cyan-300">0.00 RON</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/40 border border-slate-800/60 rounded-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-800/60 flex flex-wrap items-center justify-between gap-3">
+                    <div class="font-extrabold text-slate-100">Piese și costuri</div>
+                    <div class="print:hidden flex items-center gap-4">
+                        <label class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-400">Discount global</span>
+                            <div class="flex items-center gap-2">
+                                <input id="screen-discount" type="number" inputmode="decimal" min="0" step="0.01" class="w-16 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" value="0" />
+                                <span class="text-sm text-slate-400">%</span>
+                            </div>
+                        </label>
+                        <button id="btn-add-row" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                            + Adaugă rând
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-xs uppercase tracking-wider text-slate-400">
+                            <tr class="border-b border-slate-800/60">
+                                <th class="text-left px-4 py-3 w-full min-w-[250px]">Piesă / Serviciu</th>
+                                <th class="text-center px-2 py-3 w-20">Cant.</th>
+                                <th class="print:hidden text-center px-2 py-3 w-24">Achiziție</th>
+                                <th class="print:hidden text-center px-2 py-3 w-20">Adaos</th>
+                                <th class="text-center px-2 py-3 w-32">Preț unitar</th>
+                                <th class="text-right px-2 py-3 w-32">Total</th>
+                                <th class="text-right px-4 py-3 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="screen-items-body" class="divide-y divide-slate-800/60"></tbody>
+                    </table>
+                </div>
+                <div class="px-4 py-3 border-t border-slate-800/60 flex items-center justify-between gap-3">
+                    <div id="screen-status" class="text-sm text-slate-400"></div>
+                    <div class="text-sm text-slate-500">Achiziție + Adaos nu apar la print.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="hidden print:block">
+        <div class="page">
+
+        <img src="../../icons/logo.png" class="watermark">
+
+        <span class="title-deviz">🛠️ DEVIZ REPARAȚIE <br><br></span>
+
+        <!-- DATE AUTOVEHICUL -->
+        <div class="info-section">
+            <div><strong>ID Deviz:</strong> <input type="text" id="idDeviz" placeholder="ex: 101" style="width: 100px;"></div>
+            <div><strong>Data:</strong> <input type="date" id="dataDeviz"></div>
+            <div><strong>Autovehicul:</strong> <input type="text" id="autovehicul"></div>
+            <div><strong>Serie VIN:</strong> <input type="text" id="motorizare"></div>
+            <div><strong>Nr. înmatriculare:</strong> <input type="text" id="nrAuto" oninput="updateTitle()"></div>
+        </div>
+
+        <div class="section-line"></div>
+
+<span class="section-title">🧩 Piese și costuri</span>
+
+        <!-- TABEL PIESE -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Piesă / Serviciu</th>
+                    <th>Cant.</th>
+                    <th>Preț unitar</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody id="itemsBody">
+                <tr>
+                    <td class="piesa-cell">
+                        <input type="text">
+                        <input type="checkbox" class="apply-discount" onchange="calculate()">
+                    </td>
+                    <td><input type="number" class="qty" oninput="calculate()"></td>
+                    <td><input type="number" class="price" oninput="calculate()"></td>
+                    <td class="row-total"></td>
+                    <td><button class="delete-btn" onclick="deleteRow(this)">✖</button></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-line"></div>
+
+        <!-- TOTALURI -->
+        <div class="totals-box">
+
+            <div class="total-block">
+                <div class="discount-line">
+                    <span class="label">🔻 Discount :</span>
+                    <input type="number" id="discountPercent" value="0" oninput="calculate()" class="discount-input-inline">
+                    <span>%</span>
+                </div>
+            </div>
+
+            <div class="total-block total-final">
+                <span class="label">✅ TOTAL:</span>
+                <span class="value" id="grandTotal">0.00 RON</span>
+            </div>
+
+        </div>
+
+        <div class="section-line"></div>
+
+        <!-- OBSERVAȚII -->
+        <div class="observatii">
+            <p class="obs-title">⚠️ Observații</p>
+
+            <ul class="obs-list">
+                <li>După demontare pot apărea piese suplimentare uzate.</li>
+                <li>Orice intervenție suplimentară se face doar cu acordul clientului.</li>
+            </ul>
+
+            <p class="obs-small">
+- Prezentul document reprezintă un deviz estimativ de constatare, întocmit pe baza verificărilor preliminare.
+- În urma demontării sau a verificărilor suplimentare pot fi identificate defecțiuni ori piese suplimentare, caz în care devizul va fi actualizat, cu informarea prealabilă a clientului.
+- Prețurile sunt orientative și pot varia în funcție de piață și disponibilitatea pieselor. Devizul este calculat pentru piese NOI și/sau SH, la prețurile pieței, în urma verificării.
+- Manopera nu este inclusă, decât dacă este menționată explicit.
+- Prezentul document nu constituie ofertă fermă, ci o evaluare preliminară. Lucrările se efectuează doar cu acordul clientului.
+            </p>
+        </div>
+
+    </div>
+    </div>
+
+
+
+<script>
+"use strict";
+;(() => {
+    const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const screenIdDeviz = document.getElementById('screen-id-deviz');
+    const screenDataDeviz = document.getElementById('screen-data-deviz');
+    const screenAutovehicul = document.getElementById('screen-autovehicul');
+    const screenVin = document.getElementById('screen-vin');
+    const screenNrAuto = document.getElementById('screen-nr-auto');
+    const screenDiscount = document.getElementById('screen-discount');
+    const screenGrandTotal = document.getElementById('screen-grand-total');
+    const screenItemsBody = document.getElementById('screen-items-body');
+    const screenStatus = document.getElementById('screen-status');
+
+    const btnSave = document.getElementById('btn-save');
+    const btnLoad = document.getElementById('btn-load');
+    const btnPrint = document.getElementById('btn-print');
+    const btnAddRow = document.getElementById('btn-add-row');
+    const btnNew = document.getElementById('btn-new');
+    const labelUltimulDeviz = document.getElementById('labelUltimulDeviz');
+
+    const printIdDeviz = document.getElementById('idDeviz');
+    const printDataDeviz = document.getElementById('dataDeviz');
+    const printAutovehicul = document.getElementById('autovehicul');
+    const printVin = document.getElementById('motorizare');
+    const printNrAuto = document.getElementById('nrAuto');
+    const printItemsBody = document.getElementById('itemsBody');
+    const printDiscount = document.getElementById('discountPercent');
+    const printGrandTotal = document.getElementById('grandTotal');
+
+    const isConfigured = () =>
+        supabaseUrl &&
+        supabaseKey &&
+        !supabaseUrl.includes('PUNE_') &&
+        !supabaseKey.includes('PUNE_');
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    })[ch]);
+
+    const toNumber = (value) => {
+        const n = Number(String(value ?? '').replace(',', '.'));
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const formatMoney = (value) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '0.00';
+        return n.toFixed(2);
+    };
+
+    const formatPrintDate = (yyyyMmDd) => {
+        if (!yyyyMmDd) return '';
+        const parts = String(yyyyMmDd).split('-');
+        if (parts.length !== 3) return String(yyyyMmDd);
+        const [y, m, d] = parts;
+        return `${d}.${m}.${y}`;
+    };
+
+    const setBusy = (busy) => {
+        [btnSave, btnLoad, btnPrint, btnAddRow, btnNew].forEach((b) => {
+            if (!b) return;
+            b.disabled = busy;
+            b.classList.toggle('opacity-60', busy);
+            b.classList.toggle('cursor-not-allowed', busy);
+        });
+    };
+
+    const setStatus = (text) => {
+        screenStatus.textContent = text || '';
+    };
+
+    let ultimulDevizId = null;
+
+    const todayYyyyMmDd = () => {
+        const azi = new Date();
+        const an = azi.getFullYear();
+        const luna = String(azi.getMonth() + 1).padStart(2, '0');
+        const zi = String(azi.getDate()).padStart(2, '0');
+        return `${an}-${luna}-${zi}`;
+    };
+
+    const parseDevizNumber = (id) => {
+        const m = String(id ?? '').match(/(\d+)/);
+        if (!m) return null;
+        const n = Number(m[1]);
+        return Number.isFinite(n) ? { n, pad: m[1].length } : null;
+    };
+
+    const formatDevizId = (n, pad) => `D-${String(n).padStart(pad, '0')}`;
+
+    async function getUltimulDeviz() {
+        if (!labelUltimulDeviz) return;
+        labelUltimulDeviz.textContent = 'Ultimul deviz: ...';
+        if (!isConfigured()) return;
+
+        const { data, error } = await supabaseClient
+            .from('devize')
+            .select('id_deviz')
+            .order('id_deviz', { ascending: false })
+            .limit(200);
+
+        if (error || !Array.isArray(data) || !data.length) {
+            labelUltimulDeviz.textContent = 'Ultimul deviz: ...';
+            ultimulDevizId = null;
+            return;
+        }
+
+        let best = null;
+        data.forEach((row) => {
+            const parsed = parseDevizNumber(row.id_deviz);
+            if (!parsed) return;
+            if (!best || parsed.n > best.n || (parsed.n === best.n && parsed.pad > best.pad)) best = parsed;
+        });
+
+        ultimulDevizId = best ? formatDevizId(best.n, best.pad) : String(data[0].id_deviz ?? '').trim();
+        labelUltimulDeviz.textContent = `Ultimul deviz: ${ultimulDevizId || '...'}`;
+    }
+
+    async function creeazaDevizNou() {
+        if (!confirm('Ești sigur că vrei să începi un deviz nou? Datele nesalvate se vor pierde.')) return;
+
+        screenAutovehicul.value = '';
+        screenVin.value = '';
+        screenNrAuto.value = '';
+        screenDiscount.value = '0';
+
+        while (screenItemsBody.firstChild) screenItemsBody.removeChild(screenItemsBody.firstChild);
+        addScreenRow();
+
+        const parsed = parseDevizNumber(ultimulDevizId);
+        if (parsed) {
+            screenIdDeviz.value = formatDevizId(parsed.n + 1, parsed.pad);
+        } else {
+            screenIdDeviz.value = 'D-001';
+        }
+
+        screenDataDeviz.value = todayYyyyMmDd();
+        calculateTotals();
+        setStatus('');
+    }
+
+    const createScreenRow = (item = {}) => {
+        const tr = document.createElement('tr');
+        tr.className = 'align-top';
+
+        tr.innerHTML = `
+            <td class="px-4 py-3">
+                <div class="flex items-start gap-2">
+                    <input type="text" class="row-desc w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
+                    <label class="shrink-0 flex items-center gap-2 text-xs text-slate-400 mt-2 select-none">
+                        <input type="checkbox" class="row-discount w-4 h-4 rounded border-slate-600 bg-slate-900/60 text-purple-500 focus:ring-purple-500/60" />
+                        Discount
+                    </label>
+                </div>
+            </td>
+            <td class="px-2 py-3 text-center">
+                <input type="number" inputmode="decimal" min="0" step="1" class="row-qty w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+            </td>
+            <td class="print:hidden px-2 py-3 text-center">
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-cost print:hidden w-24 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+            </td>
+            <td class="print:hidden px-2 py-3 text-center">
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-markup print:hidden w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+            </td>
+            <td class="px-2 py-3 text-center">
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-price w-32 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+            </td>
+            <td class="px-2 py-3 text-right">
+                <div class="row-total text-sm font-bold text-slate-100 pt-2.5">0.00 RON</div>
+            </td>
+            <td class="px-4 py-3 text-right">
+                <button type="button" class="row-del rounded-xl px-3 py-2 text-sm font-bold bg-rose-600/20 text-rose-200 border border-rose-700/30 hover:bg-rose-600/30 transition-colors">✖</button>
+            </td>
+        `;
+
+        const desc = tr.querySelector('.row-desc');
+        const qty = tr.querySelector('.row-qty');
+        const cost = tr.querySelector('.row-cost');
+        const markup = tr.querySelector('.row-markup');
+        const price = tr.querySelector('.row-price');
+        const chk = tr.querySelector('.row-discount');
+        const del = tr.querySelector('.row-del');
+
+        desc.value = item.descriere ?? item.piesa ?? '';
+        qty.value = item.cantitate ?? item.qty ?? '';
+        cost.value = item.achizitie ?? item.cost ?? '';
+        markup.value = item.adaos ?? item.markup ?? '';
+        price.value = item.pret_unitar ?? item.price ?? '';
+        chk.checked = Boolean(item.apply_discount ?? item.applyDiscount ?? item.discount ?? false);
+
+        const recomputePrice = () => {
+            const c = toNumber(cost.value);
+            const m = toNumber(markup.value);
+            if (c > 0 && m > 0) {
+                const p = Math.round(c * m * 100) / 100;
+                price.value = String(p);
+            }
+        };
+
+        desc.addEventListener('input', calculateTotals);
+        qty.addEventListener('input', calculateTotals);
+        price.addEventListener('input', calculateTotals);
+        chk.addEventListener('change', calculateTotals);
+        cost.addEventListener('input', () => { recomputePrice(); calculateTotals(); });
+        markup.addEventListener('input', () => { recomputePrice(); calculateTotals(); });
+        del.addEventListener('click', () => { tr.remove(); calculateTotals(); });
+
+        return tr;
+    };
+
+    const addScreenRow = (item) => {
+        screenItemsBody.appendChild(createScreenRow(item));
+        calculateTotals();
+    };
+
+    const getScreenItems = () => {
+        const rows = Array.from(screenItemsBody.querySelectorAll('tr'));
+        return rows.map((tr) => {
+            const descriere = tr.querySelector('.row-desc').value.trim();
+            const qty = toNumber(tr.querySelector('.row-qty').value);
+            const cost = toNumber(tr.querySelector('.row-cost').value);
+            const markup = toNumber(tr.querySelector('.row-markup').value);
+            const price = toNumber(tr.querySelector('.row-price').value);
+            const applyDiscount = tr.querySelector('.row-discount').checked;
+
+            return {
+                descriere,
+                cantitate: qty,
+                achizitie: cost || null,
+                adaos: markup || null,
+                pret_unitar: price,
+                apply_discount: applyDiscount,
+            };
+        }).filter((i) => i.descriere || i.cantitate > 0 || i.pret_unitar > 0);
+    };
+
+    const calculateTotals = () => {
+        const discountPercent = Math.max(0, toNumber(screenDiscount.value));
+        let grand = 0;
+        const rows = Array.from(screenItemsBody.querySelectorAll('tr'));
+
+        rows.forEach((tr) => {
+            const qty = toNumber(tr.querySelector('.row-qty').value);
+            const price = toNumber(tr.querySelector('.row-price').value);
+            const applyDiscount = tr.querySelector('.row-discount').checked;
+
+            const rowBase = qty * price;
+            const rowFinal = applyDiscount ? rowBase * (1 - discountPercent / 100) : rowBase;
+            grand += rowFinal;
+
+            tr.querySelector('.row-total').textContent = `${formatMoney(rowFinal)} RON`;
+        });
+
+        screenGrandTotal.textContent = `${formatMoney(grand)} RON`;
+        return { grandTotal: grand, discountPercent };
+    };
+
+    const syncToPrintTemplate = () => {
+        const idDeviz = (screenIdDeviz.value || '').trim();
+        const dataDeviz = (screenDataDeviz.value || '').trim();
+        const autovehicul = (screenAutovehicul.value || '').trim();
+        const vin = (screenVin.value || '').trim();
+        const nrAuto = (screenNrAuto.value || '').trim();
+
+        const { grandTotal, discountPercent } = calculateTotals();
+        const items = getScreenItems();
+
+        printIdDeviz.value = idDeviz;
+        printAutovehicul.value = autovehicul;
+        printVin.value = vin;
+        printNrAuto.value = nrAuto;
+
+        printDataDeviz.type = 'text';
+        printDataDeviz.placeholder = 'DD.MM.YYYY';
+        printDataDeviz.value = formatPrintDate(dataDeviz);
+
+        printDiscount.value = String(discountPercent);
+        printGrandTotal.textContent = `${formatMoney(grandTotal)} RON`;
+
+        while (printItemsBody.firstChild) printItemsBody.removeChild(printItemsBody.firstChild);
+
+        const printItems = items.length ? items : [{ descriere: '', cantitate: '', pret_unitar: '', apply_discount: false }];
+
+        printItems.forEach((it) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="piesa-cell">
+                    <input type="text" value="${escapeHtml(it.descriere)}">
+                    <input type="checkbox" class="apply-discount" ${it.apply_discount ? 'checked' : ''}>
+                </td>
+                <td><input type="number" class="qty" value="${escapeHtml(it.cantitate)}"></td>
+                <td><input type="number" class="price" value="${escapeHtml(it.pret_unitar)}"></td>
+                <td class="row-total"></td>
+                <td><button class="delete-btn">✖</button></td>
+            `;
+            printItemsBody.appendChild(tr);
+        });
+
+        const rows = Array.from(printItemsBody.querySelectorAll('tr'));
+        rows.forEach((tr, idx) => {
+            const it = printItems[idx];
+            const qty = toNumber(it.cantitate);
+            const price = toNumber(it.pret_unitar);
+            const base = qty * price;
+            const final = it.apply_discount ? base * (1 - discountPercent / 100) : base;
+            tr.querySelector('.row-total').textContent = formatMoney(final);
+        });
+    };
+
+    async function salvareDeviz() {
+        const idDeviz = (screenIdDeviz.value || '').trim();
+        if (!idDeviz) {
+            setStatus('Completează ID Deviz.');
+            return;
+        }
+        if (!isConfigured()) {
+            setStatus('Completează supabaseUrl și supabaseKey în script.');
+            return;
+        }
+
+        setBusy(true);
+        setStatus('Se salvează...');
+
+        const { grandTotal, discountPercent } = calculateTotals();
+        const payload = {
+            id_deviz: idDeviz,
+            data_deviz: screenDataDeviz.value || null,
+            autovehicul: (screenAutovehicul.value || '').trim() || null,
+            vin: (screenVin.value || '').trim() || null,
+            nr_inmatriculare: (screenNrAuto.value || '').trim() || null,
+            piese: getScreenItems().map((it) => ({
+                produs: it.descriere,
+                discount: it.apply_discount,
+                qty: it.cantitate,
+                price: it.pret_unitar,
+                achizitie: it.achizitie,
+                adaos: it.adaos,
+            })),
+            discount_global: discountPercent,
+            total_general: grandTotal,
+        };
+
+        const { error } = await supabaseClient
+            .from('devize')
+            .upsert(payload, { onConflict: 'id_deviz' });
+
+        setBusy(false);
+        if (error) {
+            setStatus('Eroare la salvare.');
+            return;
+        }
+
+        setStatus('Salvat.');
+    }
+
+    async function incarcaDeviz() {
+        const idDeviz = (screenIdDeviz.value || '').trim();
+        if (!idDeviz) {
+            setStatus('Completează ID Deviz.');
+            return;
+        }
+        if (!isConfigured()) {
+            setStatus('Completează supabaseUrl și supabaseKey în script.');
+            return;
+        }
+
+        setBusy(true);
+        setStatus('Se încarcă...');
+
+        const { data, error } = await supabaseClient
+            .from('devize')
+            .select('*')
+            .eq('id_deviz', idDeviz)
+            .maybeSingle();
+
+        setBusy(false);
+        if (error || !data) {
+            setStatus('Deviz inexistent sau eroare.');
+            return;
+        }
+
+        screenDataDeviz.value = data.data_deviz || '';
+        screenAutovehicul.value = data.autovehicul || '';
+        screenVin.value = data.vin || '';
+        screenNrAuto.value = data.nr_inmatriculare || '';
+        screenDiscount.value = String(data.discount_global ?? 0);
+
+        const items = data.piese || [];
+        while (screenItemsBody.firstChild) screenItemsBody.removeChild(screenItemsBody.firstChild);
+        if (Array.isArray(items) && items.length) {
+            items.forEach((it) => addScreenRow({
+                descriere: it.produs ?? it.descriere ?? it.piesa ?? '',
+                cantitate: it.qty ?? it.cantitate ?? '',
+                pret_unitar: it.price ?? it.pret_unitar ?? '',
+                achizitie: it.achizitie ?? it.cost ?? '',
+                adaos: it.adaos ?? it.markup ?? '',
+                apply_discount: it.discount ?? it.apply_discount ?? it.applyDiscount ?? false,
+            }));
+        } else {
+            addScreenRow();
+        }
+
+        calculateTotals();
+        setStatus('Încărcat.');
+    }
+
+    btnAddRow.addEventListener('click', () => addScreenRow());
+    btnSave.addEventListener('click', salvareDeviz);
+    btnLoad.addEventListener('click', incarcaDeviz);
+    btnPrint.addEventListener('click', () => {
+        syncToPrintTemplate();
+        window.print();
+    });
+    btnNew.addEventListener('click', creeazaDevizNou);
+
+    screenDiscount.addEventListener('input', calculateTotals);
+    screenIdDeviz.addEventListener('blur', () => {
+        const val = screenIdDeviz.value.trim();
+        if (val && !val.startsWith('D-') && !Number.isNaN(Number(val))) screenIdDeviz.value = `D-${val}`;
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        addScreenRow();
+        if (!screenDataDeviz.value) screenDataDeviz.value = todayYyyyMmDd();
+        const urlParams = new URLSearchParams(window.location.search);
+        const idFromUrl = urlParams.get('id');
+        if (idFromUrl) {
+            screenIdDeviz.value = idFromUrl;
+            incarcaDeviz();
+        }
+        getUltimulDeviz();
+        calculateTotals();
+    });
+
+    window.salvareDeviz = salvareDeviz;
+    window.incarcaDeviz = incarcaDeviz;
+    window.getUltimulDeviz = getUltimulDeviz;
+    window.creeazaDevizNou = creeazaDevizNou;
+})();
+
+</script>
+
+</body>
+</html>

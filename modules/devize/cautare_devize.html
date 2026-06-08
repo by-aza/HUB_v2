@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Căutare Devize - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
+    <header class="shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div class="px-4 py-4">
+            <div class="grid grid-cols-3 items-center gap-3">
+                <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
+                    <- Înapoi la Dashboard
+                </a>
+                <div class="justify-self-center text-xl font-bold text-blue-400 tracking-wide">
+                    ISTORIC DEVIZE
+                </div>
+                <div class="justify-self-end"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="shrink-0 px-4">
+        <input id="search-input" type="search" placeholder="Caută după nr. înmatriculare sau ID Deviz..." class="w-full max-w-xl mx-auto my-6 bg-slate-900 border border-slate-700 rounded-full px-6 py-3 block text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        <div class="max-w-6xl mx-auto grid grid-cols-[1fr_1.5fr_1fr_1fr_0.5fr] gap-4 px-4 pb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div>DATA</div>
+            <div>ÎNMATRICULARE</div>
+            <div>NR DEVIZ</div>
+            <div>VALOARE</div>
+            <div class="text-right">VEZI</div>
+        </div>
+    </div>
+
+    <div id="results" class="flex-1 overflow-y-auto px-4 pb-6">
+        <div id="results-inner" class="max-w-6xl mx-auto"></div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const searchInput = document.getElementById('search-input');
+        const resultsInner = document.getElementById('results-inner');
+
+        let allDevize = [];
+        let query = '';
+
+        const isConfigured = () => supabaseUrl && supabaseKey && !supabaseUrl.includes('PUNE_') && !supabaseKey.includes('PUNE_');
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        })[ch]);
+
+        const formatMoney = (value) => {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return '0.00';
+            return n.toFixed(2);
+        };
+
+        const formatDate = (value) => {
+            if (!value) return '';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return String(value);
+            const zi = String(d.getDate()).padStart(2, '0');
+            const luna = String(d.getMonth() + 1).padStart(2, '0');
+            const an = d.getFullYear();
+            return `${zi}.${luna}.${an}`;
+        };
+
+        const applyFilter = () => {
+            const q = query.trim().toLowerCase();
+            if (!q) return allDevize;
+            return allDevize.filter((d) => {
+                const plate = String(d.nr_inmatriculare ?? '').toLowerCase();
+                const id = String(d.id_deviz ?? '').toLowerCase();
+                return plate.includes(q) || id.includes(q);
+            });
+        };
+
+        const render = () => {
+            const list = applyFilter();
+            resultsInner.innerHTML = list.map((d) => `
+                <div class="bg-slate-800 hover:bg-slate-700 p-4 rounded-lg mb-2 border border-slate-700 transition-colors hub-card">
+                    <div class="grid grid-cols-[1fr_1.5fr_1fr_1fr_0.5fr] gap-4 items-center">
+                        <div class="text-slate-300">${escapeHtml(formatDate(d.data_deviz))}</div>
+                        <div class="font-bold uppercase text-slate-100">${escapeHtml(d.nr_inmatriculare || '')}</div>
+                        <div class="text-slate-200 font-semibold">${escapeHtml(d.id_deviz || '')}</div>
+                        <div class="text-emerald-400 font-bold">${escapeHtml(formatMoney(d.total_general))} RON</div>
+                        <div class="text-right">
+                            <a href="deviz.html?id=${encodeURIComponent(d.id_deviz || '')}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white transition-colors">
+                                VEZI
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (!list.length) {
+                resultsInner.innerHTML = '<div class="text-center text-slate-500 py-10">Niciun deviz găsit.</div>';
+            }
+        };
+
+        const fetchDevize = async () => {
+            if (!isConfigured()) {
+                resultsInner.innerHTML = '<div class="text-center text-slate-500 py-10">Completează supabaseUrl și supabaseKey în script.</div>';
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from('devize')
+                .select('id_deviz, data_deviz, nr_inmatriculare, total_general')
+                .order('id_deviz', { ascending: false });
+
+            if (error) {
+                resultsInner.innerHTML = '<div class="text-center text-slate-500 py-10">Eroare la încărcare.</div>';
+                return;
+            }
+
+            allDevize = Array.isArray(data) ? data : [];
+            render();
+        };
+
+        searchInput.addEventListener('input', (e) => {
+            query = e.target.value || '';
+            render();
+        });
+
+        fetchDevize();
+    </script>
+</body>
+</html>

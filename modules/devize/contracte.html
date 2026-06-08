@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arhivă Contracte - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
+    <header class="shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
+        <div class="px-4 py-4">
+            <div class="grid grid-cols-3 items-center gap-3">
+                <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
+                    <- Înapoi
+                </a>
+                <div class="justify-self-center text-xl font-bold text-blue-400 tracking-wide">
+                    ARHIVĂ CONTRACTE
+                </div>
+                <div class="justify-self-end flex items-center gap-2">
+                    <button id="btnToggleIncomplete" type="button" class="text-sm px-3 py-1.5 border border-orange-500 text-orange-500 rounded hover:bg-orange-500/10 transition-colors">
+                        ⚠️ Incomplete
+                    </button>
+                    <button id="btnNewContract" type="button" class="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-bold text-white transition-colors">
+                        + Contract Nou
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="sticky top-0 z-20 bg-slate-950/90 backdrop-blur py-2 px-4 border-b border-slate-800">
+        <input id="searchInput" type="search" placeholder="Caută contract..." class="w-full max-w-md px-4 py-1.5 text-sm bg-slate-900 border border-slate-700 rounded-full text-slate-200 focus:outline-none focus:border-blue-500" />
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-4">
+        <div id="contractsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="emptyState" class="hidden text-center text-slate-500 py-10">Niciun contract.</div>
+    </main>
+
+    <div id="modalAdd" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl p-4">
+            <div class="text-lg font-extrabold text-blue-300">Contract Nou</div>
+            <form id="formAdd" class="mt-4 grid gap-3">
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">ID Contract</span>
+                    <input id="addIdContract" type="text" readonly class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none" />
+                </label>
+                <label class="grid gap-1">
+                    <span class="text-xs font-semibold text-slate-400">Poze</span>
+                    <input id="addFiles" type="file" multiple accept="image/*" capture="environment" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none" />
+                </label>
+                <div class="flex items-center gap-3 pt-1">
+                    <button type="button" class="flex-1 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" id="btnCancelAdd">Anulează</button>
+                    <button type="submit" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 transition-colors" id="btnSaveAdd">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalView" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
+        <div class="w-full max-w-6xl bg-slate-900 border border-slate-700 rounded-xl p-4 overflow-hidden">
+            <div class="flex items-center justify-between gap-3">
+                <div class="text-lg font-extrabold text-blue-300">Contract</div>
+                <button type="button" class="rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 transition-colors" id="btnCloseView">Închide</button>
+            </div>
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[75vh] overflow-y-auto pr-1 pb-24">
+                <div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Galerie</div>
+                    <div id="gallery" class="grid grid-cols-3 sm:grid-cols-4 gap-3"></div>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Detalii</div>
+                    <form id="formView" class="grid gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                            <label class="grid gap-1 sm:col-span-2">
+                                <span class="text-xs font-semibold text-slate-400">ID Contract</span>
+                                <input id="viewIdContract" type="text" readonly class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none" />
+                            </label>
+                            <input id="viewNumeClient" type="text" placeholder="Nume Client" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewVin" type="text" placeholder="Serie VIN" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-mono tracking-wider" />
+                            <input id="viewMasina" type="text" placeholder="Model Mașină" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewDataContract" type="date" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 [color-scheme:dark]" />
+                            <input id="viewTelefon" type="text" placeholder="Nr. Telefon" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewNrContract" type="text" placeholder="Nr. Contract" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewNrDosar" type="text" placeholder="Nr. Dosar / Biblioraft" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewTipContract" type="text" placeholder="Tip Contract" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <textarea id="viewObservatii" placeholder="Observații (ex: lipsă talon)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 min-h-20 sm:col-span-2"></textarea>
+                        </div>
+                        <div class="sticky bottom-0 bg-slate-900 p-4 border-t border-slate-800 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <button type="button" class="flex-1 rounded-xl border border-blue-500/40 text-blue-300 hover:bg-blue-500/10 px-4 py-2 text-sm font-bold transition-colors" id="btnSaveProgress">💾 Salvează Datele</button>
+                                <button type="button" class="flex-1 rounded-xl bg-green-600 hover:bg-green-500 px-4 py-2 text-sm font-bold text-white transition-colors" id="btnFinalize">✅ Finalizează Dosarul</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const contractsGrid = document.getElementById('contractsGrid');
+        const emptyState = document.getElementById('emptyState');
+        const searchInput = document.getElementById('searchInput');
+        const btnToggleIncomplete = document.getElementById('btnToggleIncomplete');
+
+        const modalAdd = document.getElementById('modalAdd');
+        const formAdd = document.getElementById('formAdd');
+        const addIdContract = document.getElementById('addIdContract');
+        const addFiles = document.getElementById('addFiles');
+        const btnCancelAdd = document.getElementById('btnCancelAdd');
+        const btnSaveAdd = document.getElementById('btnSaveAdd');
+        const btnNewContract = document.getElementById('btnNewContract');
+
+        const modalView = document.getElementById('modalView');
+        const btnCloseView = document.getElementById('btnCloseView');
+        const formView = document.getElementById('formView');
+        const gallery = document.getElementById('gallery');
+        const viewIdContract = document.getElementById('viewIdContract');
+        const viewNumeClient = document.getElementById('viewNumeClient');
+        const viewVin = document.getElementById('viewVin');
+        const viewMasina = document.getElementById('viewMasina');
+        const viewTipContract = document.getElementById('viewTipContract');
+        const viewDataContract = document.getElementById('viewDataContract');
+        const viewTelefon = document.getElementById('viewTelefon');
+        const viewNrContract = document.getElementById('viewNrContract');
+        const viewNrDosar = document.getElementById('viewNrDosar');
+        const viewObservatii = document.getElementById('viewObservatii');
+        const btnSaveProgress = document.getElementById('btnSaveProgress');
+        const btnFinalize = document.getElementById('btnFinalize');
+
+        let contractsCache = [];
+        let showOnlyIncomplete = false;
+        let searchQuery = '';
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        })[ch]);
+
+        const openModal = (el) => {
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        };
+
+        const closeModal = (el) => {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        };
+
+        const parseContractNumber = (idContract) => {
+            const raw = String(idContract ?? '').trim();
+            const m = raw.match(/C-(\d+)/i);
+            if (!m) return 0;
+            const n = Number(m[1]);
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        const computeNextIdContract = (rows) => {
+            const max = (rows || []).reduce((acc, r) => Math.max(acc, parseContractNumber(r.id_contract)), 0);
+            return `C-${String(max + 1).padStart(3, '0')}`;
+        };
+
+        const isConfigured = () => !supabaseUrl.includes('PUNE_') && !supabaseKey.includes('PUNE_');
+
+        const dataUrlToBlob = async (dataUrl) => {
+            const res = await fetch(dataUrl);
+            return await res.blob();
+        };
+
+        const compressImage = (file) => new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = async () => {
+                try {
+                    const maxSide = 1900;
+                    let { width, height } = img;
+                    const scale = Math.min(1, maxSide / Math.max(width, height));
+                    width = Math.round(width * scale);
+                    height = Math.round(height * scale);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const blob = await dataUrlToBlob(dataUrl);
+                    const name = `${Date.now()}-${Math.random().toString(16).slice(2)}.jpg`;
+                    resolve(new File([blob], name, { type: 'image/jpeg' }));
+                } catch (e) {
+                    reject(e);
+                } finally {
+                    URL.revokeObjectURL(url);
+                }
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Eroare la încărcarea imaginii.'));
+            };
+            img.src = url;
+        });
+
+        const uploadImages = async (idContract, files) => {
+            const uploadedUrls = [];
+            for (const f of files) {
+                const compressed = await compressImage(f);
+                const path = `${idContract}/${compressed.name}`;
+                const { data, error } = await supabaseClient
+                    .storage
+                    .from('documente_contracte')
+                    .upload(path, compressed, { contentType: 'image/jpeg', upsert: false });
+                if (error) throw error;
+                const publicUrl = supabaseClient.storage.from('documente_contracte').getPublicUrl(data.path).data.publicUrl;
+                uploadedUrls.push(publicUrl);
+            }
+            return uploadedUrls;
+        };
+
+        const applyFilters = (rows) => {
+            let list = Array.isArray(rows) ? rows.slice() : [];
+            if (showOnlyIncomplete) list = list.filter((c) => String(c.status || 'Incomplet') !== 'Complet');
+            const q = searchQuery.trim().toLowerCase();
+            if (!q) return list;
+            return list.filter((c) => {
+                const id = String(c.id_contract ?? '').toLowerCase();
+                const nume = String(c.nume_client ?? '').toLowerCase();
+                const masina = String(c.masina ?? '').toLowerCase();
+                const vin = String(c.serie_vin ?? '').toLowerCase();
+                const tel = String(c.telefon ?? '').toLowerCase();
+                const nrContract = String(c.nr_contract ?? '').toLowerCase();
+                return id.includes(q) || nume.includes(q) || masina.includes(q) || vin.includes(q) || tel.includes(q) || nrContract.includes(q);
+            });
+        };
+
+        const renderContracts = (rows) => {
+            const filtered = applyFilters(rows);
+            contractsGrid.innerHTML = filtered.map((c) => {
+                const status = String(c.status || 'Incomplet');
+                const isComplete = status === 'Complet';
+                const border = isComplete ? 'border-emerald-500/60' : 'border-orange-500/60';
+                const idContract = c.id_contract || 'C-???';
+                const nume = c.nume_client || 'Date lipsă';
+                const masina = c.masina || 'Date lipsă';
+                const tip = c.tip_contract || 'Date lipsă';
+                const pozeCount = Array.isArray(c.poze) ? c.poze.length : 0;
+                const vin = String(c.serie_vin || '').trim();
+                const telefon = String(c.telefon || '').trim();
+                const nrDosar = String(c.nr_dosar || '').trim();
+                const observatii = String(c.observatii || '').trim();
+                return `
+                    <div class="bg-slate-900 border ${border} rounded-lg p-4 select-text hub-card">
+                        <div class="flex justify-between items-start">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="text-lg font-extrabold text-slate-100">${escapeHtml(idContract)}</div>
+                                    ${nrDosar ? `<div class="text-sm font-semibold text-blue-400 whitespace-nowrap">📂 Dosar: ${escapeHtml(nrDosar)}</div>` : ``}
+                                </div>
+                            </div>
+                            <div class="photo-badge shrink-0 text-xs font-bold text-slate-300 border border-slate-700 rounded-full px-2 py-1 bg-slate-950/40 cursor-pointer hover:bg-slate-700 transition-colors relative z-10 shadow-sm" data-id="${escapeHtml(c.id_contract)}">
+                                📷 ${pozeCount}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center mt-2 gap-3">
+                            <div class="text-slate-200 min-w-0 break-words">${escapeHtml(nume)}</div>
+                            ${telefon ? `<div class="text-sm text-slate-300 whitespace-nowrap">📞 ${escapeHtml(telefon)}</div>` : ``}
+                        </div>
+
+                        <div class="text-sm text-slate-400 mt-2 break-words">${escapeHtml(masina)}</div>
+
+                        <div class="flex justify-between items-center mt-1 gap-3">
+                            <div class="text-xs text-slate-400 min-w-0 break-words">${vin ? `VIN: <span class="font-mono tracking-wider text-slate-200">${escapeHtml(vin)}</span>` : 'VIN: Date lipsă'}</div>
+                            <div class="text-xs text-emerald-400 whitespace-nowrap">${escapeHtml(tip)}</div>
+                        </div>
+
+                        ${observatii ? `
+                            <div class="mt-2 pt-2 border-t border-slate-800/50 text-xs text-slate-400 italic break-words">
+                                ${escapeHtml(observatii)}
+                            </div>
+                        ` : ``}
+                    </div>
+                `;
+            }).join('');
+
+            emptyState.classList.toggle('hidden', filtered.length > 0);
+            contractsGrid.querySelectorAll('.photo-badge[data-id]').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const id = el.getAttribute('data-id');
+                    const row = contractsCache.find((r) => String(r.id_contract) === String(id));
+                    if (row) openViewModal(row);
+                });
+            });
+        };
+
+        const fetchContracts = async () => {
+            if (!isConfigured()) {
+                emptyState.classList.remove('hidden');
+                emptyState.textContent = 'Completează supabaseUrl și supabaseKey în contracte.html.';
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from('contracte')
+                .select('id_contract, nume_client, serie_vin, masina, tip_contract, status, poze, data_contract, telefon, nr_contract, nr_dosar, observatii')
+                .order('id_contract', { ascending: false });
+
+            if (error) {
+                emptyState.classList.remove('hidden');
+                emptyState.textContent = 'Eroare la încărcare.';
+                return;
+            }
+
+            contractsCache = Array.isArray(data) ? data : [];
+            contractsCache.sort((a, b) => {
+                const aIncomplete = String(a.status || 'Incomplet') === 'Incomplet';
+                const bIncomplete = String(b.status || 'Incomplet') === 'Incomplet';
+                if (aIncomplete !== bIncomplete) return aIncomplete ? 1 : -1;
+                return parseContractNumber(b.id_contract) - parseContractNumber(a.id_contract);
+            });
+            renderContracts(contractsCache);
+        };
+
+        const openAddModal = () => {
+            addFiles.value = '';
+            addIdContract.value = computeNextIdContract(contractsCache);
+            openModal(modalAdd);
+        };
+
+        const openViewModal = (row) => {
+            viewIdContract.value = row.id_contract ?? '';
+            viewNumeClient.value = row.nume_client ?? '';
+            viewVin.value = row.serie_vin ?? '';
+            viewMasina.value = row.masina ?? '';
+            viewTipContract.value = row.tip_contract ?? '';
+            viewDataContract.value = row.data_contract ?? '';
+            viewTelefon.value = row.telefon ?? '';
+            viewNrContract.value = row.nr_contract ?? '';
+            viewNrDosar.value = row.nr_dosar ?? '';
+            viewObservatii.value = row.observatii ?? '';
+
+            const poze = Array.isArray(row.poze) ? row.poze : [];
+            gallery.innerHTML = poze.map((url) => `
+                <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="block">
+                    <img src="${escapeHtml(url)}" class="aspect-square object-cover w-full rounded border border-slate-700" loading="lazy" />
+                </a>
+            `).join('');
+
+            openModal(modalView);
+        };
+
+        const createContract = async (event) => {
+            event.preventDefault();
+            btnSaveAdd.disabled = true;
+            btnSaveAdd.textContent = 'Se salvează...';
+
+            try {
+                const idContract = addIdContract.value.trim();
+                const files = Array.from(addFiles.files || []);
+                const urls = files.length ? await uploadImages(idContract, files) : [];
+
+                const { error } = await supabaseClient
+                    .from('contracte')
+                    .insert({
+                        id_contract: idContract,
+                        status: 'Incomplet',
+                        poze: urls,
+                        nume_client: '',
+                        serie_vin: '',
+                        masina: '',
+                        tip_contract: '',
+                    });
+
+                if (error) throw error;
+                closeModal(modalAdd);
+                formAdd.reset();
+                await fetchContracts();
+            } catch (e) {
+                console.error(e);
+                alert(e.message || 'Eroare la salvare.');
+            } finally {
+                btnSaveAdd.disabled = false;
+                btnSaveAdd.textContent = 'Salvează';
+            }
+        };
+
+        const buildDetailsPayload = () => ({
+            nume_client: viewNumeClient.value.trim(),
+            serie_vin: viewVin.value.trim(),
+            masina: viewMasina.value.trim(),
+            tip_contract: viewTipContract.value.trim(),
+            data_contract: viewDataContract.value || null,
+            telefon: viewTelefon.value.trim(),
+            nr_contract: viewNrContract.value.trim(),
+            nr_dosar: viewNrDosar.value.trim(),
+            observatii: viewObservatii.value.trim(),
+        });
+
+        const saveProgress = async () => {
+            try {
+                const idContract = viewIdContract.value.trim();
+                const existing = contractsCache.find((c) => String(c.id_contract) === String(idContract));
+                const payload = buildDetailsPayload();
+                payload.status = existing?.status || 'Incomplet';
+
+                const { error } = await supabaseClient.from('contracte').update(payload).eq('id_contract', idContract);
+                if (error) throw error;
+                closeModal(modalView);
+                await fetchContracts();
+            } catch (e) {
+                console.error(e);
+                alert(e.message || 'Eroare la salvare.');
+            } finally {
+                btnSaveProgress.disabled = false;
+                btnSaveProgress.textContent = '💾 Salvează Datele';
+            }
+        };
+
+        const finalizeDosar = async () => {
+            btnFinalize.disabled = true;
+            btnFinalize.textContent = 'Se finalizează...';
+            try {
+                const idContract = viewIdContract.value.trim();
+                const payload = buildDetailsPayload();
+                const mustConfirm = !payload.nume_client || !payload.serie_vin || !payload.masina;
+                if (mustConfirm) {
+                    const ok = confirm('Atenție: Ai câmpuri goale sau documente lipsă! Ești sigur că vrei să închizi și să finalizezi acest dosar?');
+                    if (!ok) return;
+                }
+                payload.status = 'Complet';
+                const { error } = await supabaseClient.from('contracte').update(payload).eq('id_contract', idContract);
+                if (error) throw error;
+                closeModal(modalView);
+                await fetchContracts();
+            } catch (e) {
+                console.error(e);
+                alert(e.message || 'Eroare la salvare.');
+            } finally {
+                btnFinalize.disabled = false;
+                btnFinalize.textContent = '✅ Finalizează Dosarul';
+            }
+        };
+
+        btnNewContract.addEventListener('click', openAddModal);
+        btnCancelAdd.addEventListener('click', () => closeModal(modalAdd));
+        btnCloseView.addEventListener('click', () => closeModal(modalView));
+        formAdd.addEventListener('submit', createContract);
+        btnSaveProgress.addEventListener('click', () => {
+            btnSaveProgress.disabled = true;
+            btnSaveProgress.textContent = 'Se salvează...';
+            saveProgress();
+        });
+        btnFinalize.addEventListener('click', finalizeDosar);
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value || '';
+            renderContracts(contractsCache);
+        });
+        btnToggleIncomplete.addEventListener('click', () => {
+            showOnlyIncomplete = !showOnlyIncomplete;
+            if (showOnlyIncomplete) {
+                btnToggleIncomplete.classList.add('bg-orange-500', 'text-white', 'font-bold');
+                btnToggleIncomplete.classList.remove('bg-transparent', 'text-orange-500');
+            } else {
+                btnToggleIncomplete.classList.remove('bg-orange-500', 'text-white', 'font-bold');
+                btnToggleIncomplete.classList.add('bg-transparent', 'text-orange-500');
+            }
+            renderContracts(contractsCache);
+        });
+
+        fetchContracts();
+    </script>
+</body>
+</html>
