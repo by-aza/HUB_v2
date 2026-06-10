@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidență Avansuri - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+    <style>
+        body { background-color: #020617; }
+        .panel-card { background-color: #0f172a; border: 1px solid #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="text-slate-200 font-sans h-screen flex flex-col overflow-hidden">
+
+    <header class="panel-card shrink-0 z-20 shadow-2xl">
+        <div class="p-4 grid grid-cols-3 items-center gap-3 border-b border-slate-800">
+            <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 text-slate-400 hover:text-white transition-all group">
+                <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+                <span class="font-bold uppercase tracking-wider text-xs">Înapoi</span>
+            </a>
+            <h1 class="justify-self-center text-lg md:text-xl font-black uppercase tracking-widest text-blue-400 text-center">EVIDENȚĂ AVANSURI</h1>
+            <div class="justify-self-end w-16 md:w-20"></div>
+        </div>
+
+        <div class="sticky top-0 p-4 flex flex-col sm:flex-row gap-3 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500"></i>
+                <input type="text" id="searchInput" placeholder="Caută model, nr. înmatriculare sau avans..."
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all shadow-inner text-base"
+                    oninput="handleSearch()">
+            </div>
+            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                ADAUGĂ AVANS
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-hidden flex flex-col p-4">
+        <div class="panel-card rounded-2xl flex-1 flex flex-col overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-slate-900 z-10">
+                        <tr class="text-slate-300 text-sm font-bold tracking-wide border-b border-slate-800">
+                            <th class="p-4 whitespace-nowrap">Data</th>
+                            <th class="p-4">Model</th>
+                            <th class="p-4 whitespace-nowrap">Nr. Înmatriculare</th>
+                            <th class="p-4">Avans &amp; Observații</th>
+                            <th class="p-4 text-center whitespace-nowrap">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="avansBody" class="text-base divide-y divide-slate-800/50">
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-slate-900/50 border-t border-slate-800 text-[10px] font-mono text-slate-500 flex justify-between">
+                <div>Total înregistrări: <span id="totalAvans" class="text-slate-300 font-bold">0</span></div>
+                <div id="statusMsg" class="text-slate-400"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="avansModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="panel-card w-full max-w-md rounded-3xl shadow-2xl transform transition-all overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h2 class="text-lg font-black uppercase tracking-widest text-blue-400">Adaugă Avans</h2>
+                <button onclick="closeModal()" class="text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="avansForm" onsubmit="saveAvans(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Data</label>
+                    <input type="date" id="avansData" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all [color-scheme:dark]">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Model</label>
+                    <input type="text" id="avansModel" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Nr. Înmatriculare</label>
+                    <input type="text" id="avansNr" required oninput="this.value = this.value.toUpperCase().replace(/\s/g, '')" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all font-mono tracking-wider">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Avans &amp; Observații</label>
+                    <input type="text" id="avansDetalii" placeholder="Ex: 500 RON - reparație motor" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all">Anulează</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-black uppercase text-xs tracking-wider transition-all shadow-lg">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const dbUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const sb = supabase.createClient(dbUrl, dbKey);
+
+        let allAvansuri = [];
+
+        const todayYyyyMmDd = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
+        const formatDate = (value) => {
+            if (!value) return '-';
+            const parts = String(value).split('-');
+            if (parts.length !== 3) return String(value);
+            return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        };
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        })[ch]);
+
+        async function init() {
+            lucide.createIcons();
+            await fetchAvansuri();
+        }
+
+        async function fetchAvansuri() {
+            const { data, error } = await sb
+                .from('evidente_avansuri')
+                .select('*')
+                .eq('este_arhivat', false)
+                .order('data_crearii', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching avansuri:', error);
+                document.getElementById('statusMsg').textContent = 'Eroare la încărcare.';
+                return;
+            }
+
+            allAvansuri = data || [];
+            handleSearch();
+        }
+
+        function renderAvansuri(data) {
+            const body = document.getElementById('avansBody');
+            document.getElementById('totalAvans').textContent = data.length;
+
+            if (!data.length) {
+                body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500">Nicio înregistrare.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = data.map((row) => `
+                <tr class="hover:bg-slate-800/30 transition-colors border-b border-slate-800/30" data-id="${row.id}">
+                    <td class="p-4 whitespace-nowrap font-semibold text-slate-200">${formatDate(row.data_crearii)}</td>
+                    <td class="p-4 font-bold text-slate-100">${escapeHtml(row.model_masina) || '-'}</td>
+                    <td class="p-4 font-mono font-bold text-blue-400">${escapeHtml(row.nr_inmatriculare) || '-'}</td>
+                    <td class="p-4">
+                        <input type="text"
+                            value="${escapeHtml(row.detalii_avans || '')}"
+                            placeholder="Avans & observații..."
+                            class="w-full bg-transparent border-b border-dashed border-slate-700 px-1 py-1 text-slate-200 focus:outline-none focus:border-blue-500 transition-all"
+                            onblur="saveDetalii(${row.id}, this)">
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="archiveAvans(${row.id}, this)" class="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white flex items-center justify-center transition-all shadow-sm mx-auto" title="Arhivează">
+                            <i data-lucide="archive" class="w-5 h-5"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function handleSearch() {
+            const term = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allAvansuri.filter((row) =>
+                (row.model_masina || '').toLowerCase().includes(term) ||
+                (row.nr_inmatriculare || '').toLowerCase().includes(term) ||
+                (row.detalii_avans || '').toLowerCase().includes(term)
+            );
+            renderAvansuri(filtered);
+        }
+
+        async function saveDetalii(id, input) {
+            const val = input.value.trim();
+            const original = input.defaultValue;
+
+            const { error } = await sb
+                .from('evidente_avansuri')
+                .update({ detalii_avans: val || null })
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error saving detalii:', error);
+                input.value = original;
+                document.getElementById('statusMsg').textContent = 'Eroare la salvare.';
+                return;
+            }
+
+            const item = allAvansuri.find((r) => r.id === id);
+            if (item) item.detalii_avans = val;
+            input.defaultValue = val;
+            document.getElementById('statusMsg').textContent = 'Salvat.';
+            setTimeout(() => { document.getElementById('statusMsg').textContent = ''; }, 2000);
+        }
+
+        async function archiveAvans(id, btn) {
+            if (!confirm('Arhivezi această înregistrare?')) return;
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const { error } = await sb
+                .from('evidente_avansuri')
+                .update({ este_arhivat: true })
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error archiving:', error);
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('statusMsg').textContent = 'Eroare la arhivare.';
+                return;
+            }
+
+            allAvansuri = allAvansuri.filter((r) => r.id !== id);
+            handleSearch();
+        }
+
+        function openModal() {
+            document.getElementById('avansForm').reset();
+            document.getElementById('avansData').value = todayYyyyMmDd();
+            document.getElementById('avansModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('avansModal').classList.add('hidden');
+        }
+
+        async function saveAvans(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Se salvează...';
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const payload = {
+                data_crearii: document.getElementById('avansData').value,
+                model_masina: document.getElementById('avansModel').value.trim(),
+                nr_inmatriculare: document.getElementById('avansNr').value.trim(),
+                detalii_avans: document.getElementById('avansDetalii').value.trim() || null,
+                este_arhivat: false,
+            };
+
+            try {
+                const { error } = await sb.from('evidente_avansuri').insert([payload]);
+                if (error) throw error;
+                closeModal();
+                await fetchAvansuri();
+            } catch (err) {
+                console.error('Error saving avans:', err);
+                alert('Eroare la salvare: ' + (err.message || 'Server error'));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

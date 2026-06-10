@@ -352,7 +352,7 @@ td:nth-child(3) input {
 
 <body class="bg-slate-950 text-slate-200 min-h-screen">
     <div class="print:hidden fixed top-0 inset-x-0 z-50 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div class="max-w-[1400px] mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <a href="../../index.html" class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
                 <- Înapoi
             </a>
@@ -375,7 +375,7 @@ td:nth-child(3) input {
     </div>
 
     <main class="print:hidden pt-16">
-        <div class="max-w-6xl mx-auto px-4 py-4 space-y-4">
+        <div class="max-w-[1400px] mx-auto px-4 py-4 space-y-4">
             <div class="flex flex-wrap gap-4 bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4 items-end">
                 <label class="grid gap-1">
                     <span class="text-xs font-semibold text-slate-400">ID Deviz</span>
@@ -413,7 +413,7 @@ td:nth-child(3) input {
                                 <span class="text-sm text-slate-400">%</span>
                             </div>
                         </label>
-                        <button id="btn-add-row" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                        <button id="btn-add-row" type="button" class="rounded-xl bg-green-600 hover:bg-green-500 px-4 py-2 text-sm font-bold text-white transition-colors">
                             + Adaugă rând
                         </button>
                     </div>
@@ -424,8 +424,9 @@ td:nth-child(3) input {
                             <tr class="border-b border-slate-800/60">
                                 <th class="text-left px-4 py-3 w-full min-w-[250px]">Piesă / Serviciu</th>
                                 <th class="text-center px-2 py-3 w-20">Cant.</th>
-                                <th class="print:hidden text-center px-2 py-3 w-24">Achiziție</th>
-                                <th class="print:hidden text-center px-2 py-3 w-20">Adaos</th>
+                                <th class="print:hidden text-center px-2 py-3 w-24 internal-col">Achiziție</th>
+                                <th class="print:hidden text-center px-2 py-3 w-20 internal-col">TVA</th>
+                                <th class="print:hidden text-center px-2 py-3 w-20 internal-col">Adaos</th>
                                 <th class="text-center px-2 py-3 w-32">Preț unitar</th>
                                 <th class="text-right px-2 py-3 w-32">Total</th>
                                 <th class="text-right px-4 py-3 w-10"></th>
@@ -436,7 +437,7 @@ td:nth-child(3) input {
                 </div>
                 <div class="px-4 py-3 border-t border-slate-800/60 flex items-center justify-between gap-3">
                     <div id="screen-status" class="text-sm text-slate-400"></div>
-                    <div class="text-sm text-slate-500">Achiziție + Adaos nu apar la print.</div>
+                    <div class="text-sm text-slate-500">Achiziție, TVA și Adaos nu apar la print.</div>
                 </div>
             </div>
         </div>
@@ -689,7 +690,7 @@ td:nth-child(3) input {
         tr.innerHTML = `
             <td class="px-4 py-3">
                 <div class="flex items-start gap-2">
-                    <input type="text" class="row-desc w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
+                    <input type="text" class="row-desc w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-1 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
                     <label class="shrink-0 flex items-center gap-2 text-xs text-slate-400 mt-2 select-none">
                         <input type="checkbox" class="row-discount w-4 h-4 rounded border-slate-600 bg-slate-900/60 text-purple-500 focus:ring-purple-500/60" />
                         Discount
@@ -697,16 +698,19 @@ td:nth-child(3) input {
                 </div>
             </td>
             <td class="px-2 py-3 text-center">
-                <input type="number" inputmode="decimal" min="0" step="1" class="row-qty w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+                <input type="number" inputmode="decimal" min="0" step="1" class="row-qty w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
             <td class="print:hidden px-2 py-3 text-center">
-                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-cost print:hidden w-24 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-cost print:hidden w-24 rounded-xl bg-slate-800 border border-slate-600 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
             <td class="print:hidden px-2 py-3 text-center">
-                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-markup print:hidden w-20 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-tva print:hidden w-20 rounded-xl bg-slate-800 border border-slate-600 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+            </td>
+            <td class="print:hidden px-2 py-3 text-center">
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-markup print:hidden w-20 rounded-xl bg-slate-800 border border-slate-600 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
             <td class="px-2 py-3 text-center">
-                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-price w-32 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-2 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
+                <input type="number" inputmode="decimal" min="0" step="0.01" class="row-price w-32 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
             <td class="px-2 py-3 text-right">
                 <div class="row-total text-sm font-bold text-slate-100 pt-2.5">0.00 RON</div>
@@ -719,6 +723,7 @@ td:nth-child(3) input {
         const desc = tr.querySelector('.row-desc');
         const qty = tr.querySelector('.row-qty');
         const cost = tr.querySelector('.row-cost');
+        const tva = tr.querySelector('.row-tva');
         const markup = tr.querySelector('.row-markup');
         const price = tr.querySelector('.row-price');
         const chk = tr.querySelector('.row-discount');
@@ -727,16 +732,20 @@ td:nth-child(3) input {
         desc.value = item.descriere ?? item.piesa ?? '';
         qty.value = item.cantitate ?? item.qty ?? '';
         cost.value = item.achizitie ?? item.cost ?? '';
+        tva.value = item.tva ?? '';
         markup.value = item.adaos ?? item.markup ?? '';
         price.value = item.pret_unitar ?? item.price ?? '';
         chk.checked = Boolean(item.apply_discount ?? item.applyDiscount ?? item.discount ?? false);
 
         const recomputePrice = () => {
             const c = toNumber(cost.value);
+            const t = toNumber(tva.value);
             const m = toNumber(markup.value);
-            if (c > 0 && m > 0) {
-                const p = Math.round(c * m * 100) / 100;
-                price.value = String(p);
+            const hasInternal = String(cost.value).trim() !== '' || String(tva.value).trim() !== '' || String(markup.value).trim() !== '';
+            if (!hasInternal) return;
+            if (m > 0 && (c > 0 || t > 0)) {
+                const p = Math.round((c + t) * m * 100) / 100;
+                price.value = p.toFixed(2);
             }
         };
 
@@ -745,6 +754,7 @@ td:nth-child(3) input {
         price.addEventListener('input', calculateTotals);
         chk.addEventListener('change', calculateTotals);
         cost.addEventListener('input', () => { recomputePrice(); calculateTotals(); });
+        tva.addEventListener('input', () => { recomputePrice(); calculateTotals(); });
         markup.addEventListener('input', () => { recomputePrice(); calculateTotals(); });
         del.addEventListener('click', () => { tr.remove(); calculateTotals(); });
 
@@ -762,6 +772,7 @@ td:nth-child(3) input {
             const descriere = tr.querySelector('.row-desc').value.trim();
             const qty = toNumber(tr.querySelector('.row-qty').value);
             const cost = toNumber(tr.querySelector('.row-cost').value);
+            const tvaVal = toNumber(tr.querySelector('.row-tva').value);
             const markup = toNumber(tr.querySelector('.row-markup').value);
             const price = toNumber(tr.querySelector('.row-price').value);
             const applyDiscount = tr.querySelector('.row-discount').checked;
@@ -770,6 +781,7 @@ td:nth-child(3) input {
                 descriere,
                 cantitate: qty,
                 achizitie: cost || null,
+                tva: tvaVal || null,
                 adaos: markup || null,
                 pret_unitar: price,
                 apply_discount: applyDiscount,
@@ -877,6 +889,7 @@ td:nth-child(3) input {
                 qty: it.cantitate,
                 price: it.pret_unitar,
                 achizitie: it.achizitie,
+                tva: it.tva,
                 adaos: it.adaos,
             })),
             discount_global: discountPercent,
@@ -936,6 +949,7 @@ td:nth-child(3) input {
                 cantitate: it.qty ?? it.cantitate ?? '',
                 pret_unitar: it.price ?? it.pret_unitar ?? '',
                 achizitie: it.achizitie ?? it.cost ?? '',
+                tva: it.tva ?? '',
                 adaos: it.adaos ?? it.markup ?? '',
                 apply_discount: it.discount ?? it.apply_discount ?? it.applyDiscount ?? false,
             }));
