@@ -8,7 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="manifest" href="/manifest.json">
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200 antialiased">
     <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur border-b border-slate-800">
@@ -71,7 +72,7 @@
                 <input type="text" id="progAutovehicul" name="autovehicul" placeholder="Model mașină (ex: VW Golf, Ford Mustang)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <input type="text" id="progPachet" name="pachet" placeholder="Pachet / Serviciu" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <input type="number" id="progPret" name="pret_estimat" placeholder="Preț Estimat" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
-                <input type="datetime-local" id="progDataProgramare" name="data_programare" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 [color-scheme:dark]" required>
+                <input type="text" id="progDataProgramare" name="data_programare" placeholder="Data și ora programării" class="flatpickr-input w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <textarea id="progObservatii" name="observatii" placeholder="Observații..." class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 min-h-24"></textarea>
                 <div class="flex items-center gap-3 pt-1">
                     <button type="button" class="flex-1 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" onclick="closeModal('modalProgramare')">Anulează</button>
@@ -91,7 +92,7 @@
                 <input type="text" id="editAutovehicul" name="autovehicul" placeholder="Model mașină (ex: VW Golf, Ford Mustang)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <input type="text" id="editPachet" name="pachet" placeholder="Pachet / Serviciu" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <input type="number" id="editPret" name="pret_estimat" placeholder="Preț Estimat" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
-                <input type="datetime-local" id="editDataProgramare" name="data_programare" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 [color-scheme:dark]" required>
+                <input type="text" id="editDataProgramare" name="data_programare" placeholder="Data și ora programării" class="flatpickr-input w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500" required>
                 <textarea id="editObservatii" name="observatii" placeholder="Observații..." class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500 min-h-24"></textarea>
                 <div class="flex items-center gap-3 pt-1">
                     <button type="button" class="flex-1 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors" onclick="closeModal('modalEdit')">Anulează</button>
@@ -114,10 +115,26 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/ro.js"></script>
     <script>
         const supabaseClient = window.supabase.createClient('https://xyovkxmtbvgcwavuyxxu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74');
         let editContext = null;
         let currentEditId = null;
+        let progFlatpickr = null;
+        let editFlatpickr = null;
+
+        const flatpickrConfig = {
+            enableTime: true,
+            time_24hr: true,
+            minTime: '08:00',
+            maxTime: '18:00',
+            dateFormat: 'Y-m-d H:i',
+            altInput: true,
+            altFormat: 'd.m.Y H:i',
+            locale: 'ro',
+            altInputClass: 'w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-purple-500',
+        };
 
         function switchTab(columnId, btnElement) {
             const activeClasses = ['bg-purple-600', 'text-white'];
@@ -166,6 +183,7 @@
             if (form) form.reset();
             const idInput = document.getElementById('progId');
             if (idInput) idInput.value = '';
+            if (progFlatpickr) progFlatpickr.clear();
             openModal('modalProgramare');
         }
 
@@ -203,11 +221,20 @@
         const formatDateTime = (dateStr) => {
             const raw = String(dateStr ?? '').trim();
             if (!raw) return '';
-            const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-            if (m) return `${m[3]}-${m[2]}-${m[1]} ${m[4]}:${m[5]}`;
-            const d = parseDate(raw);
-            if (!d) return raw;
-            return `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+            const normalized = raw.replace('T', ' ').slice(0, 16);
+            const [datePart, timePart] = normalized.split(' ');
+            if (!datePart || !timePart) return '';
+            const [year, month, day] = datePart.split('-');
+            if (!year || !month || !day) return '';
+            return `${day}.${month}.${year} ${timePart}`;
+        };
+
+        const isPendingStatus = (status) => ['Programari', 'Programat', 'În așteptare'].includes(String(status ?? '').trim());
+
+        const isOverdueAppointment = (status, dataProgramare) => {
+            if (!isPendingStatus(status) || !dataProgramare) return false;
+            const scheduled = parseDate(dataProgramare);
+            return scheduled && scheduled < new Date();
         };
 
         const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -313,8 +340,11 @@
                     }
                 }
 
+                const overdue = isOverdueAppointment(status, row.data_programare);
+                const overdueClasses = overdue ? 'ring-2 ring-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse' : '';
+
                 const card = document.createElement('div');
-                card.className = `card ${cardBorder} bg-slate-900 border border-slate-700 rounded-lg p-4 hub-card`;
+                card.className = `card ${cardBorder} bg-slate-900 border border-slate-700 rounded-lg p-4 hub-card ${overdueClasses}`;
                 card.innerHTML = `
                     <div class="card-edit-zone cursor-pointer hover:bg-slate-800/50 rounded p-1 transition-colors -mx-1">
                         <div class="flex items-start justify-between gap-3">
@@ -423,10 +453,10 @@
             document.getElementById('count-done').innerText = String(countDone);
         }
 
-        function toDatetimeLocalValue(value) {
-            const d = parseDate(value);
-            if (!d) return '';
-            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        function toFlatpickrValue(value) {
+            const raw = String(value ?? '').trim();
+            if (!raw) return '';
+            return raw.replace('T', ' ').slice(0, 16);
         }
 
         function openEditForRow(row) {
@@ -444,7 +474,11 @@
             document.getElementById('editAutovehicul').value = row.autovehicul ?? '';
             document.getElementById('editPachet').value = row.pachet ?? '';
             document.getElementById('editPret').value = row.pret_estimat ?? row.pret ?? '';
-            document.getElementById('editDataProgramare').value = toDatetimeLocalValue(row.data_programare);
+            if (editFlatpickr) {
+                const fpVal = toFlatpickrValue(row.data_programare);
+                if (fpVal) editFlatpickr.setDate(fpVal, true);
+                else editFlatpickr.clear();
+            }
             document.getElementById('editObservatii').value = row.observatii ?? '';
 
             openModal('modalEdit');
@@ -500,6 +534,7 @@
 
             editContext = null;
             form.reset();
+            if (editFlatpickr) editFlatpickr.clear();
             if (btn) btn.disabled = false;
         }
 
@@ -550,12 +585,16 @@
 
             closeModal('modalProgramare');
             form.reset();
+            if (progFlatpickr) progFlatpickr.clear();
             await fetchDetailing();
 
             if (btn) btn.disabled = false;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            progFlatpickr = flatpickr('#progDataProgramare', flatpickrConfig);
+            editFlatpickr = flatpickr('#editDataProgramare', flatpickrConfig);
+
             if (window.innerWidth < 768) {
                 const btn = document.querySelector('.tab-btn[data-tab="col-pending"]');
                 switchTab('col-pending', btn);

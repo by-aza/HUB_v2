@@ -22,7 +22,7 @@
             <div class="flex items-center gap-4">
                 <img src="icons/128x128.png" alt="Logo" class="w-12 h-12 rounded-xl shadow-lg">
                 <div>
-                    <p id="greeting" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Salutare! Zi productivă!</p>
+                    <p id="greeting" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Salutare! Să curgă devizele!</p>
                     <p class="text-sm text-slate-400 mt-0.5">HUB Service Auto</p>
                 </div>
             </div>
@@ -169,7 +169,10 @@
                         <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-500/15 flex items-center justify-center text-violet-400 group-hover:bg-violet-500/25 transition-colors">
                             <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
                         </span>
-                        <span class="text-lg font-semibold text-slate-100">Fișă Detailing</span>
+                        <span class="flex flex-col min-w-0">
+                            <span class="text-lg font-semibold text-slate-100 leading-tight">Fișă Detailing</span>
+                            <span id="badge-detailing" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
+                        </span>
                     </a>
 
                     <a href="modules/formulare/constatari.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
@@ -199,10 +202,10 @@
         function updateClock() {
             const now = new Date();
             const h = now.getHours();
-            let salut = 'Salutare! Zi productivă!';
-            if (h < 12) salut = 'Bună dimineața! Zi productivă!';
-            else if (h < 18) salut = 'Salutare! Zi productivă!';
-            else salut = 'Bună seara! Zi productivă!';
+            let salut = 'Salutare! Să curgă devizele!';
+            if (h < 12) salut = 'Bună dimineața! Să curgă devizele!';
+            else if (h < 18) salut = 'Salutare! Să curgă devizele!';
+            else salut = 'Bună seara! Să curgă devizele!';
 
             document.getElementById('greeting').textContent = salut;
             document.getElementById('currentDate').textContent =
@@ -244,6 +247,16 @@
             const s = parseFloat(stoc) || 0;
             const p = parseFloat(prag) || 0;
             return s <= p;
+        };
+
+        const parseRawLocalDateTime = (value) => {
+            const raw = String(value ?? '').trim().replace('T', ' ').slice(0, 16);
+            const [datePart, timePart] = raw.split(' ');
+            if (!datePart || !timePart) return null;
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return null;
+            return new Date(year, month - 1, day, hour, minute, 0, 0);
         };
 
         async function loadGeneratorBadge() {
@@ -332,7 +345,7 @@
                 sub.textContent = '—';
                 return;
             }
-            sub.textContent = `Ultimul: ${data[0].id_deviz}`;
+            sub.textContent = `Ultimul Deviz: ${data[0].id_deviz}`;
         }
 
         async function loadContracteBadge() {
@@ -379,6 +392,48 @@
             sub.textContent = `Total: ${count || 0} mașini`;
         }
 
+        async function loadDetailingBadge() {
+            const sub = document.getElementById('badge-detailing');
+            const { data, error } = await sb
+                .from('detailing')
+                .select('data_programare, status');
+
+            if (error) {
+                sub.textContent = '—';
+                sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
+                return;
+            }
+
+            const now = new Date();
+            let delayed = 0;
+
+            (data || []).forEach((row) => {
+                if (row.status !== 'Programari') return;
+                const raw = String(row.data_programare ?? '').trim().replace('T', ' ');
+                if (raw.length < 16) return;
+
+                const year = Number(raw.slice(0, 4));
+                const month = Number(raw.slice(5, 7));
+                const day = Number(raw.slice(8, 10));
+                const hour = Number(raw.slice(11, 13));
+                const minute = Number(raw.slice(14, 16));
+
+                if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return;
+
+                const scheduled = new Date(year, month - 1, day, hour, minute);
+                if (scheduled < now) delayed += 1;
+            });
+
+            if (delayed > 0) {
+                sub.textContent = `⚠️ ${delayed} Întârzieri`;
+                sub.className = 'text-xs text-red-400 mt-0.5 truncate';
+                return;
+            }
+
+            sub.textContent = 'La zi';
+            sub.className = 'text-xs text-emerald-400/80 mt-0.5 truncate';
+        }
+
         async function loadAllBadges() {
             await Promise.all([
                 loadGeneratorBadge(),
@@ -388,7 +443,8 @@
                 loadUltimulDeviz(),
                 loadContracteBadge(),
                 loadTotalDevize(),
-                loadMasiniBadge()
+                loadMasiniBadge(),
+                loadDetailingBadge()
             ]);
         }
 
