@@ -143,9 +143,27 @@
                 return;
             }
 
-            allAvansuri = data || [];
+            // Formatează data_crearii la DD.MM.YYYY
+            allAvansuri = (data || []).map(row => {
+                let origDate = row.data_crearii;
+                let dateOnly = '';
+                if (origDate) {
+                    // Suportă formate de tip ISO: "YYYY-MM-DD", "YYYY-MM-DDTHH:MM:SSZ"
+                    let raw = String(origDate).split('T')[0]; // "YYYY-MM-DD"
+                    let [yy, mm, dd] = raw.split('-');
+                    if (yy && mm && dd) {
+                        dateOnly = `${dd.padStart(2, '0')}.${mm.padStart(2, '0')}.${yy}`;
+                    } else {
+                        // fallback la valoarea brută dacă split nu reușește
+                        dateOnly = origDate;
+                    }
+                }
+                return { ...row, data_crearii: dateOnly };
+            });
+
             handleSearch();
         }
+   
 
         function renderAvansuri(data) {
             const body = document.getElementById('avansBody');
