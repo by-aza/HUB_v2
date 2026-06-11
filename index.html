@@ -361,35 +361,20 @@
 
         async function loadMasiniBadge() {
             const sub = document.getElementById('badge-total-masini');
-            let count = 0;
-
-            const primary = await sb
-                .from('lista_masini')
+            const { count, error } = await sb
+                .from('flota_auto')
                 .select('*', { count: 'exact', head: true });
-
-            if (!primary.error) {
-                count = primary.count || 0;
-                sub.textContent = `Total: ${count} mașini`;
-                return;
-            }
-
-            const fallback = await sb
-                .from('masini')
-                .select('*', { count: 'exact', head: true });
-
-            if (fallback.error) {
+            if (error) {
                 sub.textContent = '—';
                 return;
             }
-
-            count = fallback.count || 0;
-            sub.textContent = `Total: ${count} mașini`;
+            sub.textContent = `Total: ${count || 0} mașini`;
         }
 
         async function loadAllBadges() {
             await Promise.all([
                 loadGeneratorBadge(),
-                loadStocuriBadge(),
+                loadConsumabileBadge(),
                 loadAvansBadge(),
                 loadAwbBadge(),
                 loadUltimulDeviz(),
