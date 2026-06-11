@@ -315,16 +315,14 @@
             const sub = document.getElementById('badge-ultimul-deviz');
             const { data, error } = await sb
                 .from('devize')
-                .select('id_deviz, nr_deviz, id')
+                .select('id_deviz')
                 .order('id_deviz', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            if (error || !data) {
+                .limit(1);
+            if (error || !data || !data.length) {
                 sub.textContent = '—';
                 return;
             }
-            const value = data.nr_deviz || data.id_deviz || data.id;
-            sub.textContent = `Ultimul: ${value ?? '—'}`;
+            sub.textContent = `Ultimul: ${data[0].id_deviz}`;
         }
 
         async function loadContracteBadge() {
