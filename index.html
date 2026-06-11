@@ -311,8 +311,92 @@
             sub.textContent = `În tranzit: ${formatLei(sum)} Lei`;
         }
 
+        async function loadUltimulDeviz() {
+            const sub = document.getElementById('badge-ultimul-deviz');
+            const { data, error } = await sb
+                .from('devize')
+                .select('id_deviz, nr_deviz, id')
+                .order('id_deviz', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (error || !data) {
+                sub.textContent = '—';
+                return;
+            }
+            const value = data.nr_deviz || data.id_deviz || data.id;
+            sub.textContent = `Ultimul: ${value ?? '—'}`;
+        }
+
+        async function loadContracteBadge() {
+            const sub = document.getElementById('badge-contracte');
+            const { count, error } = await sb
+                .from('contracte')
+                .select('*', { count: 'exact', head: true })
+                .ilike('status', '%incomplet%');
+            if (error) {
+                sub.textContent = '—';
+                sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
+                return;
+            }
+            if ((count || 0) > 0) {
+                sub.textContent = `⚠️ ${count} Incomplete`;
+                sub.className = 'text-xs text-red-400 mt-0.5 truncate';
+                return;
+            }
+            sub.textContent = 'Toate la zi';
+            sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
+        }
+
+        async function loadTotalDevize() {
+            const sub = document.getElementById('badge-total-devize');
+            const { count, error } = await sb
+                .from('devize')
+                .select('*', { count: 'exact', head: true });
+            if (error) {
+                sub.textContent = '—';
+                return;
+            }
+            sub.textContent = `Total salvate: ${count || 0}`;
+        }
+
+        async function loadMasiniBadge() {
+            const sub = document.getElementById('badge-total-masini');
+            let count = 0;
+
+            const primary = await sb
+                .from('lista_masini')
+                .select('*', { count: 'exact', head: true });
+
+            if (!primary.error) {
+                count = primary.count || 0;
+                sub.textContent = `Total: ${count} mașini`;
+                return;
+            }
+
+            const fallback = await sb
+                .from('masini')
+                .select('*', { count: 'exact', head: true });
+
+            if (fallback.error) {
+                sub.textContent = '—';
+                return;
+            }
+
+            count = fallback.count || 0;
+            sub.textContent = `Total: ${count} mașini`;
+        }
+
         async function loadAllBadges() {
-            await Promise.all([loadGeneratorBadge(), loadStocuriBadge(), loadAvansBadge(), loadAwbBadge()]);
+            await Promise.all([
+                loadGeneratorBadge(),
+                loadStocuriBadge(),
+                loadAvansBadge(),
+                loadAwbBadge(),
+                loadUltimulDeviz(),
+                loadContracteBadge(),
+                loadTotalDevize(),
+                loadMasiniBadge()
+            ]);
         }
 
         loadAllBadges();
