@@ -426,22 +426,25 @@
             if (e.altKey && e.key.toLowerCase() === 'b') { e.preventDefault(); window.location.href = '../../index.html'; }
         });
 
-        // --- REALTIME & NOTIFICATIONS LOGIC ---
-        // Solicitare permisiune la încărcare
-        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-            Notification.requestPermission();
-        }
-
         function sendSystemNotification(title, body) {
-            if (Notification.permission === "granted") {
-                const n = new Notification(title, { 
-                    body, 
-                    icon: "../../icons/128x128.png",
-                    silent: false
-                });
-                // Notificarea dispare automat după 5 secunde
-                setTimeout(() => n.close(), 5000);
-            }
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white shadow-lg shadow-black/40 transition-all duration-300 opacity-0 translate-y-4';
+            toast.innerHTML = `
+                <div class="text-sm font-bold text-slate-100">${title}</div>
+                <div class="mt-1 text-sm text-slate-300">${body}</div>
+            `;
+
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
         }
 
         // Subscripție Realtime pentru notificări și refresh date
