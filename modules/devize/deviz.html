@@ -960,6 +960,17 @@ td:nth-child(3) input {
     btnLoad.addEventListener('click', incarcaDeviz);
     btnPrint.addEventListener('click', () => {
         syncToPrintTemplate();
+        let nrAuto = (screenNrAuto?.value || '').trim();
+        if (!nrAuto) nrAuto = 'Fara Numar';
+        const nrDeviz = (screenIdDeviz?.value || '').trim();
+        const fileName = `Deviz estimativ-${nrAuto}-${nrDeviz}.pdf`;
+        const prevTitle = document.title;
+        const restoreTitle = () => {
+            document.title = prevTitle;
+            window.removeEventListener('afterprint', restoreTitle);
+        };
+        document.title = fileName;
+        window.addEventListener('afterprint', restoreTitle);
         window.print();
     });
     btnNew.addEventListener('click', creeazaDevizNou);
