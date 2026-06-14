@@ -20,7 +20,7 @@
     <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-4">
-                <img src="icons/128x128.png" alt="Logo" class="w-12 h-12 rounded-xl shadow-lg">
+                <img src="icons/128x128.png" alt="Logo" class="w-12 h-12 rounded-xl shadow-lg cursor-pointer" onclick="cereParolaAdmin()">
                 <div>
                     <p id="greeting" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Salutare! Să curgă devizele!</p>
                     <p class="text-sm text-slate-400 mt-0.5">HUB Service Auto</p>
@@ -36,6 +36,16 @@
             </div>
         </div>
     </header>
+
+    <div id="admin-banner" class="hidden max-w-7xl mx-auto px-4 sm:px-6 mt-4">
+        <div class="bg-rose-950/50 border border-rose-500/50 rounded-xl py-1.5 px-4 flex items-center justify-between gap-4 animate-pulse-slow shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+            <div class="flex items-center gap-3">
+                <span class="text-xl animate-bounce">📢</span>
+                <p id="admin-banner-text" class="text-rose-200 font-bold text-sm sm:text-base tracking-wide"></p>
+            </div>
+            <button onclick="document.getElementById('admin-banner').classList.add('hidden')" class="text-rose-400 hover:text-rose-300 px-2 font-bold text-lg cursor-pointer">✖</button>
+        </div>
+    </div>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -220,6 +230,10 @@
         const dbUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
         const sb = supabase.createClient(dbUrl, dbKey);
+        const adminBanner = document.getElementById('admin-banner');
+        const adminBannerText = document.getElementById('admin-banner-text');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
 
         const STOC_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7mX8RLv-YJ8OU0zCF3Kt6khLDosTW5wAZJ6Ba83Xd8U24gNqXIupTdwJl_j3tftiOdfAqo2E1cPeL/pub?gid=906891078&single=true&output=csv';
         const STOC_WATCH = ['Spray Discuri Breckner', 'Spray frane'];
@@ -258,6 +272,44 @@
             if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return null;
             return new Date(year, month - 1, day, hour, minute, 0, 0);
         };
+
+        const readAnnouncementText = (row) => {
+            if (!row || typeof row !== 'object') return '';
+            return String(
+                row.mesaj ?? row.message ?? row.text ?? row.continut ?? row.content ?? row.titlu ?? ''
+            ).trim();
+        };
+
+        function hideAdminBanner() {
+            adminBanner.classList.add('hidden');
+            adminBannerText.textContent = '';
+        }
+
+        async function loadAdminBanner() {
+            try {
+                const { data, error } = await sb
+                    .from('admin_announcements')
+                    .select('*')
+                    .eq('activ', true)
+                    .limit(1);
+
+                if (error || !Array.isArray(data) || !data.length) {
+                    hideAdminBanner();
+                    return;
+                }
+
+                const message = readAnnouncementText(data[0]);
+                if (!message) {
+                    hideAdminBanner();
+                    return;
+                }
+
+                adminBannerText.textContent = message;
+                adminBanner.classList.remove('hidden');
+            } catch {
+                hideAdminBanner();
+            }
+        }
 
         async function loadGeneratorBadge() {
             const dot = document.getElementById('badge-generator-dot');
@@ -450,30 +502,67 @@
 
         loadAllBadges();
         setInterval(loadAllBadges, 60000);
+        loadAdminBanner();
+        setInterval(loadAdminBanner, 60000);
 
         sb.channel('dashboard_badges')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'generator_logs' }, loadGeneratorBadge)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'evidente_avansuri' }, loadAvansBadge)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'evidenta_awb' }, loadAwbBadge)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_announcements' }, loadAdminBanner)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'admin_announcements' }, loadAdminBanner)
             .subscribe();
 
-        function updateConnectionStatus() {
-            const dot = document.getElementById('status-dot');
-            const text = document.getElementById('status-text');
-            if (navigator.onLine) {
-                dot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
-                text.textContent = 'Sistem Online';
-                text.className = 'text-xs text-emerald-400';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-red-500';
-                text.textContent = 'Sistem Offline';
-                text.className = 'text-xs text-red-400';
+        function setConnectionStatus(state) {
+            if (state === 'online') {
+                statusDot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
+                statusText.textContent = 'Sistem Online';
+                statusText.className = 'text-xs text-emerald-400';
+                return;
+            }
+
+            if (state === 'checking') {
+                statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+                statusText.textContent = 'Verific conexiunea...';
+                statusText.className = 'text-xs text-amber-400';
+                return;
+            }
+
+            statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+            statusText.textContent = 'Sistem Offline';
+            statusText.className = 'text-xs text-red-400';
+        }
+
+        async function updateConnectionStatus() {
+            if (!navigator.onLine) {
+                setConnectionStatus('offline');
+                return;
+            }
+
+            setConnectionStatus('checking');
+
+            try {
+                const { error } = await sb.from('devize').select('id_deviz', { head: true, count: 'exact' });
+                if (error) throw error;
+                setConnectionStatus('online');
+            } catch {
+                setConnectionStatus('offline');
             }
         }
 
         updateConnectionStatus();
         window.addEventListener('online', updateConnectionStatus);
         window.addEventListener('offline', updateConnectionStatus);
+        setInterval(updateConnectionStatus, 30000);
+
+        function cereParolaAdmin() {
+            const parola = prompt("Acces restricționat. Introdu parola:");
+            if (parola === "boss2026") {
+                window.location.href = "modules/admin/admin.html";
+            } else if (parola !== null) {
+                alert("Parolă incorectă!");
+            }
+        }
     </script>
 </body>
 </html>

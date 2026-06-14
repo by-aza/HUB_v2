@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUB Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
+
+    <!-- MENIU LATERAL (SIDEBAR) -->
+    <aside class="w-64 flex-shrink-0 bg-slate-900/80 border-r border-slate-800/60 flex flex-col backdrop-blur-md">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800/60">
+            <h1 class="text-lg font-extrabold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <!-- Tab Activ -->
+            <button id="tab-megafon" onclick="schimbaTab('page-megafon', 'tab-megafon')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer">
+                <span>📢</span> Megafon Anunțuri
+            </button>
+            
+            <!-- Tab Inactiv -->
+            <button id="tab-alerte" onclick="schimbaTab('page-alerte', 'tab-alerte')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
+                <span>🔔</span> Alerte Email (ITP)
+            </button>
+            
+            <button id="tab-jurnal" onclick="schimbaTab('page-jurnal', 'tab-jurnal')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
+                <span>🕵️</span> Jurnal Activitate
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800/60">
+            <a href="../../index.html" class="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300 transition-colors">
+                <- Înapoi la HUB
+            </a>
+        </div>
+    </aside>
+
+    <!-- ZONA DE CONȚINUT PRINCIPALĂ -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Header Conținut -->
+        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/60 bg-slate-900/40">
+            <h2 id="page-title" class="text-xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h2>
+            <div class="flex items-center gap-3">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Conexiune Securizată</span>
+            </div>
+        </header>
+
+        <!-- Conținut Tab (Aici vom injecta panourile) -->
+        <div id="content-area" class="flex-1 overflow-y-auto p-8">
+            <div id="page-megafon" class="admin-page">
+                <div class="max-w-4xl mx-auto">
+                    <div class="rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                        <div class="flex items-start gap-4 mb-4">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600/15 border border-rose-500/30 text-3xl">📢</div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-2xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h3>
+                                    <span id="badge-activ" class="hidden ml-4 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">● Mesaj Activ pe Ecrane</span>
+                                </div>
+                                <p class="text-slate-400 mt-0.5">Trimite un mesaj global în bannerul din HUB sau oprește anunțul activ.</p>
+                            </div>
+                        </div>
+
+                        <label for="admin-message-input" class="block text-sm font-semibold text-slate-300 mb-1.5">Mesaj anunț</label>
+                        <textarea id="admin-message-input" rows="3" class="w-full rounded-2xl bg-slate-950/70 border border-slate-800/70 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60 resize-y" placeholder="Scrie aici mesajul care va apărea pe toate ecranele..."></textarea>
+
+                        <div class="flex items-center justify-between mt-4 gap-3">
+    <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
+        Trimite
+    </button>
+    
+    <button id="stop-announcement-btn" onclick="opresteAnunt()" type="button" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-3 text-sm font-bold text-slate-100 transition-colors">
+        Oprește
+    </button>
+</div>
+
+                        <div id="admin-status" class="mt-3 min-h-6 text-sm text-slate-400"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-alerte" class="admin-page hidden">
+                <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
+                <!-- Section 1: General Email Settings -->
+                <div class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-5 mb-6">
+                    <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
+                    <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
+                    <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
+                        Salvează Adrese Generale
+                    </button>
+                </div>
+
+                <!-- Section 2: Fleet Table -->
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
+                            <th class="py-3 pr-4">Nr. Auto</th>
+                            <th class="py-3 pr-4">Expiră În</th>
+                            <th class="py-3 pr-4">Email Șofer (Notificare individuală)</th>
+                            <th class="py-3 text-right">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60">
+                        <!-- Rows will be dynamically populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="page-jurnal" class="admin-page hidden"><h2 class="text-xl font-bold text-slate-100 mb-6">Jurnal Activitate</h2><p class="text-slate-400">În curând...</p></div>
+
+        </div>
+    </main>
+
+    <script>
+        function schimbaTab(paginaId, butonId) {
+            // 1. Ascunde toate paginile
+            document.querySelectorAll('.admin-page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            // 2. Arată pagina selectată
+            const paginaSelectata = document.getElementById(paginaId);
+            if (paginaSelectata) paginaSelectata.classList.remove('hidden');
+
+            // 3. Resetează toate butoanele
+            const butoane = ['tab-megafon', 'tab-alerte', 'tab-jurnal'];
+            butoane.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer';
+                }
+            });
+
+            // 4. Activează butonul selectat
+            const butonActiv = document.getElementById(butonId);
+            if (butonActiv) {
+                butonActiv.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer';
+            }
+
+            if (pageTitle) {
+                if (paginaId === 'page-megafon') pageTitle.textContent = 'Megafon (Anunțuri Interne)';
+                if (paginaId === 'page-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
+                if (paginaId === 'page-jurnal') pageTitle.textContent = 'Jurnal Activitate';
+            }
+
+            if (paginaId === 'page-alerte') {
+                loadAlertePage();
+            }
+            // Dacă deschidem pagina de alerte, încărcăm mașinile
+        if (paginaId === 'page-alerte') {
+            incarcaFlotaAlerte();
+            incarcaEmailGeneral();
+        }
+        }
+
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const sb = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const pageTitle = document.getElementById('page-title');
+        const adminMessageInput = document.getElementById('admin-message-input');
+        const adminStatus = document.getElementById('admin-status');
+        const badgeActiv = document.getElementById('badge-activ');
+        const sendAnnouncementBtn = document.getElementById('send-announcement-btn');
+        const stopAnnouncementBtn = document.getElementById('stop-announcement-btn');
+        const alertsFleetBody = document.getElementById('alerts-fleet-body');
+
+        function setStatus(message, type = 'info') {
+            adminStatus.textContent = message;
+            if (type === 'success') {
+                adminStatus.className = 'mt-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'stopped') {
+                adminStatus.className = 'mt-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            if (type === 'error') {
+                adminStatus.className = 'mt-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            adminStatus.className = 'mt-4 min-h-6 text-sm text-slate-400';
+        }
+
+        function setButtonsDisabled(disabled) {
+            [sendAnnouncementBtn, stopAnnouncementBtn].forEach((btn) => {
+                btn.disabled = disabled;
+                btn.classList.toggle('opacity-60', disabled);
+                btn.classList.toggle('cursor-not-allowed', disabled);
+            });
+        }
+
+        function setAlertsStatus(message, type = 'info') {
+            const alertsStatus = document.getElementById('alerts-status');
+            if (!alertsStatus) return;
+            alertsStatus.textContent = message;
+            if (type === 'success') {
+                alertsStatus.className = 'mt-3 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                alertsStatus.className = 'mt-3 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            alertsStatus.className = 'mt-3 min-h-6 text-sm text-slate-400';
+        }
+
+        async function deactivateAllAnnouncements() {
+            const { error } = await sb
+                .from('admin_announcements')
+                .update({ activ: false })
+                .eq('activ', true);
+
+            if (error) throw error;
+        }
+
+        async function updateMegafonUI() {
+            try {
+                const { data, error } = await sb
+                    .from('admin_announcements')
+                    .select('id')
+                    .eq('activ', true)
+                    .limit(1);
+
+                if (error) throw error;
+
+                const hasActiveMessage = Array.isArray(data) && data.length > 0;
+                badgeActiv.classList.toggle('hidden', !hasActiveMessage);
+                stopAnnouncementBtn.classList.toggle('animate-pulse', hasActiveMessage);
+                stopAnnouncementBtn.classList.toggle('ring-2', hasActiveMessage);
+                stopAnnouncementBtn.classList.toggle('ring-slate-500', hasActiveMessage);
+            } catch {
+                badgeActiv.classList.add('hidden');
+                stopAnnouncementBtn.classList.remove('animate-pulse', 'ring-2', 'ring-slate-500');
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderFleetAlertRows(fleetRows, configRows) {
+            const configByPlate = new Map(
+                (configRows || [])
+                    .filter((row) => row.nr_auto)
+                    .map((row) => [String(row.nr_auto).trim().toUpperCase(), row.email_sofer || ''])
+            );
+
+            if (!fleetRows.length) {
+                alertsFleetBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="py-6 text-sm text-slate-500 text-center">Nu există mașini în flotă.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            alertsFleetBody.innerHTML = fleetRows.map((car) => {
+                const plate = String(car.nr_inmatriculare || '').trim().toUpperCase();
+                const email = configByPlate.get(plate) || '';
+                return `
+                    <tr class="align-middle">
+                        <td class="py-3 pr-4 font-mono font-bold text-slate-200">${escapeHtml(plate || '-')}</td>
+                        <td class="py-3 pr-4">
+                            <input
+                                type="email"
+                                value="${escapeHtml(email)}"
+                                data-alert-email-input="${escapeHtml(plate)}"
+                                class="w-full rounded-xl bg-slate-950/70 border border-slate-800/70 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/60"
+                                placeholder="sofer@exemplu.ro"
+                            >
+                        </td>
+                        <td class="py-3 text-right">
+                            <button
+                                type="button"
+                                data-save-alert-row="${escapeHtml(plate)}"
+                                class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-slate-100 transition-colors"
+                            >
+                                Salvează
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadGeneralAlertSettings() {
+            const { data, error } = await sb
+                .from('config_alerte')
+                .select('emailuri_generale')
+                .eq('tip', 'general')
+                .limit(1);
+
+            const generalAlertEmails = document.getElementById('input-email-general');
+            if (error) throw error;
+            if (generalAlertEmails) generalAlertEmails.value = data?.[0]?.emailuri_generale || '';
+        }
+
+        async function loadFleetAlertSettings() {
+            const [{ data: fleetRows, error: fleetError }, { data: configRows, error: configError }] = await Promise.all([
+                sb.from('flota_auto').select('nr_inmatriculare').order('nr_inmatriculare', { ascending: true }),
+                sb.from('config_alerte').select('nr_auto, email_sofer')
+            ]);
+
+            if (fleetError) throw fleetError;
+            if (configError) throw configError;
+
+            const alertsFleetBody = document.getElementById('tabel-flota-alerte');
+            if (alertsFleetBody) renderFleetAlertRows(fleetRows || [], configRows || []);
+        }
+
+        async function loadAlertePage() {
+            setAlertsStatus('Se încarcă setările...');
+            try {
+                await Promise.all([
+                    loadGeneralAlertSettings(),
+                    loadFleetAlertSettings()
+                ]);
+                setAlertsStatus('Setările sunt la zi.');
+            } catch (error) {
+                setAlertsStatus(error.message || 'Eroare la încărcarea alertelor.', 'error');
+            }
+        }
+
+        async function saveGeneralAlertSettings() {
+            const saveGeneralAlertsBtn = document.getElementById('save-general-alerts-btn');
+            const generalAlertEmails = document.getElementById('input-email-general');
+            if (!saveGeneralAlertsBtn || !generalAlertEmails) return;
+
+            saveGeneralAlertsBtn.disabled = true;
+            saveGeneralAlertsBtn.classList.add('opacity-60', 'cursor-not-allowed');
+            setAlertsStatus('Se salvează setările generale...');
+
+            try {
+                const { error } = await sb
+                    .from('config_alerte')
+                    .upsert({ tip: 'general', emailuri_generale: generalAlertEmails.value.trim() }, { onConflict: 'tip' });
+
+                if (error) throw error;
+                setAlertsStatus('Setările generale au fost salvate.', 'success');
+            } catch (error) {
+                setAlertsStatus(error.message || 'Eroare la salvarea setărilor generale.', 'error');
+            } finally {
+                saveGeneralAlertsBtn.disabled = false;
+                saveGeneralAlertsBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        async function saveFleetAlertRow(plate, button) {
+            const input = document.querySelector(`[data-alert-email-input="${CSS.escape(plate)}"]`);
+            if (!input) return;
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+            setAlertsStatus(`Se salvează emailul pentru ${plate}...`);
+
+            try {
+                const { error } = await sb
+                    .from('config_alerte')
+                    .upsert({ nr_auto: plate, email_sofer: input.value.trim() }, { onConflict: 'nr_auto' });
+
+                if (error) throw error;
+                setAlertsStatus(`Email-ul pentru ${plate} a fost salvat.`, 'success');
+            } catch (error) {
+                setAlertsStatus(error.message || `Eroare la salvarea emailului pentru ${plate}.`, 'error');
+            } finally {
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        async function trimiteAnunt() {
+            const mesaj = adminMessageInput.value.trim();
+            if (!mesaj) {
+                setStatus('Introdu un mesaj înainte de trimitere.', 'error');
+                return;
+            }
+
+            setButtonsDisabled(true);
+            setStatus('Se trimite anunțul...');
+
+            try {
+                await deactivateAllAnnouncements();
+
+                const { error } = await sb
+                    .from('admin_announcements')
+                    .insert([{ mesaj: mesaj, activ: true }]);
+
+                if (error) throw error;
+
+                adminMessageInput.value = '';
+                setStatus('Anunț trimis cu succes!', 'success');
+                
+                // Actualizăm UI-ul să palpite
+                if (typeof updateMegafonUI === 'function') {
+                    updateMegafonUI();
+                }
+            } catch (err) {
+                console.error('Eroare trimitere:', err);
+                setStatus('Eroare la trimitere: ' + err.message, 'error');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        async function opresteAnunt() {
+            setButtonsDisabled(true);
+            setStatus('Se oprește anunțul...', 'error');
+            try {
+                await deactivateAllAnnouncements();
+                setStatus('Anunț oprit cu succes!', 'success');
+                
+                // Actualizăm UI-ul să oprească palpitația
+                if (typeof updateMegafonUI === 'function') {
+                    updateMegafonUI();
+                }
+            } catch (err) {
+                console.error('Eroare:', err);
+                setStatus('Eroare la oprire: ' + err.message, 'error');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+    // --- FUNCȚII PENTRU ALERTE EMAIL FLOTĂ ---
+
+async function incarcaFlotaAlerte() {
+    const tbody = document.getElementById('tabel-flota-alerte');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">Se încarcă mașinile...</td></tr>';
+
+    try {
+        const { data: masini, error } = await sb.from('flota_auto').select('*');
+        if (error) throw error;
+
+        tbody.innerHTML = ''; 
+        const azi = new Date();
+
+        masini.forEach(masina => {
+            let zileMinime = Infinity;
+            let textExpirare = "Fără date";
+            let culoareExpirare = "text-slate-400";
+
+            ['data_itp', 'data_rca', 'data_rovinieta'].forEach(tip => {
+                if (masina[tip]) {
+                    const dataExp = new Date(masina[tip]);
+                    const zile = Math.ceil((dataExp - azi) / (1000 * 60 * 60 * 24));
+                    if (zile < zileMinime) {
+                        zileMinime = zile;
+                        textExpirare = `${tip.replace('data_', '').toUpperCase()}: ${zile} zile`;
+                    }
+                }
+            });
+
+            if (zileMinime <= 0) { textExpirare = "EXPIRAT"; culoareExpirare = "text-rose-500 font-bold"; }
+            else if (zileMinime <= 10) { culoareExpirare = "text-amber-500 font-bold"; }
+            else if (zileMinime !== Infinity) { culoareExpirare = "text-emerald-400"; }
+
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors";
+            tr.innerHTML = `
+                <td class="py-3 font-medium text-slate-200">${masina.nr_inmatriculare}</td>
+                <td class="py-3 ${culoareExpirare}">${textExpirare}</td>
+                <td class="py-3">
+                    <input type="email" id="email-${masina.id}" value="${masina.email_sofer || ''}" placeholder="Ex: sofer@firma.ro" class="bg-slate-900 border border-slate-700 text-slate-200 rounded px-3 py-1.5 w-full focus:border-rose-500 outline-none transition-all">
+                </td>
+                <td class="py-3 text-right">
+                    <button onclick="salveazaEmailSofer(${masina.id}, '${masina.nr_inmatriculare}')" class="bg-slate-700 hover:bg-rose-600 text-white px-3 py-1.5 rounded transition-colors text-sm">
+                        Salvează
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error("Eroare la încărcare flotă:", err);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-rose-500">Eroare la încărcarea datelor.</td></tr>`;
+    }
+}
+
+async function salveazaEmailSofer(idMasina, nrAuto) {
+    const inputEmail = document.getElementById(`email-${idMasina}`);
+    const emailNou = inputEmail.value.trim();
+
+    try {
+        const { error } = await sb
+            .from('flota_auto')
+            .update({ email_sofer: emailNou })
+            .eq('id', idMasina);
+
+        if (error) throw error;
+        
+        inputEmail.classList.add('border-emerald-500', 'bg-emerald-500/10');
+        setTimeout(() => inputEmail.classList.remove('border-emerald-500', 'bg-emerald-500/10'), 2000);
+        
+        setStatus(`Email salvat pentru ${nrAuto}`, 'success');
+    } catch (err) {
+        console.error("Eroare la salvare:", err);
+        setStatus("Eroare la salvarea emailului.", 'error');
+    }
+}    
+async function incarcaEmailGeneral() {
+    const input = document.getElementById('input-email-general');
+    if (!input) return;
+
+    try {
+        const { data, error } = await sb
+            .from('config_alerte')
+            .select('valoare')
+            .eq('cheie', 'email_general')
+            .single();
+
+        if (error) throw error;
+        if (data) {
+            input.value = data.valoare; // Pune mailul tău în căsuță
+        }
+    } catch (err) {
+        console.error("Eroare la încărcare email general:", err);
+    }
+}
+
+async function salveazaEmailGeneral(btn) {
+    const input = document.getElementById('input-email-general');
+    if (!input) return;
+
+    const emailNou = input.value.trim();
+    const textInitial = btn.innerText;
+    btn.innerText = "Se salvează...";
+
+    try {
+        const { error } = await sb
+            .from('config_alerte')
+            .update({ valoare: emailNou })
+            .eq('cheie', 'email_general');
+
+        if (error) throw error;
+        
+        setStatus('Adresele generale au fost salvate!', 'success');
+    } catch (err) {
+        console.error("Eroare la salvare email general:", err);
+        setStatus('Eroare la salvare: ' + err.message, 'error');
+    } finally {
+        btn.innerText = textInitial;
+    }
+}
+    </script>
+</body>
+</html>
