@@ -15,7 +15,7 @@
     <link rel="manifest" href="/manifest.json">
 
     </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
+<body class="min-h-screen flex flex-col overflow-x-hidden bg-slate-950 text-slate-100 antialiased">
 
     <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -47,15 +47,15 @@
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+    <main class="flex-1 overflow-y-auto max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+        <div class="flex flex-col gap-8 md:grid md:grid-cols-3 md:gap-6 lg:gap-8">
 
             <!-- COLOANA 1: BIROU & FINANCIAR -->
-            <section class="flex flex-col gap-4">
+            <section class="min-w-0 flex flex-col gap-5">
                 <h2 class="text-lg font-extrabold uppercase tracking-wider text-blue-400 border-b border-blue-500/30 pb-3">
                     💼 Birou &amp; Financiar
                 </h2>
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-4">
 
                     <a href="modules/devize/deviz.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
                         <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
@@ -108,11 +108,11 @@
             </section>
 
             <!-- COLOANA 2: SERVICE & LOGISTICĂ -->
-            <section class="flex flex-col gap-4">
+            <section class="min-w-0 flex flex-col gap-5">
                 <h2 class="text-lg font-extrabold uppercase tracking-wider text-emerald-400 border-b border-emerald-500/30 pb-3">
                     🔧 Service &amp; Logistică
                 </h2>
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-4">
 
                     <a href="modules/flota/lista_masini.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
                         <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
@@ -169,11 +169,11 @@
             </section>
 
             <!-- COLOANA 3: DETAILING & CONSTATĂRI -->
-            <section class="flex flex-col gap-4">
+            <section class="min-w-0 flex flex-col gap-5">
                 <h2 class="text-lg font-extrabold uppercase tracking-wider text-violet-400 border-b border-violet-500/30 pb-3">
                     ✨ Detailing &amp; Constatări
                 </h2>
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-4">
 
                     <a href="modules/formulare/detailing.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
                         <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-500/15 flex items-center justify-center text-violet-400 group-hover:bg-violet-500/25 transition-colors">

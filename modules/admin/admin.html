@@ -30,6 +30,10 @@
             <button id="tab-jurnal" onclick="schimbaTab('page-jurnal', 'tab-jurnal')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
                 <span>🕵️</span> Jurnal Activitate
             </button>
+
+            <button id="tab-devize" onclick="schimbaTab('page-devize', 'tab-devize')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
+                <span>🧾</span> Gestiune Devize
+            </button>
         </nav>
 
         <div class="p-4 border-t border-slate-800/60">
@@ -82,6 +86,32 @@
 
                         <div id="admin-status" class="mt-3 min-h-6 text-sm text-slate-400"></div>
                     </div>
+
+                    <div class="mt-6 rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-4">
+                            <div>
+                                <h4 class="text-xl font-bold text-slate-100">Istoric Anunțuri</h4>
+                                <p class="text-sm text-slate-400 mt-1">Editează mesajele, schimbă statusul activ și șterge anunțurile vechi.</p>
+                            </div>
+                            <button id="refresh-announcements-btn" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                                Reîmprospătează
+                            </button>
+                        </div>
+                        <div id="announcement-history-status" class="mb-4 min-h-6 text-sm text-slate-400"></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-slate-200 border-collapse">
+                                <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
+                                    <tr>
+                                        <th class="py-3 pr-4 text-left">ID</th>
+                                        <th class="py-3 pr-4 text-left">Mesaj</th>
+                                        <th class="py-3 pr-4 text-center">Activ</th>
+                                        <th class="py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="announcements-history-body" class="divide-y divide-slate-800/60"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -119,6 +149,12 @@
 
     <script>
         function schimbaTab(paginaId, butonId) {
+            if (paginaId === 'page-devize') {
+                renderDevizePage();
+            } else {
+                restoreStaticAdminPages();
+            }
+
             // 1. Ascunde toate paginile
             document.querySelectorAll('.admin-page').forEach(page => {
                 page.classList.add('hidden');
@@ -128,7 +164,7 @@
             if (paginaSelectata) paginaSelectata.classList.remove('hidden');
 
             // 3. Resetează toate butoanele
-            const butoane = ['tab-megafon', 'tab-alerte', 'tab-jurnal'];
+            const butoane = ['tab-megafon', 'tab-alerte', 'tab-jurnal', 'tab-devize'];
             butoane.forEach(id => {
                 const btn = document.getElementById(id);
                 if (btn) {
@@ -146,10 +182,18 @@
                 if (paginaId === 'page-megafon') pageTitle.textContent = 'Megafon (Anunțuri Interne)';
                 if (paginaId === 'page-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
                 if (paginaId === 'page-jurnal') pageTitle.textContent = 'Jurnal Activitate';
+                if (paginaId === 'page-devize') pageTitle.textContent = 'Gestiune Devize';
             }
 
             if (paginaId === 'page-alerte') {
                 loadAlertePage();
+            }
+            if (paginaId === 'page-megafon') {
+                loadAnnouncementHistory();
+                updateMegafonUI();
+            }
+            if (paginaId === 'page-devize') {
+                loadDevizeTable();
             }
             // Dacă deschidem pagina de alerte, încărcăm mașinile
         if (paginaId === 'page-alerte') {
@@ -168,7 +212,248 @@
         const badgeActiv = document.getElementById('badge-activ');
         const sendAnnouncementBtn = document.getElementById('send-announcement-btn');
         const stopAnnouncementBtn = document.getElementById('stop-announcement-btn');
+        const refreshAnnouncementsBtn = document.getElementById('refresh-announcements-btn');
+        const announcementsHistoryBody = document.getElementById('announcements-history-body');
         const alertsFleetBody = document.getElementById('alerts-fleet-body');
+        const contentArea = document.getElementById('content-area');
+        const staticAdminPages = Array.from(contentArea.querySelectorAll('.admin-page'));
+        let devizePage = null;
+
+        function restoreStaticAdminPages() {
+            if (!contentArea) return;
+            const currentChildren = Array.from(contentArea.children);
+            const hasAllStaticPages = staticAdminPages.every((page) => currentChildren.includes(page));
+            if (!hasAllStaticPages) {
+                contentArea.replaceChildren(...staticAdminPages);
+            }
+        }
+
+        function createDevizePage() {
+            const page = document.createElement('div');
+            page.id = 'page-devize';
+            page.className = 'admin-page';
+            page.innerHTML = `
+                <div class="max-w-7xl mx-auto space-y-5">
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
+                                <p class="text-sm text-slate-400 mt-1">Vizualizare, editare rapidă pentru număr auto și ștergere directă din Supabase.</p>
+                            </div>
+                            <button id="devize-refresh-btn" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                                Reîmprospătează
+                            </button>
+                        </div>
+                        <div id="devize-status" class="mt-4 min-h-6 text-sm text-slate-400"></div>
+                    </div>
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-slate-200 border-collapse">
+                                <thead class="bg-slate-900 text-slate-400 uppercase text-xs tracking-wider">
+                                    <tr class="border-b border-slate-800">
+                                        <th class="px-4 py-3 text-left">ID Deviz</th>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-left">Nr. Înmatriculare</th>
+                                        <th class="px-4 py-3 text-right">Total</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devize-table-body" class="divide-y divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            page.addEventListener('click', async (event) => {
+                const refreshBtn = event.target.closest('#devize-refresh-btn');
+                if (refreshBtn) {
+                    loadDevizeTable();
+                    return;
+                }
+
+                const deleteBtn = event.target.closest('[data-delete-deviz]');
+                if (!deleteBtn) return;
+
+                const idDeviz = deleteBtn.getAttribute('data-delete-deviz');
+                if (!idDeviz) return;
+                if (!confirm(`Ștergi devizul ${idDeviz}?`)) return;
+
+                setDevizeStatus(`Se șterge ${idDeviz}...`);
+                deleteBtn.disabled = true;
+                deleteBtn.classList.add('opacity-60', 'cursor-not-allowed');
+
+                try {
+                    const { error } = await sb.from('devize').delete().eq('id_deviz', idDeviz);
+                    if (error) throw error;
+                    setDevizeStatus(`Devizul ${idDeviz} a fost șters.`, 'success');
+                    await loadDevizeTable();
+                } catch (error) {
+                    setDevizeStatus(error.message || 'Eroare la ștergerea devizului.', 'error');
+                    deleteBtn.disabled = false;
+                    deleteBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+            });
+
+            page.addEventListener('dblclick', (event) => {
+                const cell = event.target.closest('[data-editable-plate]');
+                if (!cell) return;
+                activatePlateEditor(cell);
+            });
+
+            return page;
+        }
+
+        function renderDevizePage() {
+            if (!contentArea) return;
+            if (!devizePage) devizePage = createDevizePage();
+            contentArea.replaceChildren(devizePage);
+        }
+
+        function setDevizeStatus(message, type = 'info') {
+            const el = document.getElementById('devize-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mt-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mt-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mt-4 min-h-6 text-sm text-slate-400';
+        }
+
+        function formatDevizDate(value) {
+            if (!value) return '-';
+            const parts = String(value).split('-');
+            if (parts.length !== 3) return String(value);
+            return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+        function formatDevizMoney(value) {
+            const amount = Number(value);
+            if (!Number.isFinite(amount)) return '0.00 RON';
+            return `${amount.toFixed(2)} RON`;
+        }
+
+        function renderDevizeRows(rows) {
+            const tbody = document.getElementById('devize-table-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există devize.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const idDeviz = escapeHtml(row.id_deviz || '');
+                const nrAuto = escapeHtml(row.nr_inmatriculare || '');
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-100">${idDeviz || '-'}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(formatDevizDate(row.data_deviz))}</td>
+                        <td class="px-4 py-3 text-slate-200 cursor-text" data-editable-plate data-id-deviz="${idDeviz}" data-current-plate="${nrAuto}" title="Dublu click pentru editare">${nrAuto || '-'}</td>
+                        <td class="px-4 py-3 text-right font-semibold text-cyan-300">${escapeHtml(formatDevizMoney(row.total_general))}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" data-delete-deviz="${idDeviz}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">
+                                Șterge
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadDevizeTable() {
+            const tbody = document.getElementById('devize-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă devizele...</td>
+                </tr>
+            `;
+            setDevizeStatus('Se încarcă devizele...');
+
+            try {
+                const { data, error } = await sb
+                    .from('devize')
+                    .select('id_deviz, data_deviz, nr_inmatriculare, total_general')
+                    .order('data_deviz', { ascending: false });
+
+                if (error) throw error;
+                renderDevizeRows(data || []);
+                setDevizeStatus(`Au fost încărcate ${data?.length || 0} devize.`, 'success');
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea devizelor.</td>
+                    </tr>
+                `;
+                setDevizeStatus(error.message || 'Eroare la încărcarea devizelor.', 'error');
+            }
+        }
+
+        function activatePlateEditor(cell) {
+            if (!cell || cell.querySelector('input')) return;
+
+            const idDeviz = cell.getAttribute('data-id-deviz');
+            const currentPlate = cell.getAttribute('data-current-plate') || '';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentPlate;
+            input.className = 'w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-rose-500';
+            let finished = false;
+
+            const finish = async (save) => {
+                if (finished) return;
+                finished = true;
+                if (!cell.isConnected) return;
+                const newPlate = input.value.trim().toUpperCase();
+                if (!save) {
+                    cell.textContent = currentPlate || '-';
+                    return;
+                }
+                if (newPlate === currentPlate) {
+                    cell.textContent = currentPlate || '-';
+                    return;
+                }
+
+                cell.textContent = 'Se salvează...';
+                setDevizeStatus(`Se actualizează ${idDeviz}...`);
+
+                try {
+                    const { error } = await sb
+                        .from('devize')
+                        .update({ nr_inmatriculare: newPlate || null })
+                        .eq('id_deviz', idDeviz);
+
+                    if (error) throw error;
+                    setDevizeStatus(`Numărul auto pentru ${idDeviz} a fost actualizat.`, 'success');
+                    await loadDevizeTable();
+                } catch (error) {
+                    cell.textContent = currentPlate || '-';
+                    setDevizeStatus(error.message || 'Eroare la actualizarea numărului auto.', 'error');
+                }
+            };
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') finish(true);
+                if (event.key === 'Escape') finish(false);
+            });
+            input.addEventListener('blur', () => finish(true), { once: true });
+
+            cell.textContent = '';
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+        }
 
         function setStatus(message, type = 'info') {
             adminStatus.textContent = message;
@@ -188,11 +473,35 @@
         }
 
         function setButtonsDisabled(disabled) {
-            [sendAnnouncementBtn, stopAnnouncementBtn].forEach((btn) => {
+            [sendAnnouncementBtn, stopAnnouncementBtn, refreshAnnouncementsBtn].forEach((btn) => {
                 btn.disabled = disabled;
                 btn.classList.toggle('opacity-60', disabled);
                 btn.classList.toggle('cursor-not-allowed', disabled);
             });
+        }
+
+        function setAnnouncementHistoryStatus(message, type = 'info') {
+            const el = document.getElementById('announcement-history-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+        }
+
+        function getAnnouncementActiveField(row) {
+            if (row && Object.prototype.hasOwnProperty.call(row, 'is_active')) return 'is_active';
+            return 'activ';
+        }
+
+        function getAnnouncementIsActive(row) {
+            return Boolean(row?.is_active ?? row?.activ ?? false);
         }
 
         function setAlertsStatus(message, type = 'info') {
@@ -211,10 +520,18 @@
         }
 
         async function deactivateAllAnnouncements() {
-            const { error } = await sb
+            let { error } = await sb
                 .from('admin_announcements')
-                .update({ activ: false })
-                .eq('activ', true);
+                .update({ is_active: false })
+                .eq('is_active', true);
+
+            if (error) {
+                const fallback = await sb
+                    .from('admin_announcements')
+                    .update({ activ: false })
+                    .eq('activ', true);
+                error = fallback.error;
+            }
 
             if (error) throw error;
         }
@@ -223,13 +540,13 @@
             try {
                 const { data, error } = await sb
                     .from('admin_announcements')
-                    .select('id')
-                    .eq('activ', true)
-                    .limit(1);
+                    .select('*')
+                    .order('id', { ascending: false })
+                    .limit(50);
 
                 if (error) throw error;
 
-                const hasActiveMessage = Array.isArray(data) && data.length > 0;
+                const hasActiveMessage = Array.isArray(data) && data.some((row) => getAnnouncementIsActive(row));
                 badgeActiv.classList.toggle('hidden', !hasActiveMessage);
                 stopAnnouncementBtn.classList.toggle('animate-pulse', hasActiveMessage);
                 stopAnnouncementBtn.classList.toggle('ring-2', hasActiveMessage);
@@ -247,6 +564,196 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function renderAnnouncementHistory(rows) {
+            if (!announcementsHistoryBody) return;
+
+            if (!rows.length) {
+                announcementsHistoryBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-slate-500">Nu există anunțuri.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            announcementsHistoryBody.innerHTML = rows.map((row) => {
+                const id = escapeHtml(row.id);
+                const message = escapeHtml(row.mesaj || '');
+                const isActive = getAnnouncementIsActive(row);
+                return `
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 pr-4 font-mono text-slate-300">${id}</td>
+                        <td class="py-3 pr-4">
+                            <div class="flex items-center gap-2">
+                                <span class="announcement-message text-slate-100" data-announcement-message="${id}">${message || '-'}</span>
+                                <button type="button" data-edit-announcement="${id}" class="rounded-lg bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-xs font-bold text-slate-200 border border-slate-700 transition-colors">
+                                    Edit
+                                </button>
+                            </div>
+                        </td>
+                        <td class="py-3 pr-4 text-center">
+                            <button
+                                type="button"
+                                data-toggle-announcement="${id}"
+                                data-active-field="${escapeHtml(getAnnouncementActiveField(row))}"
+                                data-current-active="${isActive ? '1' : '0'}"
+                                class="inline-flex h-7 w-12 items-center rounded-full border transition-colors ${isActive ? 'bg-emerald-600/80 border-emerald-500/60 justify-end' : 'bg-slate-800 border-slate-700 justify-start'} px-1"
+                                title="Comută statusul activ"
+                            >
+                                <span class="h-5 w-5 rounded-full bg-white"></span>
+                            </button>
+                        </td>
+                        <td class="py-3 text-right">
+                            <button type="button" data-delete-announcement="${id}" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-lg font-bold transition-colors" title="Șterge anunțul">
+                                ×
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadAnnouncementHistory() {
+            if (!announcementsHistoryBody) return;
+
+            announcementsHistoryBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="py-8 text-center text-slate-500">Se încarcă istoricul...</td>
+                </tr>
+            `;
+            setAnnouncementHistoryStatus('Se încarcă istoricul anunțurilor...');
+
+            try {
+                const { data, error } = await sb
+                    .from('admin_announcements')
+                    .select('*')
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+                renderAnnouncementHistory(data || []);
+                setAnnouncementHistoryStatus(`Au fost încărcate ${data?.length || 0} anunțuri.`, 'success');
+                await updateMegafonUI();
+            } catch (error) {
+                announcementsHistoryBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-rose-400">Eroare la încărcarea istoricului.</td>
+                    </tr>
+                `;
+                setAnnouncementHistoryStatus(error.message || 'Eroare la încărcarea istoricului.', 'error');
+            }
+        }
+
+        async function updateAnnouncementMessage(id, mesajNou) {
+            const trimmed = mesajNou.trim();
+            if (!trimmed) {
+                setAnnouncementHistoryStatus('Mesajul nu poate fi gol.', 'error');
+                await loadAnnouncementHistory();
+                return;
+            }
+
+            setAnnouncementHistoryStatus(`Se salvează mesajul #${id}...`);
+            try {
+                const { error } = await sb
+                    .from('admin_announcements')
+                    .update({ mesaj: trimmed })
+                    .eq('id', id);
+
+                if (error) throw error;
+                setAnnouncementHistoryStatus(`Mesajul #${id} a fost actualizat.`, 'success');
+                await loadAnnouncementHistory();
+            } catch (error) {
+                setAnnouncementHistoryStatus(error.message || 'Eroare la actualizarea mesajului.', 'error');
+            }
+        }
+
+        function activateAnnouncementEditor(id) {
+            const label = document.querySelector(`[data-announcement-message="${CSS.escape(String(id))}"]`);
+            if (!label || label.querySelector('input')) return;
+
+            const original = label.textContent === '-' ? '' : label.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = original;
+            input.className = 'w-full rounded-xl bg-slate-950/70 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60';
+            let finished = false;
+
+            const finish = async (save) => {
+                if (finished) return;
+                finished = true;
+                if (!save) {
+                    label.textContent = original || '-';
+                    return;
+                }
+                await updateAnnouncementMessage(id, input.value);
+            };
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') finish(true);
+                if (event.key === 'Escape') finish(false);
+            });
+            input.addEventListener('blur', () => finish(true), { once: true });
+
+            label.textContent = '';
+            label.appendChild(input);
+            input.focus();
+            input.select();
+        }
+
+        async function toggleAnnouncementActive(id, activeField, currentValue) {
+            const nextValue = !currentValue;
+            setAnnouncementHistoryStatus(`Se actualizează statusul pentru #${id}...`);
+
+            try {
+                if (nextValue) {
+                    await deactivateAllAnnouncements();
+                }
+
+                let { error } = await sb
+                    .from('admin_announcements')
+                    .update({ [activeField]: nextValue })
+                    .eq('id', id);
+
+                if (error && activeField !== 'activ') {
+                    const fallback = await sb
+                        .from('admin_announcements')
+                        .update({ activ: nextValue })
+                        .eq('id', id);
+                    error = fallback.error;
+                }
+                if (error && activeField !== 'is_active') {
+                    const fallback = await sb
+                        .from('admin_announcements')
+                        .update({ is_active: nextValue })
+                        .eq('id', id);
+                    error = fallback.error;
+                }
+                if (error) throw error;
+
+                setAnnouncementHistoryStatus(`Statusul pentru #${id} a fost actualizat.`, 'success');
+                await loadAnnouncementHistory();
+            } catch (error) {
+                setAnnouncementHistoryStatus(error.message || 'Eroare la actualizarea statusului.', 'error');
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm(`Ștergi definitiv anunțul #${id}?`)) return;
+
+            setAnnouncementHistoryStatus(`Se șterge anunțul #${id}...`);
+            try {
+                const { error } = await sb
+                    .from('admin_announcements')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+                setAnnouncementHistoryStatus(`Anunțul #${id} a fost șters.`, 'success');
+                await loadAnnouncementHistory();
+            } catch (error) {
+                setAnnouncementHistoryStatus(error.message || 'Eroare la ștergerea anunțului.', 'error');
+            }
         }
 
         function renderFleetAlertRows(fleetRows, configRows) {
@@ -394,9 +901,14 @@
 
                 const { error } = await sb
                     .from('admin_announcements')
-                    .insert([{ mesaj: mesaj, activ: true }]);
+                    .insert([{ mesaj: mesaj, is_active: true }]);
 
-                if (error) throw error;
+                if (error) {
+                    const fallback = await sb
+                        .from('admin_announcements')
+                        .insert([{ mesaj: mesaj, activ: true }]);
+                    if (fallback.error) throw fallback.error;
+                }
 
                 adminMessageInput.value = '';
                 setStatus('Anunț trimis cu succes!', 'success');
@@ -405,6 +917,7 @@
                 if (typeof updateMegafonUI === 'function') {
                     updateMegafonUI();
                 }
+                await loadAnnouncementHistory();
             } catch (err) {
                 console.error('Eroare trimitere:', err);
                 setStatus('Eroare la trimitere: ' + err.message, 'error');
@@ -424,6 +937,7 @@
                 if (typeof updateMegafonUI === 'function') {
                     updateMegafonUI();
                 }
+                await loadAnnouncementHistory();
             } catch (err) {
                 console.error('Eroare:', err);
                 setStatus('Eroare la oprire: ' + err.message, 'error');
@@ -555,6 +1069,32 @@ async function salveazaEmailGeneral(btn) {
         btn.innerText = textInitial;
     }
 }
+
+        refreshAnnouncementsBtn?.addEventListener('click', loadAnnouncementHistory);
+        announcementsHistoryBody?.addEventListener('click', async (event) => {
+            const editBtn = event.target.closest('[data-edit-announcement]');
+            if (editBtn) {
+                activateAnnouncementEditor(editBtn.getAttribute('data-edit-announcement'));
+                return;
+            }
+
+            const toggleBtn = event.target.closest('[data-toggle-announcement]');
+            if (toggleBtn) {
+                await toggleAnnouncementActive(
+                    toggleBtn.getAttribute('data-toggle-announcement'),
+                    toggleBtn.getAttribute('data-active-field') || 'activ',
+                    toggleBtn.getAttribute('data-current-active') === '1'
+                );
+                return;
+            }
+
+            const deleteBtn = event.target.closest('[data-delete-announcement]');
+            if (deleteBtn) {
+                await deleteAnnouncement(deleteBtn.getAttribute('data-delete-announcement'));
+            }
+        });
+
+        loadAnnouncementHistory();
     </script>
 </body>
 </html>

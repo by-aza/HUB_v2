@@ -160,6 +160,19 @@ input[type="number"] {
     margin-top: 25px;
 }
 
+#screen-items-table {
+    table-layout: fixed;
+}
+
+#screen-items-table[data-acquisition-details="hidden"] {
+    table-layout: auto;
+}
+
+#screen-items-table[data-acquisition-details="hidden"] .screen-desc-col,
+#screen-items-table[data-acquisition-details="hidden"] .screen-desc-cell {
+    width: auto !important;
+}
+
 .page th {
     text-align: center;
     font-size: 13px;
@@ -398,7 +411,13 @@ td:nth-child(3) input {
 
             <div class="bg-slate-900/40 border border-slate-800/60 rounded-2xl overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-800/60 flex flex-wrap items-center justify-between gap-3">
-                    <div class="font-extrabold text-slate-100">Piese și costuri</div>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="font-extrabold text-slate-100">Piese și costuri</div>
+                        <label class="print:hidden flex items-center gap-2 text-sm text-slate-300 select-none">
+                            <input id="toggle-acquisition-details" type="checkbox" class="h-4 w-4 rounded border-slate-600 bg-slate-900/60 text-purple-500 focus:ring-purple-500/60" />
+                            <span>Detaliere achiziție</span>
+                        </label>
+                    </div>
                     <div class="print:hidden flex items-center gap-4">
                         <label class="flex items-center gap-2">
                             <span class="text-xs font-semibold text-slate-400">Discount global</span>
@@ -413,10 +432,10 @@ td:nth-child(3) input {
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full table-fixed text-sm">
+                    <table id="screen-items-table" class="w-full text-sm">
                         <thead class="text-xs uppercase tracking-wider text-slate-400">
                             <tr class="border-b border-slate-800/60">
-                                <th class="text-left px-4 py-3 w-2/5 min-w-[250px]">Piesă / Serviciu</th>
+                                <th class="screen-desc-col text-left px-4 py-3 w-2/5 min-w-[250px]">Piesă / Serviciu</th>
                                 <th class="text-center px-2 py-3 w-16">Cant.</th>
                                 <th class="print:hidden text-center px-2 py-3 w-16 internal-col">Achiziție</th>
                                 <th class="print:hidden text-center px-2 py-3 w-14 internal-col">TVA</th>
@@ -543,7 +562,9 @@ td:nth-child(3) input {
     const screenDiscount = document.getElementById('screen-discount');
     const screenGrandTotal = document.getElementById('screen-grand-total');
     const screenItemsBody = document.getElementById('screen-items-body');
+    const screenItemsTable = document.getElementById('screen-items-table');
     const screenStatus = document.getElementById('screen-status');
+    const acquisitionDetailsToggle = document.getElementById('toggle-acquisition-details');
 
     const btnSave = document.getElementById('btn-save');
     const btnLoad = document.getElementById('btn-load');
@@ -608,6 +629,7 @@ td:nth-child(3) input {
     };
 
     let isDirty = false;
+    const acquisitionDetailsStorageKey = 'deviz.detaliereAchizitie';
 
     let ultimulDevizId = null;
 
@@ -627,6 +649,29 @@ td:nth-child(3) input {
     };
 
     const formatDevizId = (n, pad) => `D-${String(n).padStart(pad, '0')}`;
+
+    const setAcquisitionDetailsVisible = (visible) => {
+        if (screenItemsTable) {
+            screenItemsTable.dataset.acquisitionDetails = visible ? 'visible' : 'hidden';
+            screenItemsTable.querySelectorAll('.internal-col').forEach((cell) => {
+                cell.classList.toggle('hidden', !visible);
+            });
+        }
+
+        if (acquisitionDetailsToggle) acquisitionDetailsToggle.checked = visible;
+
+        try {
+            window.localStorage.setItem(acquisitionDetailsStorageKey, visible ? '1' : '0');
+        } catch (_) {}
+    };
+
+    const loadAcquisitionDetailsPreference = () => {
+        let visible = false;
+        try {
+            visible = window.localStorage.getItem(acquisitionDetailsStorageKey) === '1';
+        } catch (_) {}
+        setAcquisitionDetailsVisible(visible);
+    };
 
     async function getUltimulDeviz() {
         if (!labelUltimulDeviz) return;
@@ -684,7 +729,7 @@ td:nth-child(3) input {
         tr.className = 'align-top';
 
         tr.innerHTML = `
-            <td class="px-4 py-3">
+            <td class="screen-desc-cell px-4 py-3">
                 <div class="flex items-start gap-2">
                     <input type="text" class="row-desc w-full rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-1 text-sm text-slate-100 focus:outline-none focus:border-purple-500" />
                     <label class="shrink-0 flex items-center gap-2 text-xs text-slate-400 mt-2 select-none">
@@ -696,13 +741,13 @@ td:nth-child(3) input {
             <td class="px-2 py-3 text-center">
                 <input type="number" inputmode="decimal" min="0" step="1" class="row-qty w-16 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
-            <td class="print:hidden px-2 py-3 text-center">
+            <td class="print:hidden internal-col px-2 py-3 text-center">
                 <input type="number" inputmode="decimal" min="0" step="0.01" class="row-cost print:hidden w-16 rounded-xl bg-slate-800 border border-orange-500/50 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
-            <td class="print:hidden px-2 py-3 text-center">
+            <td class="print:hidden internal-col px-2 py-3 text-center">
                 <input type="number" inputmode="decimal" min="0" step="0.01" class="row-tva print:hidden w-14 rounded-xl bg-slate-800 border border-orange-500/50 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
-            <td class="print:hidden px-2 py-3 text-center">
+            <td class="print:hidden internal-col px-2 py-3 text-center">
                 <input type="number" inputmode="decimal" min="0" step="0.01" class="row-markup print:hidden w-14 rounded-xl bg-slate-800 border border-orange-500/50 px-3 py-1 text-sm text-slate-100 text-center focus:outline-none focus:border-purple-500" />
             </td>
             <td class="px-2 py-3 text-center">
@@ -760,6 +805,7 @@ td:nth-child(3) input {
     const addScreenRow = (item) => {
         isDirty = true;
         screenItemsBody.appendChild(createScreenRow(item));
+        setAcquisitionDetailsVisible(Boolean(acquisitionDetailsToggle?.checked));
         calculateTotals();
     };
 
@@ -975,6 +1021,9 @@ td:nth-child(3) input {
     btnAddRow.addEventListener('click', () => addScreenRow());
     btnSave.addEventListener('click', salvareDeviz);
     btnLoad.addEventListener('click', incarcaDeviz);
+    acquisitionDetailsToggle?.addEventListener('change', () => {
+        setAcquisitionDetailsVisible(acquisitionDetailsToggle.checked);
+    });
     btnPrint.addEventListener('click', async () => {
         if (isDirty === true) {
             const success = await salvareDeviz();
@@ -1008,6 +1057,7 @@ td:nth-child(3) input {
     });
 
     window.addEventListener('DOMContentLoaded', () => {
+        loadAcquisitionDetailsPreference();
         addScreenRow();
         if (!screenDataDeviz.value) screenDataDeviz.value = todayYyyyMmDd();
         const urlParams = new URLSearchParams(window.location.search);
