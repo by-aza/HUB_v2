@@ -18,79 +18,10 @@
             -moz-appearance: textfield;
             appearance: textfield;
         }
-
-        .print-layout {
-            display: none;
-        }
-
-        .print-page {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 10mm;
-            margin: 0 auto;
-            box-sizing: border-box;
-            background: #fff;
-            color: #000;
-            font-family: Arial, sans-serif;
-        }
-
-        .print-header-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        .print-header-table td {
-            width: 33.333%;
-            min-height: 10mm;
-            height: 10mm;
-            border: 1px solid #000;
-            padding: 1.5mm 2mm;
-            vertical-align: middle;
-            font-size: 10pt;
-            color: #000;
-        }
-
-        .print-label {
-            font-weight: 700;
-        }
-
-        .print-value {
-            margin-left: 1mm;
-        }
-
-        @page {
-            size: A4;
-            margin: 0;
-        }
-
-        @media print {
-            html,
-            body {
-                margin: 0;
-                background: #fff !important;
-                color: #000 !important;
-            }
-
-            header,
-            main {
-                display: none !important;
-            }
-
-            .print-layout {
-                display: block !important;
-            }
-
-            .print-page {
-                margin: 0 auto;
-            }
-        }
-        /* Adaugă asta în CSS-ul tău ca să stea frumos */
-    .field { margin-bottom: 5px; font-size: 10pt; }
     </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-200">
-    <header class="sticky top-0 z-50 border-b border-slate-700 bg-slate-900 p-4 shadow-md print:hidden">
+    <header class="sticky top-0 z-50 border-b border-slate-700 bg-slate-900 p-4 shadow-md">
         <div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center justify-between gap-3 sm:justify-start">
                 <div>
@@ -469,33 +400,6 @@
         </div>
     </main>
 
-    <section class="print-layout">
-        <div class="print-page">
-            <table class="print-header-table">
-    <tr>
-        <!-- Coloana 1 -->
-        <td>
-            <div class="field"><span class="print-label">Unitatea:</span><span id="print-unitate" class="print-value"></span></div>
-            <div class="field"><span class="print-label">COMANDA-DEVIZ Nr.</span><span id="print-deviz-nr" class="print-value"></span></div>
-            <div class="field"><span class="print-label">Client:</span><span id="print-client" class="print-value"></span></div>
-        </td>
-        <!-- Coloana 2 -->
-        <td>
-            <div class="field"><span class="print-label">Data:</span><span id="print-data" class="print-value"></span></div>
-            <div class="field"><span class="print-label">Tip auto:</span><span id="print-tip-auto" class="print-value"></span></div>
-            <div class="field"><span class="print-label">Serie motor:</span><span id="print-serie-motor" class="print-value"></span></div>
-        </td>
-        <!-- Coloana 3 -->
-        <td>
-            <div class="field"><span class="print-label">Număr înmatriculare:</span><span id="print-nr-inmatriculare" class="print-value"></span></div>
-            <div class="field"><span class="print-label">Serie caroserie:</span><span id="print-serie-vin" class="print-value"></span></div>
-            <div class="field"><span class="print-label">Km:</span><span id="print-km" class="print-value"></span></div>
-        </td>
-    </tr>
-</table>
-        </div>
-    </section>
-
     <script>
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
@@ -573,15 +477,6 @@
         const summaryTotalDiscount = document.getElementById('summary-total-discount');
         const summaryTotalPieseFinal = document.getElementById('summary-total-piese-final');
         const summaryTotalPlata = document.getElementById('summary-total-plata');
-        const printUnitate = document.getElementById('print-unitate');
-        const printData = document.getElementById('print-data');
-        const printNrInmatriculare = document.getElementById('print-nr-inmatriculare');
-        const printDevizNr = document.getElementById('print-deviz-nr');
-        const printTipAuto = document.getElementById('print-tip-auto');
-        const printSerieVin = document.getElementById('print-serie-vin');
-        const printClient = document.getElementById('print-client');
-        const printSerieMotor = document.getElementById('print-serie-motor');
-        const printKm = document.getElementById('print-km');
 
         const setSaveStatus = (message, type = 'info') => {
             saveStatus.textContent = message || '';
@@ -615,7 +510,6 @@
                 if (!key) return;
                 field.value = devizData[key] ?? '';
             });
-            syncPrintLayout();
         };
 
         const toNumber = (value) => {
@@ -645,20 +539,6 @@
             return Number.isFinite(n) ? n.toFixed(2) : '0.00';
         };
 
-        function syncPrintLayout() {
-            if (!printUnitate) return;
-
-            printUnitate.textContent = devizData.unitate || 'CSN GARAGE S.R.L.';
-            printData.textContent = formatDate(devizData.data);
-            printNrInmatriculare.textContent = devizData.nrInmatriculare || '';
-            printDevizNr.textContent = devizData.devizNr || '';
-            printTipAuto.textContent = devizData.tipAuto || '';
-            printSerieVin.textContent = devizData.serieVin || '';
-            printClient.textContent = devizData.client || '';
-            printSerieMotor.textContent = devizData.serieMotor || '';
-            printKm.textContent = devizData.km || '';
-        }
-
         const ensureLucrariState = () => {
             if (!Array.isArray(devizData.lucrariSolicitate)) devizData.lucrariSolicitate = [];
         };
@@ -670,7 +550,6 @@
                 denumire: row.querySelector('.lucrare-denumire')?.value ?? '',
                 pieseClient: row.querySelector('.lucrare-piese-client')?.value ?? ''
             }));
-            syncPrintLayout();
         };
 
         const recalculateLucrareNumbers = () => {
@@ -752,7 +631,6 @@
                 defect: row.querySelector('.constatare-defect')?.value ?? '',
                 acceptatClient: Boolean(row.querySelector('.constatare-acceptat')?.checked)
             }));
-            syncPrintLayout();
         };
 
         const recalculateConstatareNumbers = () => {
@@ -848,7 +726,6 @@
             devizData.totalManopera = devizData.manopera.total;
             updateManoperaTotalDisplay();
             updateSummaryTotals();
-            syncPrintLayout();
         };
 
         const recalculateManoperaNumbers = () => {
@@ -1028,7 +905,6 @@
                 aplicaDiscount: Boolean(row.querySelector('.piesa-apply-discount')?.checked),
                 valoare: row.querySelector('.piesa-valoare')?.value ?? ''
             }));
-            syncPrintLayout();
         };
 
         const createPiesaRowElement = (item = {}) => {
@@ -1691,7 +1567,26 @@
         }
 
         function printDevizFinal() {
-            window.print();
+            // Ne asigurăm că toate datele din tabele sunt colectate la zi în obiectul devizData
+            syncLucrariState();
+            syncConstatariState();
+            syncManoperaState();
+            recalculatePieseTotals();
+
+            // Salvăm obiectul complet în memoria browserului pentru pagina de print
+            localStorage.setItem("currentDevizPrint", JSON.stringify(devizData));
+
+            // Deschidem pagina de printare într-un tab nou
+            const printWindow = window.open("deviz-print.html", "_blank");
+
+            // Opțional: Declanșăm printarea automată când pagina s-a încărcat
+            if (printWindow) {
+                printWindow.addEventListener('load', () => {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 300);
+                }, true);
+            }
         }
 
         document.querySelectorAll('.tab-button').forEach((button) => {
@@ -1704,16 +1599,7 @@
             field.addEventListener('input', () => {
                 devizData[key] = field.value;
                 if (key === 'discountGlobalPiese') recalculatePieseTotals();
-                syncPrintLayout();
             });
-        });
-
-        window.addEventListener('beforeprint', () => {
-            syncLucrariState();
-            syncConstatariState();
-            syncManoperaState();
-            syncPieseState();
-            syncPrintLayout();
         });
 
         inputDevizEstimativ.addEventListener('blur', async () => {
