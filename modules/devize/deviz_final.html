@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deviz Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type='number'] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .print-layout {
+            display: none;
+        }
+
+        .print-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 0 auto;
+            box-sizing: border-box;
+            background: #fff;
+            color: #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .print-header-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .print-header-table td {
+            width: 33.333%;
+            min-height: 10mm;
+            height: 10mm;
+            border: 1px solid #000;
+            padding: 1.5mm 2mm;
+            vertical-align: middle;
+            font-size: 10pt;
+            color: #000;
+        }
+
+        .print-label {
+            font-weight: 700;
+        }
+
+        .print-value {
+            margin-left: 1mm;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            html,
+            body {
+                margin: 0;
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            header,
+            main {
+                display: none !important;
+            }
+
+            .print-layout {
+                display: block !important;
+            }
+
+            .print-page {
+                margin: 0 auto;
+            }
+        }
+        /* Adaugă asta în CSS-ul tău ca să stea frumos */
+    .field { margin-bottom: 5px; font-size: 10pt; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-200">
+    <header class="sticky top-0 z-50 border-b border-slate-700 bg-slate-900 p-4 shadow-md print:hidden">
+        <div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center justify-between gap-3 sm:justify-start">
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-100">Deviz Final</h1>
+                    <div id="save-status" class="min-h-5 text-xs text-slate-400"></div>
+                </div>
+                <a href="../../index.html" class="sm:hidden rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
+                    Înapoi
+                </a>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-deviz-nou" type="button" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500">
+                    Deviz Nou
+                </button>
+                <button id="btn-incarca-deviz" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
+                    Încarcă
+                </button>
+                <button id="btn-ultimul-deviz" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
+                    Ultimul Deviz
+                </button>
+                <button id="btn-printeaza-deviz" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
+                    Printează
+                </button>
+                <button id="btn-salveaza-deviz" type="button" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-cyan-500">
+                    Salvează
+                </button>
+
+                <a href="../../index.html" class="hidden sm:inline-flex rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
+                    &lt;- Înapoi
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+            <div class="flex flex-wrap gap-2">
+                <button type="button" data-tab-target="tab-antet" class="tab-button rounded-xl border border-slate-700 bg-cyan-600/20 px-4 py-2 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-600/30">
+                    Antet
+                </button>
+                <button type="button" data-tab-target="tab-lucrari-solicitate" class="tab-button rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-700">
+                    Lucrări Solicitate
+                </button>
+                <button type="button" data-tab-target="tab-constatari" class="tab-button rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-700">
+                    Constatări
+                </button>
+                <button type="button" data-tab-target="tab-manopera" class="tab-button rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-700">
+                    Manoperă
+                </button>
+                <button type="button" data-tab-target="tab-piese-materiale" class="tab-button rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-700">
+                    Piese/Materiale
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6">
+            <section id="tab-antet" class="tab-panel rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Antet</h2>
+                        <p class="mt-1 text-sm text-slate-400">Importă datele din devizul estimativ și completează antetul devizului final.</p>
+                    </div>
+                    <div id="import-status" class="min-h-6 text-sm text-slate-400"></div>
+                </div>
+
+                <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
+                    <label class="grid flex-1 gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">ID Deviz Estimativ</span>
+                        <input
+                            id="input-deviz-estimativ"
+                            data-field="idDevizEstimativ"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Ex: D-111"
+                        >
+                    </label>
+                    <button
+                        id="btn-importa-date"
+                        type="button"
+                        class="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-extrabold text-white transition-colors hover:bg-cyan-500"
+                    >
+                        Importă Date
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Unitate</span>
+                        <input
+                            data-field="unitate"
+                            type="text"
+                            readonly
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-300 outline-none"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Deviz Nr.</span>
+                        <input
+                            id="input-deviz-nr"
+                            data-field="devizNr"
+                            type="text"
+                            readonly
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-300 outline-none"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Data</span>
+                        <input
+                            id="input-data-deviz-final"
+                            data-field="data"
+                            type="date"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500 [color-scheme:dark]"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Client</span>
+                        <input
+                            id="input-client-deviz-final"
+                            data-field="client"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Nume client"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Tip Auto</span>
+                        <input
+                            id="input-tip-auto-deviz-final"
+                            data-field="tipAuto"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Model / Tip auto"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Nr. Înmatriculare</span>
+                        <input
+                            id="input-nr-inmatriculare-deviz-final"
+                            data-field="nrInmatriculare"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="B123ABC"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Serie VIN</span>
+                        <input
+                            id="input-serie-vin-deviz-final"
+                            data-field="serieVin"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono tracking-wide text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Serie VIN"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Serie Motor</span>
+                        <input
+                            id="input-serie-motor-deviz-final"
+                            data-field="serieMotor"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Serie motor"
+                        >
+                    </label>
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Km</span>
+                        <input
+                            id="input-km-deviz-final"
+                            data-field="km"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Kilometraj"
+                        >
+                    </label>
+                </div>
+            </section>
+
+            <section id="tab-lucrari-solicitate" class="tab-panel hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Lucrări Solicitate</h2>
+                        <p class="mt-1 text-sm text-slate-400">Completează lucrările cerute de client și piesele aduse de acesta.</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 overflow-x-auto rounded-2xl border border-slate-800">
+                    <table class="min-w-full border-collapse text-sm">
+                        <thead class="bg-slate-950/80 text-slate-400">
+                            <tr class="border-b border-slate-800">
+                                <th class="w-20 px-3 py-3 text-left font-semibold uppercase tracking-wider">Nr. Crt.</th>
+                                <th class="px-3 py-3 text-left font-semibold uppercase tracking-wider">Lucrări Solicitate de Client</th>
+                                <th class="w-56 px-3 py-3 text-left font-semibold uppercase tracking-wider">Piese Client</th>
+                                <th class="w-24 px-3 py-3 text-center font-semibold uppercase tracking-wider">Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lucrari-rows-body" class="divide-y divide-slate-800 bg-slate-900"></tbody>
+                    </table>
+                </div>
+
+                <button
+                    id="btn-add-lucrare-row"
+                    type="button"
+                    class="mt-4 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
+                >
+                    + Adaugă rând
+                </button>
+            </section>
+
+            <section id="tab-constatari" class="tab-panel hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Constatări</h2>
+                        <p class="mt-1 text-sm text-slate-400">Înregistrează defectele suplimentare și dacă au fost acceptate de client.</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 overflow-x-auto rounded-2xl border border-slate-800">
+                    <table class="min-w-full border-collapse text-sm">
+                        <thead class="bg-slate-950/80 text-slate-400">
+                            <tr class="border-b border-slate-800">
+                                <th class="w-20 px-3 py-3 text-left font-semibold uppercase tracking-wider">Nr. Crt.</th>
+                                <th class="px-3 py-3 text-left font-semibold uppercase tracking-wider">Defecte Suplimentare Constatate</th>
+                                <th class="w-48 px-3 py-3 text-center font-semibold uppercase tracking-wider">Acceptat de Client</th>
+                                <th class="w-24 px-3 py-3 text-center font-semibold uppercase tracking-wider">Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="constatari-rows-body" class="divide-y divide-slate-800 bg-slate-900"></tbody>
+                    </table>
+                </div>
+
+                <button
+                    id="btn-add-constatare-row"
+                    type="button"
+                    class="mt-4 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
+                >
+                    + Adaugă constatare
+                </button>
+
+                <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <label class="grid gap-1.5">
+                        <span class="text-sm font-semibold text-slate-300">Termen execuție</span>
+                        <input
+                            id="input-termen-executie"
+                            data-field="termenExecutie"
+                            type="text"
+                            autocomplete="off"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
+                            placeholder="Ex: 2 zile lucrătoare / 2026-06-20"
+                        >
+                    </label>
+                </div>
+            </section>
+
+            <section id="tab-manopera" class="tab-panel hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Manoperă</h2>
+                        <p class="mt-1 text-sm text-slate-400">Completează operațiile, iar valoarea se calculează automat din timp și tarif.</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 overflow-x-auto rounded-2xl border border-slate-800">
+                    <table class="min-w-full border-collapse text-sm">
+                        <thead class="bg-slate-950/80 text-slate-400">
+                            <tr class="border-b border-slate-800">
+                                <th class="w-20 px-3 py-3 text-left font-semibold uppercase tracking-wider">Nr. Crt.</th>
+                                <th class="px-3 py-3 text-left font-semibold uppercase tracking-wider">Denumire Operație</th>
+                                <th class="w-32 px-3 py-3 text-left font-semibold uppercase tracking-wider">Timp/Ore</th>
+                                <th class="w-36 px-3 py-3 text-left font-semibold uppercase tracking-wider">Tarif/Ora</th>
+                                <th class="w-40 px-3 py-3 text-left font-semibold uppercase tracking-wider">Valoare Lei</th>
+                                <th class="w-24 px-3 py-3 text-center font-semibold uppercase tracking-wider">Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manopera-rows-body" class="divide-y divide-slate-800 bg-slate-900"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                        id="btn-add-manopera-row"
+                        type="button"
+                        class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
+                    >
+                        + Adaugă operație
+                    </button>
+                    <div class="rounded-2xl border border-cyan-500/20 bg-slate-950 px-5 py-3 text-right">
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Manoperă</div>
+                        <div id="manopera-total-display" class="mt-1 text-2xl font-extrabold text-cyan-300">0.00 Lei</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-piese-materiale" class="tab-panel hidden rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <h2 class="text-xl font-bold text-slate-100">Piese/Materiale</h2>
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                            <p class="mt-1 text-sm text-slate-400">Adaugă piesele, apoi aplică discountul doar pe rândurile bifate.</p>
+                            <label class="grid gap-1 text-left sm:text-right">
+                                <span class="text-sm font-semibold text-slate-300">Discount (%)</span>
+                                <input
+                                    id="input-discount-global-piese"
+                                    data-field="discountGlobalPiese"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="w-20 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500 sm:ml-auto"
+                                    placeholder="0"
+                                >
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                        <table class="min-w-full border-collapse text-sm">
+                            <thead class="bg-slate-950/80 text-slate-400">
+                                <tr class="border-b border-slate-800">
+                                    <th class="w-20 px-3 py-3 text-left font-semibold uppercase tracking-wider">Nr. Crt.</th>
+                                    <th class="px-3 py-3 text-left font-semibold uppercase tracking-wider">Denumire piesă/material</th>
+                                    <th class="w-20 px-3 py-3 text-left font-semibold uppercase tracking-wider">U/M</th>
+                                    <th class="w-20 px-3 py-3 text-center font-semibold uppercase tracking-wider">Cantitate</th>
+                                    <th class="w-28 px-3 py-3 text-left font-semibold uppercase tracking-wider">Preț unitar</th>
+                                    <th class="w-24 px-2 py-3 text-center font-semibold uppercase tracking-wider">Discount</th>
+                                    <th class="w-28 px-3 py-3 text-left font-semibold uppercase tracking-wider">Valoare</th>
+                                    <th class="w-16 px-2 py-3 text-right font-semibold uppercase tracking-wider">Acțiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="piese-rows-body" class="divide-y divide-slate-800 bg-slate-900"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <button
+                            id="btn-add-piesa-row"
+                            type="button"
+                            class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
+                        >
+                            + Adaugă piesă
+                        </button>
+
+                        <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5">
+                            <div class="space-y-3 text-sm">
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-slate-400">Total Manoperă:</span>
+                                    <span id="summary-total-manopera" class="font-bold text-slate-100">0.00 Lei</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-slate-400">Total Piese (fără discount):</span>
+                                    <span id="summary-total-piese-brut" class="font-bold text-slate-100">0.00 Lei</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-slate-400">Total Discount Acordat:</span>
+                                    <span id="summary-total-discount" class="font-bold text-amber-300">0.00 Lei</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <span class="text-slate-400">Total Piese (final):</span>
+                                    <span id="summary-total-piese-final" class="font-bold text-slate-100">0.00 Lei</span>
+                                </div>
+                                <div class="mt-4 rounded-xl border border-cyan-500/20 bg-slate-900 px-4 py-3">
+                                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">TOTAL DE PLATĂ</div>
+                                    <div id="summary-total-plata" class="mt-1 text-2xl font-extrabold text-cyan-300">0.00 Lei</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <section class="print-layout">
+        <div class="print-page">
+            <table class="print-header-table">
+    <tr>
+        <!-- Coloana 1 -->
+        <td>
+            <div class="field"><span class="print-label">Unitatea:</span><span id="print-unitate" class="print-value"></span></div>
+            <div class="field"><span class="print-label">COMANDA-DEVIZ Nr.</span><span id="print-deviz-nr" class="print-value"></span></div>
+            <div class="field"><span class="print-label">Client:</span><span id="print-client" class="print-value"></span></div>
+        </td>
+        <!-- Coloana 2 -->
+        <td>
+            <div class="field"><span class="print-label">Data:</span><span id="print-data" class="print-value"></span></div>
+            <div class="field"><span class="print-label">Tip auto:</span><span id="print-tip-auto" class="print-value"></span></div>
+            <div class="field"><span class="print-label">Serie motor:</span><span id="print-serie-motor" class="print-value"></span></div>
+        </td>
+        <!-- Coloana 3 -->
+        <td>
+            <div class="field"><span class="print-label">Număr înmatriculare:</span><span id="print-nr-inmatriculare" class="print-value"></span></div>
+            <div class="field"><span class="print-label">Serie caroserie:</span><span id="print-serie-vin" class="print-value"></span></div>
+            <div class="field"><span class="print-label">Km:</span><span id="print-km" class="print-value"></span></div>
+        </td>
+    </tr>
+</table>
+        </div>
+    </section>
+
+    <script>
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const sb = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const todayYyyyMmDd = () => {
+            const azi = new Date();
+            const an = azi.getFullYear();
+            const luna = String(azi.getMonth() + 1).padStart(2, '0');
+            const zi = String(azi.getDate()).padStart(2, '0');
+            return `${an}-${luna}-${zi}`;
+        };
+
+        let devizData = {
+            activeTab: 'tab-antet',
+            idDevizEstimativ: '',
+            unitate: 'CSN GARAGE S.R.L.',
+            devizNr: '',
+            data: todayYyyyMmDd(),
+            client: '',
+            tipAuto: '',
+            nrInmatriculare: '',
+            serieVin: '',
+            serieMotor: '',
+            km: '',
+            lucrariSolicitate: [],
+            constatari: [],
+            termenExecutie: '',
+            manopera: {
+                rows: [],
+                total: 0
+            },
+            totalManopera: 0,
+            discountGlobalPiese: '',
+            piese: [],
+            totalPiese: {
+                brut: 0,
+                discount: 0,
+                final: 0
+            },
+            totalDePlata: 0
+        };
+        let currentDevizId = null;
+
+        const saveStatus = document.getElementById('save-status');
+        const btnDevizNou = document.getElementById('btn-deviz-nou');
+        const btnIncarcaDeviz = document.getElementById('btn-incarca-deviz');
+        const btnUltimulDeviz = document.getElementById('btn-ultimul-deviz');
+        const btnPrinteazaDeviz = document.getElementById('btn-printeaza-deviz');
+        const btnSalveazaDeviz = document.getElementById('btn-salveaza-deviz');
+
+        const importStatus = document.getElementById('import-status');
+        const inputDevizEstimativ = document.getElementById('input-deviz-estimativ');
+        const inputDevizNr = document.getElementById('input-deviz-nr');
+        const inputDataDevizFinal = document.getElementById('input-data-deviz-final');
+        const inputClientDevizFinal = document.getElementById('input-client-deviz-final');
+        const inputTipAutoDevizFinal = document.getElementById('input-tip-auto-deviz-final');
+        const inputNrInmatriculareDevizFinal = document.getElementById('input-nr-inmatriculare-deviz-final');
+        const inputSerieVinDevizFinal = document.getElementById('input-serie-vin-deviz-final');
+        const inputSerieMotorDevizFinal = document.getElementById('input-serie-motor-deviz-final');
+        const inputKmDevizFinal = document.getElementById('input-km-deviz-final');
+        const btnImportaDate = document.getElementById('btn-importa-date');
+        const btnAddLucrareRow = document.getElementById('btn-add-lucrare-row');
+        const lucrariRowsBody = document.getElementById('lucrari-rows-body');
+        const btnAddConstatareRow = document.getElementById('btn-add-constatare-row');
+        const constatariRowsBody = document.getElementById('constatari-rows-body');
+        const inputTermenExecutie = document.getElementById('input-termen-executie');
+        const btnAddManoperaRow = document.getElementById('btn-add-manopera-row');
+        const manoperaRowsBody = document.getElementById('manopera-rows-body');
+        const manoperaTotalDisplay = document.getElementById('manopera-total-display');
+        const btnAddPiesaRow = document.getElementById('btn-add-piesa-row');
+        const pieseRowsBody = document.getElementById('piese-rows-body');
+        const summaryTotalManopera = document.getElementById('summary-total-manopera');
+        const summaryTotalPieseBrut = document.getElementById('summary-total-piese-brut');
+        const summaryTotalDiscount = document.getElementById('summary-total-discount');
+        const summaryTotalPieseFinal = document.getElementById('summary-total-piese-final');
+        const summaryTotalPlata = document.getElementById('summary-total-plata');
+        const printUnitate = document.getElementById('print-unitate');
+        const printData = document.getElementById('print-data');
+        const printNrInmatriculare = document.getElementById('print-nr-inmatriculare');
+        const printDevizNr = document.getElementById('print-deviz-nr');
+        const printTipAuto = document.getElementById('print-tip-auto');
+        const printSerieVin = document.getElementById('print-serie-vin');
+        const printClient = document.getElementById('print-client');
+        const printSerieMotor = document.getElementById('print-serie-motor');
+        const printKm = document.getElementById('print-km');
+
+        const setSaveStatus = (message, type = 'info') => {
+            saveStatus.textContent = message || '';
+            if (type === 'success') {
+                saveStatus.className = 'min-h-5 text-xs text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                saveStatus.className = 'min-h-5 text-xs text-rose-400';
+                return;
+            }
+            saveStatus.className = 'min-h-5 text-xs text-slate-400';
+        };
+
+        const setImportStatus = (message, type = 'info') => {
+            importStatus.textContent = message || '';
+            if (type === 'success') {
+                importStatus.className = 'min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                importStatus.className = 'min-h-6 text-sm text-rose-400';
+                return;
+            }
+            importStatus.className = 'min-h-6 text-sm text-slate-400';
+        };
+
+        const syncFieldsFromState = () => {
+            document.querySelectorAll('[data-field]').forEach((field) => {
+                const key = field.dataset.field;
+                if (!key) return;
+                field.value = devizData[key] ?? '';
+            });
+            syncPrintLayout();
+        };
+
+        const toNumber = (value) => {
+            const n = Number(String(value ?? '').replace(',', '.'));
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return String(dateStr);
+            return d.toLocaleDateString('ro-RO');
+        }
+
+        const formatMoney = (value) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+        };
+
+        function syncPrintLayout() {
+            if (!printUnitate) return;
+
+            printUnitate.textContent = devizData.unitate || 'CSN GARAGE S.R.L.';
+            printData.textContent = formatDate(devizData.data);
+            printNrInmatriculare.textContent = devizData.nrInmatriculare || '';
+            printDevizNr.textContent = devizData.devizNr || '';
+            printTipAuto.textContent = devizData.tipAuto || '';
+            printSerieVin.textContent = devizData.serieVin || '';
+            printClient.textContent = devizData.client || '';
+            printSerieMotor.textContent = devizData.serieMotor || '';
+            printKm.textContent = devizData.km || '';
+        }
+
+        const ensureLucrariState = () => {
+            if (!Array.isArray(devizData.lucrariSolicitate)) devizData.lucrariSolicitate = [];
+        };
+
+        const syncLucrariState = () => {
+            ensureLucrariState();
+            const rows = Array.from(lucrariRowsBody.querySelectorAll('tr'));
+            devizData.lucrariSolicitate = rows.map((row) => ({
+                denumire: row.querySelector('.lucrare-denumire')?.value ?? '',
+                pieseClient: row.querySelector('.lucrare-piese-client')?.value ?? ''
+            }));
+            syncPrintLayout();
+        };
+
+        const recalculateLucrareNumbers = () => {
+            Array.from(lucrariRowsBody.querySelectorAll('tr')).forEach((row, index) => {
+                const cell = row.querySelector('.lucrare-index');
+                if (cell) cell.textContent = String(index + 1);
+            });
+        };
+
+        const createLucrareRowElement = (item = {}) => {
+            const tr = document.createElement('tr');
+            tr.className = 'align-top';
+            tr.innerHTML = `
+                <td class="px-3 py-3 text-slate-300">
+                    <div class="lucrare-index pt-2 font-bold">1</div>
+                </td>
+                <td class="px-3 py-3">
+                    <textarea
+                        rows="1"
+                        class="lucrare-denumire min-h-[44px] w-full resize-y rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="Descrie lucrarea solicitată..."
+                    ></textarea>
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="text"
+                        class="lucrare-piese-client w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="Piese client"
+                    >
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <button
+                        type="button"
+                        class="rounded-xl bg-rose-600 px-3 py-2 text-sm font-extrabold text-white transition-colors hover:bg-rose-500"
+                        aria-label="Șterge rând"
+                    >
+                        X
+                    </button>
+                </td>
+            `;
+
+            const textarea = tr.querySelector('.lucrare-denumire');
+            const input = tr.querySelector('.lucrare-piese-client');
+            const removeButton = tr.querySelector('button');
+
+            textarea.value = item.denumire ?? '';
+            input.value = item.pieseClient ?? '';
+
+            textarea.addEventListener('input', syncLucrariState);
+            input.addEventListener('input', syncLucrariState);
+            removeButton.addEventListener('click', () => removeLucrareRow(removeButton));
+
+            return tr;
+        };
+
+        const renderLucrariRows = () => {
+            ensureLucrariState();
+            lucrariRowsBody.innerHTML = '';
+            if (!devizData.lucrariSolicitate.length) {
+                devizData.lucrariSolicitate = [{ denumire: '', pieseClient: '' }];
+            }
+
+            devizData.lucrariSolicitate.forEach((item) => {
+                lucrariRowsBody.appendChild(createLucrareRowElement(item));
+            });
+
+            recalculateLucrareNumbers();
+            syncLucrariState();
+        };
+
+        const ensureConstatariState = () => {
+            if (!Array.isArray(devizData.constatari)) devizData.constatari = [];
+        };
+
+        const syncConstatariState = () => {
+            ensureConstatariState();
+            const rows = Array.from(constatariRowsBody.querySelectorAll('tr'));
+            devizData.constatari = rows.map((row) => ({
+                defect: row.querySelector('.constatare-defect')?.value ?? '',
+                acceptatClient: Boolean(row.querySelector('.constatare-acceptat')?.checked)
+            }));
+            syncPrintLayout();
+        };
+
+        const recalculateConstatareNumbers = () => {
+            Array.from(constatariRowsBody.querySelectorAll('tr')).forEach((row, index) => {
+                const cell = row.querySelector('.constatare-index');
+                if (cell) cell.textContent = String(index + 1);
+            });
+        };
+
+        const createConstatareRowElement = (item = {}) => {
+            const tr = document.createElement('tr');
+            tr.className = 'align-top';
+            tr.innerHTML = `
+                <td class="px-3 py-3 text-slate-300">
+                    <div class="constatare-index pt-2 font-bold">1</div>
+                </td>
+                <td class="px-3 py-3">
+                    <textarea
+                        rows="1"
+                        class="constatare-defect min-h-[44px] w-full resize-y rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="Descrie defectul suplimentar constatat..."
+                    ></textarea>
+                </td>
+                <td class="px-3 py-3">
+                    <label class="mx-auto flex w-fit cursor-pointer items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200">
+                        <input type="checkbox" class="constatare-acceptat h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/60">
+                        <span class="text-sm font-medium">Acceptat</span>
+                    </label>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <button
+                        type="button"
+                        class="rounded-xl bg-rose-600 px-3 py-2 text-sm font-extrabold text-white transition-colors hover:bg-rose-500"
+                        aria-label="Șterge constatare"
+                    >
+                        X
+                    </button>
+                </td>
+            `;
+
+            const textarea = tr.querySelector('.constatare-defect');
+            const checkbox = tr.querySelector('.constatare-acceptat');
+            const removeButton = tr.querySelector('button');
+
+            textarea.value = item.defect ?? '';
+            checkbox.checked = Boolean(item.acceptatClient);
+
+            textarea.addEventListener('input', syncConstatariState);
+            checkbox.addEventListener('change', syncConstatariState);
+            removeButton.addEventListener('click', () => removeConstatareRow(removeButton));
+
+            return tr;
+        };
+
+        const renderConstatariRows = () => {
+            ensureConstatariState();
+            constatariRowsBody.innerHTML = '';
+            if (!devizData.constatari.length) {
+                devizData.constatari = [{ defect: '', acceptatClient: false }];
+            }
+
+            devizData.constatari.forEach((item) => {
+                constatariRowsBody.appendChild(createConstatareRowElement(item));
+            });
+
+            recalculateConstatareNumbers();
+            syncConstatariState();
+        };
+
+        const ensureManoperaState = () => {
+            if (!devizData.manopera || typeof devizData.manopera !== 'object') {
+                devizData.manopera = { rows: [], total: 0 };
+            }
+            if (!Array.isArray(devizData.manopera.rows)) devizData.manopera.rows = [];
+            if (!Number.isFinite(Number(devizData.manopera.total))) devizData.manopera.total = 0;
+        };
+
+        const updateManoperaTotalDisplay = () => {
+            ensureManoperaState();
+            manoperaTotalDisplay.textContent = `${formatMoney(devizData.manopera.total)} Lei`;
+        };
+
+        const syncManoperaState = () => {
+            ensureManoperaState();
+            const rows = Array.from(manoperaRowsBody.querySelectorAll('tr'));
+            devizData.manopera.rows = rows.map((row) => ({
+                denumire: row.querySelector('.manopera-denumire')?.value ?? '',
+                timpOre: row.querySelector('.manopera-timp')?.value ?? '',
+                tarifOra: row.querySelector('.manopera-tarif')?.value ?? '',
+                valoareLei: row.querySelector('.manopera-valoare')?.value ?? ''
+            }));
+            devizData.manopera.total = devizData.manopera.rows.reduce((sum, item) => sum + toNumber(item.valoareLei), 0);
+            devizData.totalManopera = devizData.manopera.total;
+            updateManoperaTotalDisplay();
+            updateSummaryTotals();
+            syncPrintLayout();
+        };
+
+        const recalculateManoperaNumbers = () => {
+            Array.from(manoperaRowsBody.querySelectorAll('tr')).forEach((row, index) => {
+                const cell = row.querySelector('.manopera-index');
+                if (cell) cell.textContent = String(index + 1);
+            });
+        };
+
+        const recomputeManoperaRowValue = (row) => {
+            const timpInput = row.querySelector('.manopera-timp');
+            const tarifInput = row.querySelector('.manopera-tarif');
+            const valoareInput = row.querySelector('.manopera-valoare');
+            if (!timpInput || !tarifInput || !valoareInput) return;
+            const valoare = toNumber(timpInput.value) * toNumber(tarifInput.value);
+            valoareInput.value = formatMoney(valoare);
+            syncManoperaState();
+        };
+
+        const createManoperaRowElement = (item = {}) => {
+            const tr = document.createElement('tr');
+            tr.className = 'align-top';
+            tr.innerHTML = `
+                <td class="px-3 py-3 text-slate-300">
+                    <div class="manopera-index pt-2 font-bold">1</div>
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="text"
+                        class="manopera-denumire w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="Denumire operație"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        class="manopera-timp w-20 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-center text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="0"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="manopera-tarif w-24 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="0.00"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        readonly
+                        class="manopera-valoare w-24 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none"
+                        placeholder="0.00"
+                    >
+                </td>
+                <td class="px-2 py-3 text-right">
+                    <button
+                        type="button"
+                        class="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-xs font-extrabold text-white transition-colors hover:bg-rose-500"
+                        aria-label="Șterge operație"
+                    >
+                        X
+                    </button>
+                </td>
+            `;
+
+            const denumireInput = tr.querySelector('.manopera-denumire');
+            const timpInput = tr.querySelector('.manopera-timp');
+            const tarifInput = tr.querySelector('.manopera-tarif');
+            const valoareInput = tr.querySelector('.manopera-valoare');
+            const removeButton = tr.querySelector('button');
+
+            denumireInput.value = item.denumire ?? '';
+            timpInput.value = item.timpOre ?? '';
+            tarifInput.value = item.tarifOra ?? '';
+            valoareInput.value = item.valoareLei ?? '';
+
+            denumireInput.addEventListener('input', syncManoperaState);
+            timpInput.addEventListener('input', () => recomputeManoperaRowValue(tr));
+            tarifInput.addEventListener('input', () => recomputeManoperaRowValue(tr));
+            removeButton.addEventListener('click', () => removeManoperaRow(removeButton));
+
+            if ((item.timpOre ?? '') !== '' || (item.tarifOra ?? '') !== '') {
+                const valoare = toNumber(item.timpOre) * toNumber(item.tarifOra);
+                valoareInput.value = formatMoney(valoare);
+            }
+
+            return tr;
+        };
+
+        const renderManoperaRows = () => {
+            ensureManoperaState();
+            manoperaRowsBody.innerHTML = '';
+            if (!devizData.manopera.rows.length) {
+                devizData.manopera.rows = [{ denumire: '', timpOre: '', tarifOra: '', valoareLei: '' }];
+            }
+
+            devizData.manopera.rows.forEach((item) => {
+                manoperaRowsBody.appendChild(createManoperaRowElement(item));
+            });
+
+            recalculateManoperaNumbers();
+            syncManoperaState();
+        };
+
+        const ensurePieseState = () => {
+            if (!Array.isArray(devizData.piese)) devizData.piese = [];
+            if (!devizData.totalPiese || typeof devizData.totalPiese !== 'object') {
+                devizData.totalPiese = { brut: 0, discount: 0, final: 0 };
+            }
+        };
+
+        const updateSummaryTotals = () => {
+            ensurePieseState();
+            summaryTotalManopera.textContent = `${formatMoney(devizData.totalManopera)} Lei`;
+            summaryTotalPieseBrut.textContent = `${formatMoney(devizData.totalPiese.brut)} Lei`;
+            summaryTotalDiscount.textContent = `${formatMoney(devizData.totalPiese.discount)} Lei`;
+            summaryTotalPieseFinal.textContent = `${formatMoney(devizData.totalPiese.final)} Lei`;
+            summaryTotalPlata.textContent = `${formatMoney(devizData.totalDePlata)} Lei`;
+        };
+
+        const recalculatePieseNumbers = () => {
+            Array.from(pieseRowsBody.querySelectorAll('tr')).forEach((row, index) => {
+                const cell = row.querySelector('.piesa-index');
+                if (cell) cell.textContent = String(index + 1);
+            });
+        };
+
+        const recalculatePieseTotals = () => {
+            ensurePieseState();
+            const discountGlobal = Math.max(0, toNumber(devizData.discountGlobalPiese));
+            const rows = Array.from(pieseRowsBody.querySelectorAll('tr'));
+            let totalBrut = 0;
+            let totalDiscount = 0;
+            let totalFinal = 0;
+
+            rows.forEach((row) => {
+                const qty = toNumber(row.querySelector('.piesa-cantitate')?.value);
+                const price = toNumber(row.querySelector('.piesa-pret')?.value);
+                const applyDiscount = Boolean(row.querySelector('.piesa-apply-discount')?.checked);
+                const valueInput = row.querySelector('.piesa-valoare');
+                const base = qty * price;
+                const discountValue = applyDiscount ? base * (discountGlobal / 100) : 0;
+                const finalValue = base - discountValue;
+
+                if (valueInput) valueInput.value = formatMoney(finalValue);
+
+                totalBrut += base;
+                totalDiscount += discountValue;
+                totalFinal += finalValue;
+            });
+
+            devizData.totalPiese = {
+                brut: totalBrut,
+                discount: totalDiscount,
+                final: totalFinal
+            };
+            devizData.totalDePlata = toNumber(devizData.totalManopera) + totalFinal;
+            syncPieseState();
+            updateSummaryTotals();
+        };
+
+        const syncPieseState = () => {
+            ensurePieseState();
+            const rows = Array.from(pieseRowsBody.querySelectorAll('tr'));
+            devizData.piese = rows.map((row) => ({
+                denumire: row.querySelector('.piesa-denumire')?.value ?? '',
+                um: row.querySelector('.piesa-um')?.value ?? 'buc',
+                cantitate: row.querySelector('.piesa-cantitate')?.value ?? '',
+                pretUnitar: row.querySelector('.piesa-pret')?.value ?? '',
+                aplicaDiscount: Boolean(row.querySelector('.piesa-apply-discount')?.checked),
+                valoare: row.querySelector('.piesa-valoare')?.value ?? ''
+            }));
+            syncPrintLayout();
+        };
+
+        const createPiesaRowElement = (item = {}) => {
+            const tr = document.createElement('tr');
+            tr.className = 'align-top';
+            tr.innerHTML = `
+                <td class="px-3 py-3 text-slate-300">
+                    <div class="piesa-index pt-2 font-bold">1</div>
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="text"
+                        class="piesa-denumire w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="Denumire piesă/material"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="text"
+                        class="piesa-um w-16 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-center text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="buc"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="piesa-cantitate w-16 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-center text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="0"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="piesa-pret w-24 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                        placeholder="0.00"
+                    >
+                </td>
+                <td class="px-2 py-3 text-center">
+                    <input
+                        type="checkbox"
+                        class="piesa-apply-discount h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/60"
+                    >
+                </td>
+                <td class="px-3 py-3">
+                    <input
+                        type="number"
+                        readonly
+                        step="0.01"
+                        class="piesa-valoare w-24 rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none"
+                        placeholder="0.00"
+                    >
+                </td>
+                <td class="px-2 py-3 text-right">
+                    <button
+                        type="button"
+                        class="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-xs font-extrabold text-white transition-colors hover:bg-rose-500"
+                        aria-label="Șterge piesă"
+                    >
+                        X
+                    </button>
+                </td>
+            `;
+
+            const denumireInput = tr.querySelector('.piesa-denumire');
+            const umInput = tr.querySelector('.piesa-um');
+            const cantitateInput = tr.querySelector('.piesa-cantitate');
+            const pretInput = tr.querySelector('.piesa-pret');
+            const applyDiscountInput = tr.querySelector('.piesa-apply-discount');
+            const removeButton = tr.querySelector('button');
+
+            denumireInput.value = item.denumire ?? '';
+            umInput.value = item.um ?? 'buc';
+            cantitateInput.value = item.cantitate ?? '';
+            pretInput.value = item.pretUnitar ?? '';
+            applyDiscountInput.checked = Boolean(item.aplicaDiscount);
+
+            denumireInput.addEventListener('input', syncPieseState);
+            umInput.addEventListener('input', syncPieseState);
+            cantitateInput.addEventListener('input', recalculatePieseTotals);
+            pretInput.addEventListener('input', recalculatePieseTotals);
+            applyDiscountInput.addEventListener('change', recalculatePieseTotals);
+            removeButton.addEventListener('click', () => removePiesaRow(removeButton));
+
+            return tr;
+        };
+
+        const renderPieseRows = () => {
+            ensurePieseState();
+            pieseRowsBody.innerHTML = '';
+            if (!devizData.piese.length) {
+                devizData.piese = [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' }];
+            }
+
+            devizData.piese.forEach((item) => {
+                pieseRowsBody.appendChild(createPiesaRowElement(item));
+            });
+
+            recalculatePieseNumbers();
+            recalculatePieseTotals();
+        };
+
+        const switchTab = (tabId) => {
+            devizData.activeTab = tabId;
+
+            document.querySelectorAll('.tab-panel').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.id !== tabId);
+            });
+
+            document.querySelectorAll('.tab-button').forEach((button) => {
+                const active = button.dataset.tabTarget === tabId;
+                button.className = active
+                    ? 'tab-button rounded-xl border border-cyan-500/40 bg-cyan-600/20 px-4 py-2 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-600/30'
+                    : 'tab-button rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-700';
+            });
+        };
+
+        const normalizeDevizEstimativId = (value) => {
+            const raw = String(value || '').trim().toUpperCase();
+            if (!raw) return '';
+            if (raw.startsWith('D-')) return raw;
+            return `D-${raw.replace(/^D\s*-?/, '')}`;
+        };
+
+        const parseNumericPart = (value) => {
+            const match = String(value ?? '').match(/(\d+)/);
+            if (!match) return null;
+            const num = Number(match[1]);
+            return Number.isFinite(num) ? { n: num, pad: Math.max(match[1].length, 3) } : null;
+        };
+
+        const formatWithPrefix = (prefix, n, pad) => `${prefix}${String(n).padStart(pad, '0')}`;
+
+        async function generateNextFinalId() {
+            try {
+                const { data, error } = await sb
+                    .from('deviz_final_header')
+                    .select('id_deviz_final')
+                    .order('id_deviz_final', { ascending: false })
+                    .limit(200);
+
+                if (error || !Array.isArray(data) || !data.length) {
+                    devizData.devizNr = 'DF-001';
+                    syncFieldsFromState();
+                    return;
+                }
+
+                let best = null;
+                data.forEach((row) => {
+                    const parsed = parseNumericPart(row.id_deviz_final);
+                    if (!parsed) return;
+                    if (!best || parsed.n > best.n || (parsed.n === best.n && parsed.pad > best.pad)) best = parsed;
+                });
+
+                devizData.devizNr = best ? formatWithPrefix('DF-', best.n + 1, best.pad) : 'DF-001';
+            } catch (_) {
+                devizData.devizNr = 'DF-001';
+            }
+
+            syncFieldsFromState();
+        }
+
+        function extractClient(row) {
+            return String(
+                row?.client ??
+                row?.nume_client ??
+                row?.client_nume ??
+                row?.nume ??
+                ''
+            ).trim();
+        }
+
+        async function importEstimatedDeviz() {
+            const idDeviz = String(devizData.idDevizEstimativ || '').trim();
+            if (!idDeviz) {
+                setImportStatus('Introdu ID-ul devizului estimativ.', 'error');
+                return;
+            }
+
+            btnImportaDate.disabled = true;
+            btnImportaDate.classList.add('opacity-60', 'cursor-not-allowed');
+            setImportStatus(`Se importă datele pentru ${idDeviz}...`);
+
+            try {
+                const { data, error } = await sb
+                    .from('devize')
+                    .select('*')
+                    .eq('id_deviz', idDeviz)
+                    .maybeSingle();
+
+                if (error) throw error;
+                if (!data) {
+                    setImportStatus('Deviz estimativ inexistent.', 'error');
+                    return;
+                }
+
+                devizData.client = extractClient(data);
+                devizData.tipAuto = data.autovehicul || '';
+                devizData.nrInmatriculare = data.nr_inmatriculare || '';
+                devizData.serieVin = data.vin || '';
+                syncFieldsFromState();
+                setImportStatus(`Datele pentru ${idDeviz} au fost importate.`, 'success');
+            } catch (error) {
+                setImportStatus(error.message || 'Eroare la importul datelor.', 'error');
+            } finally {
+                btnImportaDate.disabled = false;
+                btnImportaDate.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        const freshDevizData = () => ({
+            activeTab: 'tab-antet',
+            idDevizEstimativ: '',
+            unitate: 'CSN GARAGE S.R.L.',
+            devizNr: '',
+            data: todayYyyyMmDd(),
+            client: '',
+            tipAuto: '',
+            nrInmatriculare: '',
+            serieVin: '',
+            serieMotor: '',
+            km: '',
+            lucrariSolicitate: [{ denumire: '', pieseClient: '' }],
+            constatari: [{ defect: '', acceptatClient: false }],
+            termenExecutie: '',
+            manopera: {
+                rows: [{ denumire: '', timpOre: '', tarifOra: '', valoareLei: '' }],
+                total: 0
+            },
+            totalManopera: 0,
+            discountGlobalPiese: '',
+            piese: [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' }],
+            totalPiese: {
+                brut: 0,
+                discount: 0,
+                final: 0
+            },
+            totalDePlata: 0
+        });
+
+        const resetDevizDataInPlace = () => {
+            const next = freshDevizData();
+            Object.keys(devizData).forEach((key) => delete devizData[key]);
+            Object.assign(devizData, next);
+        };
+
+        const normalizeDevizFinalNr = (value) => String(value || '').trim().toUpperCase();
+        const nullableText = (value) => {
+            const text = String(value ?? '').trim();
+            return text ? text : null;
+        };
+        const cleanDbId = (value) => {
+            const digits = String(value ?? '').replace(/\D/g, '');
+            if (!digits) return null;
+            const parsed = parseInt(digits, 10);
+            return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        const buildHeaderPayload = () => ({
+            id_deviz_estimativ: cleanDbId(devizData.idDevizEstimativ),
+            data_deviz: nullableText(devizData.data),
+            client: nullableText(devizData.client),
+            auto: nullableText(devizData.tipAuto),
+            nr_inmatriculare: nullableText(devizData.nrInmatriculare),
+            serie_vin: nullableText(devizData.serieVin),
+            serie_motor: nullableText(devizData.serieMotor),
+            km: nullableText(devizData.km),
+            termen_executie: nullableText(devizData.termenExecutie),
+            discount_global_piese: toNumber(devizData.discountGlobalPiese),
+            total_manopera: toNumber(devizData.totalManopera),
+            total_piese: toNumber(devizData.totalPiese?.final),
+            total_general: toNumber(devizData.totalDePlata)
+        });
+
+        const buildLinesPayload = (dbId) => {
+            const lines = [];
+
+            (devizData.lucrariSolicitate || []).forEach((item, idx) => {
+                lines.push({
+                    id_deviz_final: dbId,
+                    sectiune: 'lucrari',
+                    nr_crt: idx + 1,
+                    denumire: String(item?.text ?? item?.denumire ?? ''),
+                    detalii: String(item?.pieseClient ?? '')
+                });
+            });
+
+            (devizData.constatari || []).forEach((item, idx) => {
+                lines.push({
+                    id_deviz_final: dbId,
+                    sectiune: 'constatari',
+                    nr_crt: idx + 1,
+                    denumire: String(item?.text ?? item?.defect ?? ''),
+                    discount: item?.acceptat ? 1 : (item?.acceptatClient ? 1 : 0)
+                });
+            });
+
+            (devizData.manopera?.rows || []).forEach((item, idx) => {
+                lines.push({
+                    id_deviz_final: dbId,
+                    sectiune: 'manopera',
+                    nr_crt: idx + 1,
+                    denumire: String(item?.nume ?? item?.denumire ?? ''),
+                    cantitate: toNumber(item?.timp ?? item?.timpOre),
+                    pret_unitar: toNumber(item?.tarif ?? item?.tarifOra),
+                    total: toNumber(item?.valoare ?? item?.valoareLei)
+                });
+            });
+
+            (devizData.piese || []).forEach((item, idx) => {
+                lines.push({
+                    id_deviz_final: dbId,
+                    sectiune: 'piese',
+                    nr_crt: idx + 1,
+                    denumire: String(item?.nume ?? item?.denumire ?? ''),
+                    um: String(item?.um ?? 'buc'),
+                    cantitate: toNumber(item?.cantitate),
+                    pret_unitar: toNumber(item?.pret ?? item?.pretUnitar),
+                    discount: item?.aplicaDiscount ? 1 : 0,
+                    total: toNumber(item?.valoare)
+                });
+            });
+
+            return lines;
+        };
+
+        async function saveDevizFinal() {
+            setSaveStatus('', 'info');
+            syncLucrariState();
+            syncConstatariState();
+            syncManoperaState();
+            recalculatePieseTotals();
+
+            btnSalveazaDeviz.disabled = true;
+            btnSalveazaDeviz.classList.add('opacity-60', 'cursor-not-allowed');
+            setSaveStatus('Se salvează...', 'info');
+
+            try {
+                const id_deviz_estimativ = devizData.idDevizEstimativ;
+                const data_deviz = devizData.data;
+                const client = devizData.client;
+                const auto = devizData.tipAuto;
+                const nr_inmatriculare = devizData.nrInmatriculare;
+                const serie_vin = devizData.serieVin;
+                const serie_motor = devizData.serieMotor;
+                const km = devizData.km;
+                const termen_executie = inputTermenExecutie?.value ?? devizData.termenExecutie;
+                const discount_global_piese = devizData.discountGlobalPiese;
+                const total_manopera = devizData.totalManopera;
+                const total_piese = devizData.totalPiese?.final;
+                const total_general = devizData.totalDePlata;
+
+                let cleanEstimativId = (typeof id_deviz_estimativ !== 'undefined' && id_deviz_estimativ)
+                    ? parseInt(String(id_deviz_estimativ).replace(/\D/g, ''), 10)
+                    : null;
+                if (isNaN(cleanEstimativId)) cleanEstimativId = null;
+
+                let cleanCurrentDevizId = (typeof currentDevizId !== 'undefined' && currentDevizId)
+                    ? parseInt(String(currentDevizId).replace(/\D/g, ''), 10)
+                    : null;
+                if (isNaN(cleanCurrentDevizId)) cleanCurrentDevizId = null;
+
+                const headerPayload = {
+                    id_deviz_estimativ: cleanEstimativId,
+                    data_deviz: data_deviz || '',
+                    client: client || '',
+                    auto: auto || '',
+                    nr_inmatriculare: nr_inmatriculare || '',
+                    serie_vin: serie_vin || '',
+                    serie_motor: serie_motor || '',
+                    km: km || '',
+                    termen_executie: termen_executie || '',
+                    discount_global_piese: parseFloat(discount_global_piese) || 0,
+                    total_manopera: parseFloat(total_manopera) || 0,
+                    total_piese: parseFloat(total_piese) || 0,
+                    total_general: parseFloat(total_general) || 0
+                };
+
+                let savedHeaderId = null;
+                const isUpdate = Boolean(cleanCurrentDevizId);
+
+                if (isUpdate) {
+                    const { data, error } = await sb
+                        .from('deviz_final_header')
+                        .update(headerPayload)
+                        .eq('id_deviz_final', cleanCurrentDevizId)
+                        .select();
+
+                    if (error) throw error;
+                    if (data && data.length > 0) savedHeaderId = data[0].id_deviz_final;
+                } else {
+                    const { data, error } = await sb
+                        .from('deviz_final_header')
+                        .insert([headerPayload])
+                        .select();
+
+                    if (error) throw error;
+                    if (data && data.length > 0) savedHeaderId = data[0].id_deviz_final;
+                }
+
+                if (!savedHeaderId) {
+                    throw new Error('Eroare critică: Nu s-a putut genera/prelua ID-ul pentru Header. Oprire salvare linii.');
+                }
+
+                currentDevizId = parseInt(String(savedHeaderId).replace(/\D/g, ''), 10);
+                if (isNaN(currentDevizId)) {
+                    throw new Error('Eroare critică: ID header invalid după salvare.');
+                }
+
+                devizData.devizNr = formatWithPrefix('DF-', currentDevizId, 3);
+
+                if (isUpdate) {
+                    const { error: deleteError } = await sb
+                        .from('deviz_final_linii')
+                        .delete()
+                        .eq('id_deviz_final', currentDevizId);
+
+                    if (deleteError) throw deleteError;
+                }
+
+                let toateLiniile = [];
+
+                (devizData.lucrariSolicitate || []).forEach((lucrare, index) => {
+                    toateLiniile.push({
+                        id_deviz_final: currentDevizId,
+                        sectiune: 'lucrari',
+                        nr_crt: index + 1,
+                        denumire: String(lucrare?.text ?? lucrare?.denumire ?? ''),
+                        detalii: String(lucrare?.pieseClient ?? '')
+                    });
+                });
+
+                (devizData.constatari || []).forEach((constatare, index) => {
+                    toateLiniile.push({
+                        id_deviz_final: currentDevizId,
+                        sectiune: 'constatari',
+                        nr_crt: index + 1,
+                        denumire: String(constatare?.text ?? constatare?.defect ?? ''),
+                        discount: constatare?.acceptat ? 1 : (constatare?.acceptatClient ? 1 : 0)
+                    });
+                });
+
+                (devizData.manopera?.rows || []).forEach((operatie, index) => {
+                    toateLiniile.push({
+                        id_deviz_final: currentDevizId,
+                        sectiune: 'manopera',
+                        nr_crt: index + 1,
+                        denumire: String(operatie?.nume ?? operatie?.denumire ?? ''),
+                        cantitate: parseFloat(operatie?.timp ?? operatie?.timpOre) || 0,
+                        pret_unitar: parseFloat(operatie?.tarif ?? operatie?.tarifOra) || 0,
+                        total: parseFloat(operatie?.valoare ?? operatie?.valoareLei) || 0
+                    });
+                });
+
+                (devizData.piese || []).forEach((piesa, index) => {
+                    toateLiniile.push({
+                        id_deviz_final: currentDevizId,
+                        sectiune: 'piese',
+                        nr_crt: index + 1,
+                        denumire: String(piesa?.nume ?? piesa?.denumire ?? ''),
+                        um: String(piesa?.um ?? 'buc'),
+                        cantitate: parseFloat(piesa?.cantitate) || 0,
+                        pret_unitar: parseFloat(piesa?.pret ?? piesa?.pretUnitar) || 0,
+                        discount: piesa?.aplicaDiscount ? 1 : 0,
+                        total: parseFloat(piesa?.valoare) || 0
+                    });
+                });
+
+                toateLiniile.forEach((linie) => {
+                    linie.id_deviz_final = currentDevizId;
+                });
+
+                if (toateLiniile.length > 0) {
+                    const { error: errorLinii } = await sb
+                        .from('deviz_final_linii')
+                        .insert(toateLiniile);
+
+                    if (errorLinii) throw errorLinii;
+                }
+
+                syncFieldsFromState();
+                setSaveStatus('Deviz Salvat!', 'success');
+                alert('Deviz Salvat!');
+            } catch (error) {
+                setSaveStatus(error?.message || 'Eroare la salvare.', 'error');
+            } finally {
+                btnSalveazaDeviz.disabled = false;
+                btnSalveazaDeviz.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        const pickHeaderValue = (row, ...keys) => {
+            for (const key of keys) {
+                const value = row?.[key];
+                if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+            }
+            return '';
+        };
+
+        async function loadDeviz(id) {
+            const dbId = cleanDbId(id);
+            if (!dbId) {
+                setSaveStatus('Deviz Nr. invalid. Exemplu: DF-001', 'error');
+                return;
+            }
+
+            setSaveStatus(`Se încarcă DF-${String(dbId).padStart(3, '0')}...`, 'info');
+
+            try {
+                const { data: header, error: headerError } = await sb
+                    .from('deviz_final_header')
+                    .select('*')
+                    .eq('id_deviz_final', dbId)
+                    .maybeSingle();
+
+                if (headerError) throw headerError;
+                if (!header) {
+                    setSaveStatus('Deviz inexistent.', 'error');
+                    return;
+                }
+
+                resetDevizDataInPlace();
+
+                currentDevizId = header.id_deviz_final ?? dbId;
+                devizData.devizNr = formatWithPrefix('DF-', currentDevizId, 3);
+                devizData.idDevizEstimativ = pickHeaderValue(header, 'id_deviz_estimativ') || devizData.idDevizEstimativ || '';
+                devizData.data = pickHeaderValue(header, 'data_deviz') || devizData.data;
+                devizData.client = pickHeaderValue(header, 'client') || devizData.client;
+                devizData.tipAuto = pickHeaderValue(header, 'auto', 'tip_auto', 'tipAuto') || devizData.tipAuto;
+                devizData.nrInmatriculare = pickHeaderValue(header, 'nr_inmatriculare', 'nrInmatriculare') || devizData.nrInmatriculare;
+                devizData.serieVin = pickHeaderValue(header, 'serie_vin', 'vin', 'serieVin') || devizData.serieVin;
+                devizData.serieMotor = pickHeaderValue(header, 'serie_motor', 'serieMotor') || devizData.serieMotor;
+                devizData.km = pickHeaderValue(header, 'km') || devizData.km;
+                devizData.termenExecutie = pickHeaderValue(header, 'termen_executie', 'termenExecutie') || devizData.termenExecutie;
+                devizData.discountGlobalPiese = pickHeaderValue(header, 'discount_global_piese', 'discountGlobalPiese') || devizData.discountGlobalPiese;
+                devizData.totalManopera = toNumber(header.total_manopera);
+                devizData.totalPiese.final = toNumber(header.total_piese);
+                devizData.totalDePlata = toNumber(header.total_general);
+
+                const { data: lines, error: linesError } = await sb
+                    .from('deviz_final_linii')
+                    .select('*')
+                    .eq('id_deviz_final', currentDevizId)
+                    .order('nr_crt', { ascending: true });
+
+                if (linesError) throw linesError;
+
+                devizData.lucrariSolicitate = [];
+                devizData.constatari = [];
+                devizData.manopera = { rows: [], total: 0 };
+                devizData.piese = [];
+
+                if (inputDevizEstimativ) inputDevizEstimativ.value = devizData.idDevizEstimativ || '';
+                if (inputDevizNr) inputDevizNr.value = devizData.devizNr || '';
+                if (inputDataDevizFinal) inputDataDevizFinal.value = devizData.data || '';
+                if (inputClientDevizFinal) inputClientDevizFinal.value = devizData.client || '';
+                if (inputTipAutoDevizFinal) inputTipAutoDevizFinal.value = devizData.tipAuto || '';
+                if (inputNrInmatriculareDevizFinal) inputNrInmatriculareDevizFinal.value = devizData.nrInmatriculare || '';
+                if (inputSerieVinDevizFinal) inputSerieVinDevizFinal.value = devizData.serieVin || '';
+                if (inputSerieMotorDevizFinal) inputSerieMotorDevizFinal.value = devizData.serieMotor || '';
+                if (inputKmDevizFinal) inputKmDevizFinal.value = devizData.km || '';
+                if (inputTermenExecutie) inputTermenExecutie.value = devizData.termenExecutie || '';
+
+                lucrariRowsBody.innerHTML = '';
+                constatariRowsBody.innerHTML = '';
+                manoperaRowsBody.innerHTML = '';
+                pieseRowsBody.innerHTML = '';
+
+                (lines || []).forEach((row) => {
+                    const sectiune = String(row?.sectiune || '').toLowerCase();
+                    if (sectiune === 'lucrari') {
+                        addLucrareRow({
+                            denumire: row.denumire ?? '',
+                            pieseClient: row.detalii ?? ''
+                        });
+                    } else if (sectiune === 'constatari') {
+                        addConstatareRow({
+                            defect: row.denumire ?? '',
+                            acceptatClient: Number(row.discount) === 1
+                        });
+                    } else if (sectiune === 'manopera') {
+                        addManoperaRow({
+                            denumire: row.denumire ?? '',
+                            timpOre: row.cantitate ?? '',
+                            tarifOra: row.pret_unitar ?? '',
+                            valoareLei: row.total ?? ''
+                        });
+                    } else if (sectiune === 'piese') {
+                        addPiesaRow({
+                            denumire: row.denumire ?? '',
+                            um: row.um ?? 'buc',
+                            cantitate: row.cantitate ?? '',
+                            pretUnitar: row.pret_unitar ?? '',
+                            aplicaDiscount: Number(row.discount) === 1,
+                            valoare: row.total ?? ''
+                        });
+                    }
+                });
+
+                if (!devizData.lucrariSolicitate.length) addLucrareRow();
+                if (!devizData.constatari.length) addConstatareRow();
+                if (!devizData.manopera.rows.length) addManoperaRow();
+                if (!devizData.piese.length) addPiesaRow();
+
+                recalculatePieseTotals();
+                syncFieldsFromState();
+                updateSummaryTotals();
+                setSaveStatus(`Încărcat: ${devizData.devizNr}`, 'success');
+            } catch (error) {
+                setSaveStatus(error?.message || 'Eroare la încărcare.', 'error');
+            }
+        }
+
+        async function loadDevizFinalByNr(devizNrRaw) {
+            return loadDeviz(devizNrRaw);
+        }
+
+        async function bootstrapDevizFinalPage() {
+            syncFieldsFromState();
+            renderLucrariRows();
+            renderConstatariRows();
+            renderManoperaRows();
+            renderPieseRows();
+            switchTab(devizData.activeTab);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const loadId = urlParams.get('id');
+
+            if (loadId) {
+                currentDevizId = cleanDbId(loadId);
+                await loadDevizFinalByNr(String(loadId));
+                return;
+            }
+
+            await generateNextFinalId();
+        }
+
+        async function loadLastDevizFinal() {
+            setSaveStatus('Se caută ultimul deviz...', 'info');
+            try {
+                const { data, error } = await sb
+                    .from('deviz_final_header')
+                    .select('id_deviz_final')
+                    .order('id_deviz_final', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+                const nr = data?.[0]?.id_deviz_final;
+                if (!nr) {
+                    setSaveStatus('Nu există devize finale salvate încă.', 'error');
+                    return;
+                }
+                await loadDevizFinalByNr(formatWithPrefix('DF-', nr, 3));
+            } catch (error) {
+                setSaveStatus(error?.message || 'Eroare la încărcarea ultimului deviz.', 'error');
+            }
+        }
+
+        function printDevizFinal() {
+            window.print();
+        }
+
+        document.querySelectorAll('.tab-button').forEach((button) => {
+            button.addEventListener('click', () => switchTab(button.dataset.tabTarget));
+        });
+
+        document.querySelectorAll('[data-field]').forEach((field) => {
+            const key = field.dataset.field;
+            if (!key) return;
+            field.addEventListener('input', () => {
+                devizData[key] = field.value;
+                if (key === 'discountGlobalPiese') recalculatePieseTotals();
+                syncPrintLayout();
+            });
+        });
+
+        window.addEventListener('beforeprint', () => {
+            syncLucrariState();
+            syncConstatariState();
+            syncManoperaState();
+            syncPieseState();
+            syncPrintLayout();
+        });
+
+        inputDevizEstimativ.addEventListener('blur', async () => {
+            const normalized = normalizeDevizEstimativId(inputDevizEstimativ.value);
+            if (!normalized) {
+                devizData.idDevizEstimativ = '';
+                inputDevizEstimativ.value = '';
+                return;
+            }
+
+            devizData.idDevizEstimativ = normalized;
+            inputDevizEstimativ.value = normalized;
+            await importEstimatedDeviz();
+        });
+
+        btnImportaDate.addEventListener('click', importEstimatedDeviz);
+
+        function addLucrareRow(item = null) {
+            ensureLucrariState();
+            const nextItem = item || { denumire: '', pieseClient: '' };
+            devizData.lucrariSolicitate.push(nextItem);
+            lucrariRowsBody.appendChild(createLucrareRowElement(nextItem));
+            recalculateLucrareNumbers();
+            syncLucrariState();
+        }
+
+        function removeLucrareRow(button) {
+            const row = button.closest('tr');
+            if (!row) return;
+            row.remove();
+            recalculateLucrareNumbers();
+            syncLucrariState();
+            if (!devizData.lucrariSolicitate.length) addLucrareRow();
+        }
+
+        btnAddLucrareRow.addEventListener('click', addLucrareRow);
+
+        function addConstatareRow(item = null) {
+            ensureConstatariState();
+            const nextItem = item || { defect: '', acceptatClient: false };
+            devizData.constatari.push(nextItem);
+            constatariRowsBody.appendChild(createConstatareRowElement(nextItem));
+            recalculateConstatareNumbers();
+            syncConstatariState();
+        }
+
+        function removeConstatareRow(button) {
+            const row = button.closest('tr');
+            if (!row) return;
+            row.remove();
+            recalculateConstatareNumbers();
+            syncConstatariState();
+            if (!devizData.constatari.length) addConstatareRow();
+        }
+
+        btnAddConstatareRow.addEventListener('click', addConstatareRow);
+
+        function addManoperaRow(item = null) {
+            ensureManoperaState();
+            const nextItem = item || { denumire: '', timpOre: '', tarifOra: '', valoareLei: '' };
+            devizData.manopera.rows.push(nextItem);
+            manoperaRowsBody.appendChild(createManoperaRowElement(nextItem));
+            recalculateManoperaNumbers();
+            syncManoperaState();
+        }
+
+        function removeManoperaRow(button) {
+            const row = button.closest('tr');
+            if (!row) return;
+            row.remove();
+            recalculateManoperaNumbers();
+            syncManoperaState();
+            if (!devizData.manopera.rows.length) addManoperaRow();
+        }
+
+        btnAddManoperaRow.addEventListener('click', addManoperaRow);
+
+        function addPiesaRow(item = null) {
+            ensurePieseState();
+            const nextItem = item || { denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' };
+            devizData.piese.push(nextItem);
+            pieseRowsBody.appendChild(createPiesaRowElement(nextItem));
+            recalculatePieseNumbers();
+            recalculatePieseTotals();
+        }
+
+        function removePiesaRow(button) {
+            const row = button.closest('tr');
+            if (!row) return;
+            row.remove();
+            recalculatePieseNumbers();
+            recalculatePieseTotals();
+            if (!devizData.piese.length) addPiesaRow();
+        }
+
+        btnAddPiesaRow.addEventListener('click', addPiesaRow);
+
+        btnDevizNou.addEventListener('click', async () => {
+            currentDevizId = null;
+            resetDevizDataInPlace();
+            setImportStatus('');
+            setSaveStatus('');
+            syncFieldsFromState();
+            renderLucrariRows();
+            renderConstatariRows();
+            renderManoperaRows();
+            renderPieseRows();
+            updateSummaryTotals();
+            switchTab('tab-antet');
+            await generateNextFinalId();
+        });
+
+        btnIncarcaDeviz.addEventListener('click', async () => {
+            const nr = normalizeDevizFinalNr(prompt('Deviz Nr. (ex: DF-001):') || '');
+            if (!nr) return;
+            await loadDevizFinalByNr(nr);
+        });
+
+        btnUltimulDeviz.addEventListener('click', loadLastDevizFinal);
+        btnPrinteazaDeviz.addEventListener('click', printDevizFinal);
+        btnSalveazaDeviz.addEventListener('click', saveDevizFinal);
+
+        bootstrapDevizFinalPage();
+
+        window.devizData = devizData;
+        window.switchTab = switchTab;
+        window.importEstimatedDeviz = importEstimatedDeviz;
+        window.saveDevizFinal = saveDevizFinal;
+        window.loadDevizFinalByNr = loadDevizFinalByNr;
+        window.bootstrapDevizFinalPage = bootstrapDevizFinalPage;
+        window.addLucrareRow = addLucrareRow;
+        window.removeLucrareRow = removeLucrareRow;
+        window.addConstatareRow = addConstatareRow;
+        window.removeConstatareRow = removeConstatareRow;
+        window.addManoperaRow = addManoperaRow;
+        window.removeManoperaRow = removeManoperaRow;
+        window.addPiesaRow = addPiesaRow;
+        window.removePiesaRow = removePiesaRow;
+    </script>
+</body>
+</html>

@@ -20,7 +20,7 @@
         <div class="px-4 py-4">
             <div class="grid grid-cols-3 items-center gap-3">
                 <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900/60 transition-colors">
-                    <- Înapoi la Dashboard
+                    <- Înapoi
                 </a>
                 <div class="justify-self-center text-xl font-bold text-blue-400 tracking-wide">
                     ISTORIC DEVIZE
@@ -31,6 +31,24 @@
     </header>
 
     <div class="shrink-0 px-4">
+        <div class="mx-auto mt-4 flex max-w-xl justify-center rounded-2xl border border-slate-800 bg-slate-900 p-1">
+            <button
+                id="tab-estimative"
+                type="button"
+                class="history-tab-btn flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors"
+                data-type="estimative"
+            >
+                Devize Estimative
+            </button>
+            <button
+                id="tab-finale"
+                type="button"
+                class="history-tab-btn flex-1 rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-800"
+                data-type="finale"
+            >
+                Devize Finale
+            </button>
+        </div>
         <input id="search-input" type="search" placeholder="Caută după nr. înmatriculare sau ID Deviz..." class="w-full max-w-xl mx-auto my-6 bg-slate-900 border border-slate-700 rounded-full px-6 py-3 block text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500" />
         <div class="max-w-6xl mx-auto grid grid-cols-[1fr_1.5fr_1fr_1fr_0.5fr] gap-4 px-4 pb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
             <div>DATA</div>
@@ -52,7 +70,9 @@
 
         const searchInput = document.getElementById('search-input');
         const resultsInner = document.getElementById('results-inner');
+        const historyTabButtons = Array.from(document.querySelectorAll('.history-tab-btn'));
 
+        let activeTab = 'estimative';
         let allDevize = [];
         let query = '';
 
@@ -82,12 +102,34 @@
             return `${zi}.${luna}.${an}`;
         };
 
+        const formatDevizNumber = (type, rawId) => {
+            const numericId = String(rawId ?? '').replace(/\D/g, '');
+            if (type === 'finale') return numericId ? `DF-${numericId.padStart(3, '0')}` : '';
+            if (type === 'estimative') return numericId ? `D-${numericId}` : '';
+            return String(rawId ?? '');
+        };
+
+        const getDevizLink = (type, rawId) => {
+            const numericId = String(rawId ?? '').replace(/\D/g, '');
+            if (type === 'finale') return `deviz_final.html?id=${encodeURIComponent(numericId)}`;
+            return `deviz_estimativ.html?id=${encodeURIComponent(numericId)}`;
+        };
+
+        const updateTabButtons = () => {
+            historyTabButtons.forEach((button) => {
+                const active = button.dataset.type === activeTab;
+                button.className = active
+                    ? 'history-tab-btn flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors'
+                    : 'history-tab-btn flex-1 rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition-colors hover:bg-slate-800';
+            });
+        };
+
         const applyFilter = () => {
             const q = query.trim().toLowerCase();
             if (!q) return allDevize;
             return allDevize.filter((d) => {
                 const plate = String(d.nr_inmatriculare ?? '').toLowerCase();
-                const id = String(d.id_deviz ?? '').toLowerCase();
+                const id = String(d.display_id ?? d.id_deviz ?? d.id_deviz_final ?? '').toLowerCase();
                 return plate.includes(q) || id.includes(q);
             });
         };
@@ -99,10 +141,10 @@
                     <div class="grid grid-cols-[1fr_1.5fr_1fr_1fr_0.5fr] gap-4 items-center">
                         <div class="text-slate-300">${escapeHtml(formatDate(d.data_deviz))}</div>
                         <div class="font-bold uppercase text-slate-100">${escapeHtml(d.nr_inmatriculare || '')}</div>
-                        <div class="text-slate-200 font-semibold">${escapeHtml(d.id_deviz || '')}</div>
+                        <div class="text-slate-200 font-semibold">${escapeHtml(d.display_id || '')}</div>
                         <div class="text-emerald-400 font-bold">${escapeHtml(formatMoney(d.total_general))} RON</div>
                         <div class="text-right">
-                            <a href="deviz.html?id=${encodeURIComponent(d.id_deviz || '')}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white transition-colors">
+                            <a href="${escapeHtml(d.view_href || '#')}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-bold text-white transition-colors">
                                 VEZI
                             </a>
                         </div>
@@ -121,17 +163,34 @@
                 return;
             }
 
-            const { data, error } = await supabaseClient
-                .from('devize')
-                .select('id_deviz, data_deviz, nr_inmatriculare, total_general')
-                .order('id_deviz', { ascending: false });
+            resultsInner.innerHTML = '<div class="text-center text-slate-500 py-10">Se încarcă...</div>';
+
+            const queryBuilder = activeTab === 'finale'
+                ? supabaseClient
+                    .from('deviz_final_header')
+                    .select('id_deviz_final, data_deviz, nr_inmatriculare, total_general')
+                    .order('id_deviz_final', { ascending: false })
+                : supabaseClient
+                    .from('devize')
+                    .select('id_deviz, data_deviz, nr_inmatriculare, total_general')
+                    .order('id_deviz', { ascending: false });
+
+            const { data, error } = await queryBuilder;
 
             if (error) {
                 resultsInner.innerHTML = '<div class="text-center text-slate-500 py-10">Eroare la încărcare.</div>';
                 return;
             }
 
-            allDevize = Array.isArray(data) ? data : [];
+            allDevize = (Array.isArray(data) ? data : []).map((row) => {
+                const rawId = activeTab === 'finale' ? row.id_deviz_final : row.id_deviz;
+                return {
+                    ...row,
+                    display_id: formatDevizNumber(activeTab, rawId),
+                    view_href: getDevizLink(activeTab, rawId),
+                    total_general: row.total_general ?? 0,
+                };
+            });
             render();
         };
 
@@ -140,6 +199,17 @@
             render();
         });
 
+        historyTabButtons.forEach((button) => {
+            button.addEventListener('click', async () => {
+                const nextTab = button.dataset.type;
+                if (!nextTab || nextTab === activeTab) return;
+                activeTab = nextTab;
+                updateTabButtons();
+                await fetchDevize();
+            });
+        });
+
+        updateTabButtons();
         fetchDevize();
     </script>
 </body>
