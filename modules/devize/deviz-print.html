@@ -4,67 +4,166 @@
     <meta charset="UTF-8">
     <title>Print Deviz Final</title>
     <style>
-        body { margin: 0; padding: 5mm; font-family: Arial, sans-serif; font-size: 10pt; }
-        .a4-page { width: 190mm; margin: 0 auto; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 0px; table-layout: fixed; }
-        th, td { border: 1px solid #000; padding: 2px 4px; height: 18px; overflow: hidden; }
+        /* === CONFIGURĂRI GENERALE DE PAGINĂ ȘI FONTURI === */
+        body {
+            margin: 0;
+            padding: 5mm;
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .a4-page {
+            width: 190mm;
+            margin: 0 auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            height: 18px;
+            overflow: hidden;
+        }
 
-        .col-nr { width: 30px; text-align: center; }
+        /* === CONFIGURĂRI COLOANE TABELE === */
+        .col-nr { width: 35px; text-align: center; }
         .col-desc { width: auto; }
         .col-other { width: 25%; }
         .col-val { width: 15%; }
 
-        .header-bg { background-color: #d3d3d3; font-weight: bold; }
-        .section-title { background-color: #ffe5b4; font-weight: bold; padding: 4px; border: 1px solid #000; margin-top: 15px; }
+        /* === STILURI SECȚIUNI ȘI LINII DE ANTET === */
+        /* Culoarea mov extrasă din logo pentru capetele de tabel */
+        .header-bg { background-color: hsl(0, 0%, 83%); color: #000000; font-weight: bold; }
+
+        /* Aceeași culoare mov folosită pentru titlurile secțiunilor */
+        .section-title { background-color: #ce92ec; color: #000000; font-weight: bold; padding: 4px; border: 1px solid #000; }
+
+        /* Evidențiere discount tip marker (mov foarte deschis) */
+        .marker-discount { background-color: #E8E3FA; font-weight: bold; }
+
+        /* Container pentru logo-ul de fundal (Watermark) */
+        .watermark-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 680px;
+            height: auto;
+            opacity: 0.08;
+            z-index: -1000;
+            pointer-events: none;
+        }
+
+        /* === CONFIGURARE ANTET (DATE SERVICE / MAȘINĂ) === */
+        .antet-label {
+            font-weight: bold; /* Titlurile (ex: Unitatea:, Client:) vor fi boldate */
+        }
+        .antet-value {
+            font-weight: normal;
+            font-size: 11pt; /* Datele completate (ex: FORD TRANZIT) vor fi puțin mai mari */
+        }
+
+        /* === AJUSTĂRI SPAȚII ÎNTRE SECȚIUNI (SĂGEȚI) === */
+        .spatiu-sectiune {
+            margin-top: 10px; /* SPAȚIU FIN ÎNTRE SECȚIUNI - Poți modifica valoarea (ex: 8px, 12px) */
+        }
+        .spatiu-dublu-piese {
+            margin-top: 25px; /* SPAȚIU DUBLU ÎNAINTE DE PIESE - Pentru a delimita clar zona de materiale */
+        }
+
+        /* === PROTECȚIE ÎMPOTRIVA RUPERII URÂTE LA PRINTARE === */
+        tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        /* Clasă pentru a proteja semnăturile când trec pe pagina următoare */
+        .zona-semnaturi {
+            margin-top: 40px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .mov-bg {
+            background-color: #b684e6 !important;
+            color: #000000 !important;
+            font-weight: bold;
+        }
+
+        .mov-bg th {
+            color: #000000 !important;
+        }
+
         @media print {
             @page { margin: 0; size: A4; }
             body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+
+            .zona-semnaturi {
+                margin-top: 60px;
+            }
         }
         header, h1, .print-header { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- PAGINA 1 -->
+    <img src="../../icons/logo.png" class="watermark-bg" alt="Logo Fundal">
+
     <div class="a4-page">
         <table>
             <tr>
-                <td style="width: 33%;">Unitatea: CSN GARAGE S.R.L.<br>COMANDA-DEVIZ Nr. <span id="print-deviz-nr">-</span><br>Client: <span id="print-client">-</span></td>
-                <td style="width: 33%;">Data: <span id="print-data">-</span><br>Tip auto: <span id="print-tip-auto">-</span><br>Serie motor: <span id="print-serie-motor">-</span></td>
-                <td style="width: 33%;">Nr. inmatriculare: <span id="print-nr-inmatriculare">-</span><br>Serie caroserie: <span id="print-serie-vin">-</span><br>Km: <span id="print-km">-</span></td>
+                <td style="width: 33%; vertical-align: top; line-height: 1.4;">
+                    <span class="antet-label">Unitatea:</span> <span class="antet-value" style="font-weight: bold;">CSN GARAGE S.R.L.</span><br>
+                    <span class="antet-label">COMANDA-DEVIZ Nr.</span> <span class="antet-value" id="print-deviz-nr" style="font-weight: bold;">-</span><br>
+                    <span class="antet-label">Client:</span> <span class="antet-value" id="print-client">-</span>
+                </td>
+                <td style="width: 33%; vertical-align: top; line-height: 1.4;">
+                    <span class="antet-label">Data:</span> <span class="antet-value" id="print-data">-</span><br>
+                    <span class="antet-label">Tip auto:</span> <span class="antet-value" id="print-tip-auto">-</span><br>
+                    <span class="antet-label">Serie motor:</span> <span class="antet-value" id="print-serie-motor">-</span>
+                </td>
+                <td style="width: 33%; vertical-align: top; line-height: 1.4;">
+                    <span class="antet-label">Nr. inmatriculare:</span> <span class="antet-value" id="print-nr-inmatriculare" style="font-weight: bold;">-</span><br>
+                    <span class="antet-label">Serie caroserie:</span> <span class="antet-value" id="print-serie-vin">-</span><br>
+                    <span class="antet-label">Km:</span> <span class="antet-value" id="print-km">-</span>
+                </td>
             </tr>
         </table>
 
+        <div class="spatiu-sectiune"></div>
         <table>
-            <thead class="header-bg">
-                <tr>
+            <thead>
+                <tr class="mov-bg">
                     <th class="col-nr">Nr.</th>
                     <th class="col-desc">LUCRARI SOLICITATE DE CLIENT</th>
                     <th class="col-other">PIESE CLIENT</th>
                 </tr>
             </thead>
             <tbody id="print-lucrari-body">
-                <!-- Se populează din JS -->
-            </tbody>
+                </tbody>
         </table>
         <div style="border: 1px solid #000; border-top:none; padding: 4px; text-align: right; font-weight: bold;">Accept client/semnătura: ______________</div>
 
-        <div class="section-title">DEFECTE SUPLIMENTARE CONSTATATE IN TIMPUL REPARATIEI:</div>
+        <div class="section-title spatiu-sectiune">DEFECTE SUPLIMENTARE CONSTATATE IN TIMPUL REPARATIEI:</div>
         <table>
             <tbody id="print-constatari-body">
-                <!-- Se populează din JS -->
-            </tbody>
+                </tbody>
         </table>
-        <table>
+        <table style="border-top: none;">
             <tr>
-                <td style="width: 50%;">Termen execuție: <span id="print-termen-executie">______________</span></td>
-                <td style="width: 50%; text-align: right;">Accept client/semnătura: ______________</td>
+                <td style="width: 50%; border-top: none;">
+                    <span class="antet-label">Termen execuție:</span> <span class="antet-value" id="print-termen-executie">______________</span>
+                </td>
+                <td style="width: 50%; text-align: right; border-top: none; font-weight: bold;">Accept client/semnătura: ______________</td>
             </tr>
         </table>
 
-        <div class="section-title">LUCRĂRI CONVENITE CU CLIENTUL ȘI EXECUTATE:</div>
+        <div class="section-title spatiu-sectiune">LUCRĂRI CONVENITE CU CLIENTUL ȘI EXECUTATE:</div>
         <table>
             <thead class="header-bg">
                 <tr>
@@ -76,22 +175,16 @@
                 </tr>
             </thead>
             <tbody id="print-manopera-body">
-                <!-- Se populează din JS -->
-            </tbody>
+                </tbody>
         </table>
-
         <table style="margin-top: 0; border-top: none;">
             <tr>
                 <td style="border: 1px solid #000; border-top: none; text-align: right; font-weight: bold; padding-right: 10px;">TOTAL MANOPERĂ:</td>
                 <td style="width: 15%; border: 1px solid #000; border-top: none; text-align: right; font-weight: bold;" id="print-total-manopera-tabel">0.00</td>
             </tr>
         </table>
-    </div>
 
-    <!-- PAGINA 2 -->
-    <div class="a4-page" style="page-break-before: always;">
-        <div class="section-title">PIESE / MATERIALE:</div>
-
+        <div class="section-title spatiu-dublu-piese">PIESE / MATERIALE:</div>
         <table>
             <thead class="header-bg">
                 <tr>
@@ -105,16 +198,15 @@
                 </tr>
             </thead>
             <tbody id="print-piese-body">
-                <!-- Se populează din JS -->
-            </tbody>
+                </tbody>
         </table>
 
-        <table style="margin-top: 10px; width: 50%; margin-left: auto;">
-            <tr><td style="border: none;">Total Manoperă:</td><td style="text-align: right;" id="summary-manopera">0.00 Lei</td></tr>
-            <tr><td style="border: none;">Total Piese (fără discount):</td><td style="text-align: right;" id="summary-piese-brut">0.00 Lei</td></tr>
-            <tr><td style="border: none;">Total Discount Acordat:</td><td style="text-align: right;" id="summary-discount">0.00 Lei</td></tr>
-            <tr><td style="border: none;">Total Piese (final):</td><td style="text-align: right;" id="summary-piese-final">0.00 Lei</td></tr>
-            <tr style="font-weight: bold; font-size: 11pt;"><td style="border: none;">TOTAL DE PLATĂ:</td><td style="text-align: right;" id="summary-total-plata">0.00 Lei</td></tr>
+        <table style="margin-top: 15px; width: 50%; margin-left: auto;">
+            <tr><td style="border: none; padding: 2px 4px;">Total Manoperă:</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-manopera">0.00 Lei</td></tr>
+            <tr><td style="border: none; padding: 2px 4px;">Total Piese (fără discount):</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-piese-brut">0.00 Lei</td></tr>
+            <tr class="marker-discount"><td style="border: none; padding: 4px;">Total Discount Acordat:</td><td style="text-align: right; border: none; padding: 4px;" id="summary-discount">0.00 Lei</td></tr>
+            <tr><td style="border: none; padding: 2px 4px;">Total Piese (final):</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-piese-final">0.00 Lei</td></tr>
+            <tr style="font-weight: bold; font-size: 11pt;"><td style="border: none; padding: 4px 4px;">TOTAL DE PLATĂ:</td><td style="text-align: right; border: none; padding: 4px 4px;" id="summary-total-plata">0.00 Lei</td></tr>
         </table>
 
         <div style="margin-top: 20px; font-size: 8.5pt; line-height: 1.3;">
@@ -125,7 +217,7 @@
             *** La cererea beneficiarului, unitatea va asigura vizualizarea activităților și înregistrări care să dovedească efectuarea inspecțiilor finale.
         </div>
 
-        <table style="margin-top: 40px; border: none;">
+        <table class="zona-semnaturi" style="border: none;">
             <tr>
                 <td style="border: none; width: 50%; vertical-align: top;"><strong>ȘEF UNITATE</strong><br>__________________</td>
                 <td style="border: none; width: 50%; vertical-align: top; text-align: right;"><strong>CLIENT</strong><br>__________________</td>
@@ -150,6 +242,7 @@
                 return d.toLocaleDateString('ro-RO');
             };
 
+            // Populare Antet
             document.getElementById("print-deviz-nr").textContent = data.devizNr || '-';
             document.getElementById("print-client").textContent = data.client || '-';
             document.getElementById("print-data").textContent = formatDate(data.data);
@@ -160,49 +253,73 @@
             document.getElementById("print-km").textContent = data.km || '-';
             document.getElementById("print-termen-executie").textContent = data.termenExecutie || '______________';
 
+            // Lucrări Solicitate
             const lucrariBody = document.getElementById("print-lucrari-body");
             lucrariBody.innerHTML = "";
-            (data.lucrariSolicitate || []).forEach((l, idx) => {
-                lucrariBody.innerHTML += `<tr><td class="col-nr">${idx + 1}</td><td>${l.denumire || ''}</td><td>${l.pieseClient || ''}</td></tr>`;
-            });
+            const listLucrari = data.lucrariSolicitate || [];
+            if (listLucrari.length === 0) {
+                lucrariBody.innerHTML = `<tr><td class="col-nr">1</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+            } else {
+                listLucrari.forEach((l, idx) => {
+                    lucrariBody.innerHTML += `<tr><td class="col-nr">${idx + 1}</td><td>${l.denumire || ''}</td><td>${l.pieseClient || ''}</td></tr>`;
+                });
+            }
 
+            // Constatări
             const constatariBody = document.getElementById("print-constatari-body");
             constatariBody.innerHTML = "";
-            (data.constatari || []).forEach((c, idx) => {
-                constatariBody.innerHTML += `<tr><td class="col-nr">${idx + 1}</td><td>${c.defect || ''}</td><td>${c.acceptatClient ? 'Acceptat' : ''}</td></tr>`;
-            });
+            const listConstatari = data.constatari || [];
+            if (listConstatari.length === 0) {
+                constatariBody.innerHTML = `<tr><td class="col-nr">1</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+            } else {
+                listConstatari.forEach((c, idx) => {
+                    constatariBody.innerHTML += `<tr><td class="col-nr">${idx + 1}</td><td>${c.defect || ''}</td><td>${c.acceptatClient ? 'Acceptat' : ''}</td></tr>`;
+                });
+            }
 
+            // Manoperă
             const manoperaBody = document.getElementById("print-manopera-body");
             manoperaBody.innerHTML = "";
             const rowsManopera = data.manopera?.rows || [];
-            rowsManopera.forEach((m, idx) => {
-                manoperaBody.innerHTML += `
-                    <tr style="height: 18px;">
-                        <td>${idx + 1}</td>
-                        <td>${m.denumire || ''}</td>
-                        <td>${m.timpOre || ''}</td>
-                        <td>${m.tarifOra || ''}</td>
-                        <td style="text-align: right;">${formatMoney(m.valoareLei)}</td>
-                    </tr>`;
-            });
+            if (rowsManopera.length === 0) {
+                manoperaBody.innerHTML = `<tr style="height: 18px;"><td>1</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+            } else {
+                rowsManopera.forEach((m, idx) => {
+                    manoperaBody.innerHTML += `
+                        <tr style="height: 18px;">
+                            <td>${idx + 1}</td>
+                            <td>${m.denumire || ''}</td>
+                            <td>${m.timpOre || ''}</td>
+                            <td>${m.tarifOra || ''}</td>
+                            <td style="text-align: right;">${formatMoney(m.valoareLei)}</td>
+                        </tr>`;
+                });
+            }
             document.getElementById("print-total-manopera-tabel").textContent = formatMoney(data.totalManopera);
 
+            // Piese / Materiale
             const pieseBody = document.getElementById("print-piese-body");
             pieseBody.innerHTML = "";
-            (data.piese || []).forEach((p, idx) => {
-                const discLabel = p.aplicaDiscount ? `${data.discountGlobalPiese || 0}%` : '0%';
-                pieseBody.innerHTML += `
-                    <tr style="height: 22px;">
-                        <td>${idx + 1}</td>
-                        <td>${p.denumire || ''}</td>
-                        <td>${p.um || 'buc'}</td>
-                        <td>${p.cantitate || ''}</td>
-                        <td>${p.pretUnitar || ''}</td>
-                        <td>${discLabel}</td>
-                        <td style="text-align: right;">${formatMoney(p.valoare)}</td>
-                    </tr>`;
-            });
+            const listPiese = data.piese || [];
+            if (listPiese.length === 0) {
+                pieseBody.innerHTML = `<tr style="height: 22px;"><td>1</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`;
+            } else {
+                listPiese.forEach((p, idx) => {
+                    const discLabel = p.aplicaDiscount ? `${data.discountGlobalPiese || 0}%` : '0%';
+                    pieseBody.innerHTML += `
+                        <tr style="height: 22px;">
+                            <td>${idx + 1}</td>
+                            <td>${p.denumire || ''}</td>
+                            <td>${p.um || 'buc'}</td>
+                            <td>${p.cantitate || ''}</td>
+                            <td>${p.pretUnitar || ''}</td>
+                            <td>${discLabel}</td>
+                            <td style="text-align: right;">${formatMoney(p.valoare)}</td>
+                        </tr>`;
+                });
+            }
 
+            // Totale
             document.getElementById("summary-manopera").textContent = formatMoney(data.totalManopera) + " Lei";
             document.getElementById("summary-piese-brut").textContent = formatMoney(data.totalPiese?.brut) + " Lei";
             document.getElementById("summary-discount").textContent = formatMoney(data.totalPiese?.discount) + " Lei";
