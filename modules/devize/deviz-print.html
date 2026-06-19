@@ -98,18 +98,35 @@
         }
 
         @media print {
-            @page { margin: 0; size: A4; }
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+    @page { 
+        size: A4; 
+        margin: 5mm 10mm 5mm 10mm; /* Marginile paginii sunt 0 pentru a controla totul din CSS-ul elementelor */
+    }
 
-            .zona-semnaturi {
-                margin-top: 120px !important;
-                padding-top: 20px;
-            }
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* FORȚĂM PAGINA 2+ SĂ COBOARE */
+    .a4-page:nth-of-type(n+2) {
+        padding-top: 25mm !important; /* Aici forțăm spațiul de sus */
+        box-sizing: border-box;       /* Ne asigurăm că padding-ul nu lărgește foaia */
+    }
+    
+    /* Ne asigurăm că semnăturile nu sunt forțate excesiv */
+    .zona-semnaturi {
+        margin-top: 50px !important; /* Ajustează asta dacă semnăturile sunt prea jos sau prea sus */
+    }
+}
+
+@media print {
+        /* Regula care forțează marginile de sus pentru pagina 2 și restul */
+        .a4-page:nth-of-type(n+2) {
+            padding-top: 30mm !important; 
         }
-        header, h1, .print-header { display: none !important; }
+    }
+
     </style>
 </head>
 <body>
