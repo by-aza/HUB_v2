@@ -21,7 +21,11 @@ body {
     background: #020617;
     color: #e2e8f0;
     margin: 0;
-    padding: 0;
+
+    async function salvareDeviz() {
+        // --- NOU
+    async function salvareDeviz() {
+        // --- NOU
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -915,6 +919,15 @@ td:nth-child(3) input {
     };
 
     async function salvareDeviz() {
+        // Validare: verifică dacă tabelul de piese este gol sau totalul general este 0.00 RON
+        const items = getScreenItems();
+        const { grandTotal } = calculateTotals();
+
+        if (items.length === 0 || grandTotal === 0) {
+            alert("Nu poți salva un deviz gol!");
+            return false; // Oprește salvarea
+        }
+
         let idDeviz = (screenIdDeviz.value || '').trim();
         if (!idDeviz) {
             const parsed = parseDevizNumber(ultimulDevizId);
@@ -929,14 +942,14 @@ td:nth-child(3) input {
         setBusy(true);
         setStatus('Se salvează...');
 
-        const { grandTotal, discountPercent } = calculateTotals();
+        const discountPercent = toNumber(screenDiscount.value); // Preluăm discountPercent aici
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
             autovehicul: (screenAutovehicul.value || '').trim() || null,
             vin: (screenVin.value || '').trim() || null,
             nr_inmatriculare: (screenNrAuto.value || '').trim() || null,
-            piese: getScreenItems().map((it) => ({
+            piese: items.map((it) => ({
                 produs: it.descriere,
                 discount: it.apply_discount,
                 qty: it.cantitate,

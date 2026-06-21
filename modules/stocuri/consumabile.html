@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="manifest" href="/manifest.json">
-    
-    </script>
     <title>Stoc consumabile - HUB Service Auto</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0f1117; color: #ededed; margin: 0; overflow-x: hidden; }
@@ -33,19 +33,23 @@
         .product-card { 
             background-color: #161922; 
             border: 1px solid #2d3345; 
-            padding: 12px 16px; 
-            border-radius: 10px; 
-            margin-bottom: 12px; 
-            display: flex; 
+            padding: 16px 18px; 
+            border-radius: 14px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
             width: 100%;
+            min-height: 220px;
+            box-sizing: border-box;
         }
 
-        .card-left { flex: 0 0 70%; padding-right: 10px; }
-        .card-right { flex: 0 0 30%; text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; }
+        .card-left { flex: 1 1 auto; padding-right: 0; }
+        .card-right { flex: 0 0 auto; text-align: right; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; gap: 10px; }
 
-        .product-title { color: #ffffff; font-size: 17px; font-weight: 600; line-height: 1.3; margin-bottom: 6px; }
-        .product-meta { color: #7a8294; font-size: 12px; }
-        .stoc-val { font-weight: 700; }
+        .product-title { color: #ffffff; font-size: 1.2rem; font-weight: 700; line-height: 1.35; margin-bottom: 10px; }
+        .product-meta { color: #94a3b8; font-size: 0.95rem; line-height: 1.45; }
+        .stoc-val { font-weight: 800; font-size: 1.55rem; line-height: 1; }
 
         .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
         .badge-ok { background-color: #059669; color: #ffffff; }
@@ -61,9 +65,36 @@
         #filter-OK.active { background-color: #059669; border-color: #10b981; }
         #filter-LOW.active { background-color: #d97706; border-color: #f59e0b; }
         #filter-OUT.active { background-color: #dc2626; border-color: #ef4444; }
-
         #loader { display: none; text-align: center; padding: 40px; color: #6a0dad; }
         .loading #loader { display: block; }
+        .state-card {
+            width: 100%;
+            background-color: #161922;
+            border: 1px dashed #2d3345;
+            color: #9ca3af;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .toast-enter {
+            animation: toastIn 0.28s ease-out forwards;
+        }
+        .toast-exit {
+            animation: toastOut 0.25s ease-in forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(12px) scale(0.96); }
+        }
+        @media (min-width: 768px) {
+            .product-card {
+                min-height: 240px;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -72,10 +103,16 @@
             <img src="../../icons/128x128.png" alt="Logo" style="width: 40px;">
             <h1 class="text-xl font-bold">Stoc consumabile</h1>
         </div>
-        <a href="../../index.html" class="bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-[#6a0dad]/30">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            <span class="text-sm font-medium">Înapoi</span>
-        </a>
+        <div class="flex items-center gap-2 overflow-x-auto pl-2">
+            <button id="newProductBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-emerald-400/40 whitespace-nowrap">
+                <i data-lucide="package-plus" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Adaugă Produs</span>
+            </button>
+            <a href="../../index.html" class="bg-[#6a0dad]/20 hover:bg-[#6a0dad]/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-[#6a0dad]/30">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Înapoi</span>
+            </a>
+        </div>
     </header>
     <div class="header-divider-mov"></div>
 
@@ -91,6 +128,7 @@
                     <button onclick="setFilter('OK')" id="filter-OK" class="filter-pill">OK</button>
                     <button onclick="setFilter('LOW')" id="filter-LOW" class="filter-pill">LOW</button>
                     <button onclick="setFilter('OUT')" id="filter-OUT" class="filter-pill">OUT</button>
+                    <button type="button" id="openOrderModalBtn" class="filter-pill">Export Comandă</button>
                     <span id="productCounter" class="text-xs text-neutral-500 ml-2 whitespace-nowrap">0 produse afișate</span>
                 </div>
             </div>
@@ -100,37 +138,823 @@
             <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto"></i>
         </div>
 
-        <div id="productList"></div>
+        <div id="productList" class="grid grid-cols-1 gap-4 w-full md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
     </main>
 
+    <div id="toastContainer" class="pointer-events-none fixed bottom-4 right-4 z-[1200] flex w-[min(92vw,24rem)] flex-col gap-3"></div>
+
+    <div id="operationModal" class="fixed inset-0 z-[1100] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Operațiune nouă</h2>
+                    <p class="text-xs text-slate-400">Înregistrează rapid o intrare sau o ieșire de stoc.</p>
+                </div>
+                <button id="closeModalBtn" class="rounded-lg border border-slate-700 p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <form id="operationForm" class="space-y-4 px-5 py-5">
+                <input type="hidden" id="selectedProductId">
+                <div>
+                    <label for="productSelect" class="mb-1 block text-sm font-medium text-slate-200">Produs</label>
+                    <select id="productSelect" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-purple-500">
+                        <option value="">Selectează produsul</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="movementType" class="mb-1 block text-sm font-medium text-slate-200">Tip mișcare</label>
+                        <select id="movementType" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-purple-500">
+                            <option value="intrare">intrare</option>
+                            <option value="iesire">iesire</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="movementQuantity" class="mb-1 block text-sm font-medium text-slate-200">Cantitate</label>
+                        <input type="number" id="movementQuantity" min="0.01" step="0.01" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-purple-500">
+                    </div>
+                </div>
+                <div>
+                    <label for="movementNotes" class="mb-1 block text-sm font-medium text-slate-200">Destinație/Observații</label>
+                    <input type="text" id="movementNotes" placeholder="Ex: Atelier 2 / completare stoc" class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-purple-500">
+                </div>
+                <div id="negativeStockWarning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200"></div>
+                <div id="operationStatus" class="hidden rounded-xl border px-3 py-2 text-sm"></div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" id="cancelModalBtn" class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800">Anulează</button>
+                    <button type="submit" id="saveOperationBtn" class="rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-500">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="productModal" class="fixed inset-0 z-[1100] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Adaugă produs</h2>
+                    <p class="text-xs text-slate-400">Creează rapid un produs nou în gestiune.</p>
+                </div>
+                <button id="closeProductModalBtn" class="rounded-lg border border-slate-700 p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <form id="productForm" class="space-y-4 px-5 py-5">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="newProductCode" class="mb-1 block text-sm font-medium text-slate-200">Cod articol</label>
+                        <input type="text" id="newProductCode" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="newProductUnit" class="mb-1 block text-sm font-medium text-slate-200">Unitate măsură</label>
+                        <input type="text" id="newProductUnit" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label for="newProductName" class="mb-1 block text-sm font-medium text-slate-200">Denumire</label>
+                    <input type="text" id="newProductName" required class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-emerald-500">
+                </div>
+                <div>
+                    <label for="newProductPrag" class="mb-1 block text-sm font-medium text-slate-200">Prag minim</label>
+                    <input type="number" id="newProductPrag" min="0" step="0.01" class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-emerald-500">
+                </div>
+                <div id="productStatus" class="hidden rounded-xl border px-3 py-2 text-sm"></div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" id="cancelProductModalBtn" class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800">Anulează</button>
+                    <button type="submit" id="saveProductBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="historyModal" class="fixed inset-0 z-[1100] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Istoric produs</h2>
+                    <p id="historyModalTitle" class="text-xs text-slate-400">Mișcările recente pentru produsul selectat.</p>
+                </div>
+                <button id="closeHistoryModalBtn" class="rounded-lg border border-slate-700 p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="px-5 py-5">
+                <div id="historyState" class="hidden rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm text-slate-300"></div>
+                <div class="mb-4 flex flex-wrap items-center gap-2">
+                    <button type="button" data-history-filter="toate" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Toate</button>
+                    <button type="button" data-history-filter="intrare" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Doar Intrări</button>
+                    <button type="button" data-history-filter="iesire" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Doar Ieșiri</button>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-sm text-slate-200">
+                        <thead class="bg-slate-800/90 text-xs uppercase tracking-wide text-slate-400">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Data</th>
+                                <th class="px-4 py-3 text-left">Tip</th>
+                                <th class="px-4 py-3 text-left">Cantitate</th>
+                                <th class="px-4 py-3 text-left">Detalii</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-800 bg-slate-900"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="orderModal" class="fixed inset-0 z-[1100] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Generare necesar comandă</h2>
+                    <p class="text-xs text-slate-400">Selectează produsele sub prag sau aproape de prag pentru export PDF.</p>
+                </div>
+                <button id="closeOrderModalBtn" class="rounded-lg border border-slate-700 p-2 text-slate-300 transition hover:bg-slate-800 hover:text-white">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="px-5 py-5">
+                <div id="orderState" class="hidden rounded-xl border px-4 py-3 text-sm"></div>
+                <div id="orderList" class="mt-4 max-h-[50vh] space-y-3 overflow-y-auto"></div>
+                <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-800 pt-4">
+                    <span id="orderSelectionCount" class="text-sm text-slate-400">0 produse selectate</span>
+                    <button type="button" id="downloadOrderPdfBtn" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-500">Descarcă PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7mX8RLv-YJ8OU0zCF3Kt6khLDosTW5wAZJ6Ba83Xd8U24gNqXIupTdwJl_j3tftiOdfAqo2E1cPeL/pub?gid=906891078&single=true&output=csv';
+        // Folosește aceleași credențiale Supabase ca în `baza-vin.html` / `lista_masini.html`.
+        // Dacă se schimbă proiectul, înlocuiește aici URL-ul și cheia anon.
+        const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/866/866-preview.mp3');
+
+        // Stare locală pentru dashboard și modaluri.
         let allProducts = [];
+        let productOptions = [];
         let currentFilter = 'Toate';
+        let lockedProductId = '';
+        let currentHistoryRows = [];
+        let currentHistoryFilter = 'toate';
+        let orderCandidates = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             loadProducts();
+            loadProductOptions();
             document.getElementById('searchInput').addEventListener('input', renderProducts);
+            document.getElementById('newProductBtn').addEventListener('click', openProductModal);
+            document.getElementById('openOrderModalBtn').addEventListener('click', openOrderModal);
+            document.getElementById('closeModalBtn').addEventListener('click', closeOperationModal);
+            document.getElementById('cancelModalBtn').addEventListener('click', closeOperationModal);
+            document.getElementById('operationModal').addEventListener('click', (event) => {
+                if (event.target.id === 'operationModal') closeOperationModal();
+            });
+            document.getElementById('operationForm').addEventListener('submit', saveOperation);
+            document.getElementById('closeProductModalBtn').addEventListener('click', closeProductModal);
+            document.getElementById('cancelProductModalBtn').addEventListener('click', closeProductModal);
+            document.getElementById('productModal').addEventListener('click', (event) => {
+                if (event.target.id === 'productModal') closeProductModal();
+            });
+            document.getElementById('productForm').addEventListener('submit', saveProduct);
+            document.getElementById('productSelect').addEventListener('change', updateNegativeStockWarning);
+            document.getElementById('movementType').addEventListener('change', updateNegativeStockWarning);
+            document.getElementById('movementQuantity').addEventListener('input', updateNegativeStockWarning);
+            document.getElementById('closeHistoryModalBtn').addEventListener('click', closeHistoryModal);
+            document.getElementById('historyModal').addEventListener('click', (event) => {
+                if (event.target.id === 'historyModal') closeHistoryModal();
+            });
+            document.querySelectorAll('.history-filter-pill').forEach((button) => {
+                button.addEventListener('click', () => setHistoryFilter(button.dataset.historyFilter || 'toate'));
+            });
+            document.getElementById('closeOrderModalBtn').addEventListener('click', closeOrderModal);
+            document.getElementById('orderModal').addEventListener('click', (event) => {
+                if (event.target.id === 'orderModal') closeOrderModal();
+            });
+            document.getElementById('orderList').addEventListener('change', updateOrderSelectionCount);
+            document.getElementById('downloadOrderPdfBtn').addEventListener('click', downloadOrderPdf);
+            document.getElementById('productList').addEventListener('click', handleProductListClick);
             lucide.createIcons();
         });
+
+        function isConfigured() {
+            return (
+                supabaseUrl &&
+                supabaseKey &&
+                !supabaseUrl.includes('PUNE_') &&
+                !supabaseKey.includes('PUNE_')
+            );
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderState(message) {
+            const productList = document.getElementById('productList');
+            productList.innerHTML = `<div class="state-card">${escapeHtml(message)}</div>`;
+        }
+
+        function setStatusMessage(elementId, message, variant = 'error') {
+            const statusEl = document.getElementById(elementId);
+            if (!message) {
+                statusEl.className = 'hidden rounded-xl border px-3 py-2 text-sm';
+                statusEl.textContent = '';
+                return;
+            }
+
+            const classes = variant === 'success'
+                ? 'rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200'
+                : 'rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200';
+
+            statusEl.className = classes;
+            statusEl.textContent = message;
+        }
+
+        function setOperationStatus(message, variant = 'error') {
+            setStatusMessage('operationStatus', message, variant);
+        }
+
+        function setProductStatus(message, variant = 'error') {
+            setStatusMessage('productStatus', message, variant);
+        }
+
+        // Feedback UI non-blocant pentru acțiunile reușite.
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast-enter pointer-events-auto rounded-2xl border border-emerald-500/40 bg-slate-900/95 px-4 py-3 text-sm text-slate-100 shadow-2xl backdrop-blur';
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="mt-0.5 text-emerald-400">✔</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-emerald-300">Operațiune reușită</div>
+                        <div class="text-slate-300">${escapeHtml(message)}</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(toast);
+
+            try {
+                successAudio.currentTime = 0;
+                successAudio.play().catch(() => {});
+            } catch (_) {
+                // Nu blocăm interfața dacă browserul refuză redarea.
+            }
+
+            window.setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                window.setTimeout(() => toast.remove(), 260);
+            }, 3600);
+        }
+
+        function setOrderState(message, variant = 'default') {
+            const stateEl = document.getElementById('orderState');
+            if (!message) {
+                stateEl.className = 'hidden rounded-xl border px-4 py-3 text-sm';
+                stateEl.textContent = '';
+                return;
+            }
+
+            const classes = variant === 'error'
+                ? 'rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200'
+                : 'rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm text-slate-300';
+
+            stateEl.className = classes;
+            stateEl.textContent = message;
+        }
+
+        function setHistoryState(message = '', variant = 'default') {
+            const stateEl = document.getElementById('historyState');
+            if (!message) {
+                stateEl.className = 'hidden rounded-xl border px-4 py-3 text-sm';
+                stateEl.textContent = '';
+                return;
+            }
+
+            const classes = variant === 'error'
+                ? 'rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200'
+                : 'rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm text-slate-300';
+
+            stateEl.className = classes;
+            stateEl.textContent = message;
+        }
+
+        function isAlertProduct(item) {
+            const stoc = Number(item?.stoc_actual);
+            const pragRaw = item?.prag_minim;
+            const hasPrag = !(pragRaw === '' || pragRaw === null || pragRaw === undefined);
+            if (!hasPrag || Number.isNaN(stoc)) return false;
+            const prag = Number(pragRaw);
+            if (Number.isNaN(prag)) return false;
+            return stoc <= prag;
+        }
+
+        // Produsele candidate pentru comandă includ și bufferul de proximitate.
+        function isNearThresholdProduct(item) {
+            const stoc = Number(item?.stoc_actual);
+            const prag = Number(item?.prag_minim);
+            if (Number.isNaN(stoc) || Number.isNaN(prag)) return false;
+            return stoc <= prag + 3;
+        }
+
+        function buildHistoryDetails(row) {
+            const parts = [row?.destinatie, row?.observatii]
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
+            return parts.length ? parts.join(' - ') : '-';
+        }
+
+        function populateProductSelect() {
+            const select = document.getElementById('productSelect');
+            const currentValue = select.value;
+            const options = productOptions.map(item => {
+                const code = escapeHtml(item.cod_articol || '-');
+                const denumire = escapeHtml(item.denumire || '-');
+                return `<option value="${String(item.id ?? '')}">${code} - ${denumire}</option>`;
+            }).join('');
+
+            select.innerHTML = `<option value="">Selectează produsul</option>${options}`;
+            if (productOptions.some(item => String(item.id) === String(currentValue))) {
+                select.value = currentValue;
+            }
+        }
+
+        async function loadProductOptions() {
+            if (!isConfigured()) return;
+
+            const { data, error } = await supabaseClient
+                .from('stoc_produse')
+                .select('id, cod_articol, denumire')
+                .order('denumire', { ascending: true });
+
+            if (error) {
+                console.error('Eroare la încărcarea produselor pentru modal:', error);
+                return;
+            }
+
+            productOptions = Array.isArray(data) ? data : [];
+            populateProductSelect();
+            if (allProducts.length) {
+                renderProducts();
+            }
+        }
+
+        function getProductMetaById(productId) {
+            return productOptions.find(item => String(item.id) === String(productId || '')) || null;
+        }
+
+        function getProductIdByCode(codArticol) {
+            const product = productOptions.find(item => String(item.cod_articol || '') === String(codArticol || ''));
+            return product ? String(product.id) : '';
+        }
+
+        function setLockedProduct(productId = '') {
+            const productSelect = document.getElementById('productSelect');
+            const hiddenProductId = document.getElementById('selectedProductId');
+            lockedProductId = productId ? String(productId) : '';
+            hiddenProductId.value = lockedProductId;
+            productSelect.value = lockedProductId;
+            productSelect.disabled = Boolean(lockedProductId);
+            productSelect.classList.toggle('opacity-60', Boolean(lockedProductId));
+            productSelect.classList.toggle('cursor-not-allowed', Boolean(lockedProductId));
+        }
+
+        function openOperationModal(productId = '') {
+            document.getElementById('operationModal').classList.remove('hidden');
+            document.getElementById('operationModal').classList.add('flex');
+            setOperationStatus('');
+            setLockedProduct(productId);
+            updateNegativeStockWarning();
+            lucide.createIcons();
+        }
+
+        function closeOperationModal() {
+            document.getElementById('operationModal').classList.add('hidden');
+            document.getElementById('operationModal').classList.remove('flex');
+            document.getElementById('operationForm').reset();
+            setOperationStatus('');
+            setLockedProduct('');
+            updateNegativeStockWarning();
+        }
+
+        function openProductModal() {
+            document.getElementById('productModal').classList.remove('hidden');
+            document.getElementById('productModal').classList.add('flex');
+            setProductStatus('');
+            lucide.createIcons();
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.add('hidden');
+            document.getElementById('productModal').classList.remove('flex');
+            document.getElementById('productForm').reset();
+            setProductStatus('');
+        }
+
+        function openHistoryModal() {
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyModal').classList.add('flex');
+            setHistoryState('');
+            lucide.createIcons();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+            document.getElementById('historyTableBody').innerHTML = '';
+            document.getElementById('historyModalTitle').textContent = 'Mișcările recente pentru produsul selectat.';
+            currentHistoryRows = [];
+            currentHistoryFilter = 'toate';
+            updateHistoryFilterButtons();
+            setHistoryState('');
+        }
+
+        function openOrderModal() {
+            document.getElementById('orderModal').classList.remove('hidden');
+            document.getElementById('orderModal').classList.add('flex');
+            renderOrderCandidates();
+            lucide.createIcons();
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.add('hidden');
+            document.getElementById('orderModal').classList.remove('flex');
+            setOrderState('');
+        }
+
+        function getCurrentStockForProduct(productId) {
+            const selectedProduct = productOptions.find(item => String(item.id) === String(productId || ''));
+            const product = allProducts.find(item => String(item.cod_articol || '') === String(selectedProduct?.cod_articol || ''));
+            return Number(product?.stoc_actual || 0);
+        }
+
+        function formatHistoryDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return escapeHtml(value);
+            return date.toLocaleDateString('ro-RO');
+        }
+
+        function getTodayLabel() {
+            return new Date().toLocaleDateString('ro-RO');
+        }
+
+        function updateHistoryFilterButtons() {
+            document.querySelectorAll('.history-filter-pill').forEach((button) => {
+                const isActive = button.dataset.historyFilter === currentHistoryFilter;
+                button.classList.toggle('bg-slate-200', isActive);
+                button.classList.toggle('text-slate-900', isActive);
+                button.classList.toggle('border-slate-300', isActive);
+            });
+        }
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            const visibleRows = currentHistoryRows.filter((row) => {
+                if (currentHistoryFilter === 'toate') return true;
+                return String(row.tip_miscare || '').toLowerCase() === currentHistoryFilter;
+            });
+
+            tbody.innerHTML = '';
+
+            if (!visibleRows.length) {
+                setHistoryState('Nu există mișcări pentru filtrul selectat.');
+                return;
+            }
+
+            setHistoryState('');
+            tbody.innerHTML = visibleRows.map(row => `
+                <tr class="align-top">
+                    <td class="px-4 py-3">${formatHistoryDate(row.data)}</td>
+                    <td class="px-4 py-3 capitalize">${escapeHtml(row.tip_miscare || '-')}</td>
+                    <td class="px-4 py-3">${escapeHtml(row.cantitate ?? '-')} buc</td>
+                    <td class="px-4 py-3">${escapeHtml(buildHistoryDetails(row))}</td>
+                </tr>
+            `).join('');
+        }
+
+        function setHistoryFilter(filter) {
+            currentHistoryFilter = filter;
+            updateHistoryFilterButtons();
+            renderHistoryTable();
+        }
+
+        function getOrderCandidateRows() {
+            return allProducts
+                .filter((item) => isNearThresholdProduct(item))
+                .map((item) => ({
+                    id: getProductIdByCode(item.cod_articol),
+                    cod_articol: item.cod_articol || '-',
+                    denumire: item.denumire || '-',
+                    stoc_actual: Number(item.stoc_actual || 0),
+                    prag_minim: Number(item.prag_minim || 0),
+                    checked: isAlertProduct(item)
+                }))
+                .filter((item) => item.id);
+        }
+
+        function renderOrderCandidates() {
+            const listEl = document.getElementById('orderList');
+            orderCandidates = getOrderCandidateRows();
+            listEl.innerHTML = '';
+
+            if (!orderCandidates.length) {
+                setOrderState('Nu există produse sub prag sau aproape de prag.');
+                updateOrderSelectionCount();
+                return;
+            }
+
+            setOrderState('');
+            listEl.innerHTML = orderCandidates.map((item, index) => `
+                <label class="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-800/60 p-3">
+                    <input type="checkbox" data-order-checkbox="true" data-index="${index}" class="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-rose-500 focus:ring-rose-500" ${item.checked ? 'checked' : ''}>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-medium text-slate-100">${escapeHtml(item.cod_articol)} - ${escapeHtml(item.denumire)}</div>
+                        <div class="mt-1 text-xs text-slate-400">Stoc curent: ${escapeHtml(item.stoc_actual)} | Prag minim: ${escapeHtml(item.prag_minim)}</div>
+                    </div>
+                </label>
+            `).join('');
+            updateOrderSelectionCount();
+        }
+
+        function updateOrderSelectionCount() {
+            const checkboxes = Array.from(document.querySelectorAll('[data-order-checkbox="true"]'));
+            checkboxes.forEach((checkbox) => {
+                const index = Number(checkbox.dataset.index);
+                if (!Number.isNaN(index) && orderCandidates[index]) {
+                    orderCandidates[index].checked = checkbox.checked;
+                }
+            });
+
+            const selectedCount = orderCandidates.filter((item) => item.checked).length;
+            document.getElementById('orderSelectionCount').textContent = `${selectedCount} produse selectate`;
+        }
+
+        function downloadOrderPdf() {
+            updateOrderSelectionCount();
+            const selectedRows = orderCandidates.filter((item) => item.checked);
+            if (!selectedRows.length) {
+                setOrderState('Selectează cel puțin un produs pentru PDF.', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const title = `Necesar Comanda Consumabile - ${getTodayLabel()}`;
+
+            doc.setFontSize(16);
+            doc.text(title, 14, 18);
+            doc.setFontSize(10);
+            doc.text('Produse selectate pentru comanda:', 14, 25);
+
+            doc.autoTable({
+                startY: 32,
+                theme: 'grid',
+                head: [['Cod Articol', 'Denumire', 'Stoc Curent', 'Prag Minim', 'Buc. Comandate']],
+                body: selectedRows.map((item) => [
+                    item.cod_articol,
+                    item.denumire,
+                    String(item.stoc_actual),
+                    String(item.prag_minim),
+                    ''
+                ]),
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 3
+                },
+                headStyles: {
+                    fillColor: [31, 41, 55]
+                }
+            });
+
+            doc.save(`necesar-comanda-consumabile-${getTodayLabel().replace(/\./g, '-')}.pdf`);
+        }
+
+        function updateNegativeStockWarning() {
+            const warningEl = document.getElementById('negativeStockWarning');
+            const produsId = document.getElementById('selectedProductId').value || document.getElementById('productSelect').value;
+            const tipMiscare = document.getElementById('movementType').value;
+            const cantitate = Number(document.getElementById('movementQuantity').value || 0);
+
+            if (!produsId || tipMiscare !== 'iesire' || cantitate <= 0) {
+                warningEl.classList.add('hidden');
+                warningEl.textContent = '';
+                return;
+            }
+
+            const stocCurent = getCurrentStockForProduct(produsId);
+            const stocRezultat = stocCurent - cantitate;
+
+            if (stocRezultat < 0) {
+                warningEl.textContent = `Avertisment: stocul estimat devine negativ (${stocRezultat.toFixed(2)}). Salvarea este permisă.`;
+                warningEl.classList.remove('hidden');
+                return;
+            }
+
+            warningEl.classList.add('hidden');
+            warningEl.textContent = '';
+        }
 
         async function loadProducts() {
             document.body.classList.add('loading');
             const cachedData = localStorage.getItem('consumabile_cache');
-            if (cachedData) { allProducts = JSON.parse(cachedData); renderProducts(); }
-            Papa.parse(CSV_URL, {
-                download: true,
-                header: false,
-                complete: (results) => {
-                    document.body.classList.remove('loading');
-                    if (results.data && results.data.length > 0) {
-                        allProducts = results.data.slice(1).filter(row => row[1]); // B must have title
-                        localStorage.setItem('consumabile_cache', JSON.stringify(allProducts));
-                        renderProducts();
-                    }
-                },
-                error: () => document.body.classList.remove('loading')
+            if (cachedData) {
+                try {
+                    allProducts = JSON.parse(cachedData);
+                    renderProducts();
+                } catch (_) {
+                    localStorage.removeItem('consumabile_cache');
+                }
+            }
+
+            if (!isConfigured()) {
+                document.body.classList.remove('loading');
+                renderState('Completează supabaseUrl și supabaseKey în script.');
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from('stoc_view_curent')
+                .select('*')
+                .order('denumire', { ascending: true });
+
+            document.body.classList.remove('loading');
+
+            if (error) {
+                console.error('Eroare la încărcarea consumabilelor:', error);
+                if (!allProducts.length) {
+                    renderState('Nu am putut încărca produsele din Supabase.');
+                }
+                return;
+            }
+
+            allProducts = Array.isArray(data) ? data : [];
+            localStorage.setItem('consumabile_cache', JSON.stringify(allProducts));
+            renderProducts();
+            updateNegativeStockWarning();
+        }
+
+        function handleProductListClick(event) {
+            const actionButton = event.target.closest('[data-action]');
+            if (!actionButton) return;
+
+            const action = actionButton.dataset.action;
+            const productId = actionButton.dataset.productId || '';
+
+            if (!productId) return;
+
+            if (action === 'operate') {
+                openOperationModal(productId);
+            }
+
+            if (action === 'history') {
+                loadProductHistory(productId);
+            }
+        }
+
+        async function saveOperation(event) {
+            event.preventDefault();
+            setOperationStatus('');
+
+            const productSelect = document.getElementById('productSelect');
+            const movementTypeInput = document.getElementById('movementType');
+            const movementQuantityInput = document.getElementById('movementQuantity');
+            const movementNotesInput = document.getElementById('movementNotes');
+            const hiddenProductIdInput = document.getElementById('selectedProductId');
+            const saveBtn = document.getElementById('saveOperationBtn');
+            const produsId = hiddenProductIdInput?.value.trim() || (productSelect ? productSelect.value.trim() : '');
+            const tipMiscare = movementTypeInput ? movementTypeInput.value.trim() : '';
+            const cantitateRaw = movementQuantityInput ? movementQuantityInput.value : '';
+            const cantitate = Number(cantitateRaw);
+            const destinatie = movementNotesInput ? movementNotesInput.value.trim() : '';
+
+            console.log('Obiect trimis:', {
+                produs_id: produsId,
+                tip_miscare: tipMiscare,
+                cantitate,
+                destinatie
             });
+
+            if (!produsId || !tipMiscare || Number.isNaN(cantitate) || cantitate <= 0) {
+                setOperationStatus('Completează produsul, tipul mișcării și o cantitate validă.');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Se salvează...';
+
+            const { error } = await supabaseClient
+                .from('stoc_miscari')
+                .insert({
+                    produs_id: produsId,
+                    tip_miscare: tipMiscare,
+                    cantitate,
+                    destinatie: destinatie || null,
+                    observatii: null
+                });
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Salvează';
+
+            if (error) {
+                console.error('Eroare la salvarea mișcării de stoc:', error);
+                setOperationStatus('Salvarea a eșuat. Verifică structura tabelului `stoc_miscari`.');
+                return;
+            }
+
+            closeOperationModal();
+            await loadProducts();
+            showToast('Operațiune salvată cu succes.');
+        }
+
+        async function loadProductHistory(productId) {
+            const product = getProductMetaById(productId);
+            document.getElementById('historyModalTitle').textContent = product
+                ? `${product.cod_articol || '-'} - ${product.denumire || '-'}`
+                : 'Mișcările recente pentru produsul selectat.';
+            document.getElementById('historyTableBody').innerHTML = '';
+            setHistoryState('Se încarcă istoricul...');
+            openHistoryModal();
+
+            const { data, error } = await supabaseClient
+                .from('stoc_miscari')
+                .select('data, tip_miscare, cantitate, destinatie, observatii')
+                .eq('produs_id', productId)
+                .order('data', { ascending: false });
+
+            if (error) {
+                console.error('Eroare la încărcarea istoricului:', error);
+                setHistoryState('Istoricul nu a putut fi încărcat.', 'error');
+                return;
+            }
+
+            currentHistoryRows = Array.isArray(data) ? data : [];
+            currentHistoryFilter = 'toate';
+            updateHistoryFilterButtons();
+
+            if (!currentHistoryRows.length) {
+                setHistoryState('Nu există mișcări pentru acest produs.');
+                return;
+            }
+
+            renderHistoryTable();
+        }
+
+        async function saveProduct(event) {
+            event.preventDefault();
+            setProductStatus('');
+
+            const codeInput = document.getElementById('newProductCode');
+            const nameInput = document.getElementById('newProductName');
+            const unitInput = document.getElementById('newProductUnit');
+            const pragInput = document.getElementById('newProductPrag');
+            const saveBtn = document.getElementById('saveProductBtn');
+
+            const codArticol = codeInput ? codeInput.value.trim() : '';
+            const denumire = nameInput ? nameInput.value.trim() : '';
+            const unitateMasura = unitInput ? unitInput.value.trim() : '';
+            const pragMinimRaw = pragInput ? pragInput.value.trim() : '';
+            const pragMinim = pragMinimRaw === '' ? null : Number(pragMinimRaw);
+
+            if (!codArticol || !denumire || !unitateMasura || Number.isNaN(pragMinim)) {
+                setProductStatus('Completează codul, denumirea, unitatea și un prag valid.');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Se salvează...';
+
+            const { error } = await supabaseClient
+                .from('stoc_produse')
+                .insert({
+                    cod_articol: codArticol,
+                    denumire,
+                    unitate_masura: unitateMasura,
+                    prag_minim: pragMinim
+                });
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Salvează';
+
+            if (error) {
+                console.error('Eroare la salvarea produsului:', error);
+                setProductStatus('Salvarea produsului a eșuat.');
+                return;
+            }
+
+            closeProductModal();
+            await loadProductOptions();
+            await loadProducts();
         }
 
         function setFilter(filter) {
@@ -153,10 +977,11 @@
             const productList = document.getElementById('productList');
             productList.innerHTML = '';
 
-            const filtered = allProducts.filter(row => {
-                const name = (row[1]||'').toLowerCase();
-                const code = (row[0]||'').toLowerCase();
-                const status = getStatus(row[4], row[5]);
+            const filtered = allProducts.filter(item => {
+                const name = (item.denumire || '').toLowerCase();
+                const code = (item.cod_articol || '').toLowerCase();
+                const status = getStatus(item.stoc_actual, item.prag_minim);
+                const alertProduct = isAlertProduct(item);
                 
                 const matchesSearch = name.includes(searchTerm) || code.includes(searchTerm);
                 const matchesFilter = currentFilter === 'Toate' || status === currentFilter;
@@ -165,11 +990,18 @@
 
             document.getElementById('productCounter').textContent = `${filtered.length} produse afișate`;
 
-            filtered.forEach(row => {
-                const stoc = row[4] || '0';
-                const prag = row[5] || '';
+            if (!filtered.length) {
+                renderState(allProducts.length ? 'Nu există produse pentru filtrul curent.' : 'Nu există produse în `stoc_view_curent`.');
+                return;
+            }
+
+            filtered.forEach(item => {
+                const stoc = item.stoc_actual ?? 0;
+                const prag = item.prag_minim ?? '';
                 const status = getStatus(stoc, prag);
                 const isOut = status === 'OUT';
+                const alertProduct = isAlertProduct(item);
+                const productId = getProductIdByCode(item.cod_articol);
                 const redClass = isOut ? 'text-red-stock' : '';
                 
                 let badgeClass = 'badge-ok';
@@ -177,18 +1009,29 @@
                 if (status === 'OUT') badgeClass = 'badge-out';
 
                 const card = document.createElement('div');
-                card.className = 'product-card hub-card';
+                card.className = `product-card hub-card${alertProduct ? ' border-red-500 animate-pulse' : ''}`;
                 card.innerHTML = `
                     <div class="card-left">
-                        <div class="product-title ${redClass}">${row[1] || '-'}</div>
+                        <div class="product-title ${redClass}">${escapeHtml(item.denumire || '-')}</div>
                         <div class="flex items-center gap-1 mb-2">
+                            ${alertProduct ? '<i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>' : ''}
                             <span class="badge ${badgeClass}">${status}</span>
-                            <span class="product-meta">Stoc: <span class="stoc-val ${redClass || (status === 'LOW' ? 'text-orange-500' : 'text-green-500')}">${stoc}</span> buc</span>
+                            <span class="product-meta">Stoc: <span class="stoc-val ${redClass || (status === 'LOW' ? 'text-orange-500' : 'text-green-500')}">${escapeHtml(stoc)}</span> buc</span>
                         </div>
-                        <div class="product-meta">Cod produs: ${row[0] || '-'}</div>
+                        <div class="product-meta">Cod produs: ${escapeHtml(item.cod_articol || '-')}</div>
                     </div>
                     <div class="card-right">
-                        <div class="product-meta">${prag ? 'Prag: ' + prag : 'Fara prag'}</div>
+                        <div class="product-meta">${prag !== '' && prag !== null ? 'Prag: ' + escapeHtml(prag) : 'Fara prag'}</div>
+                        <div class="mt-3 flex flex-wrap justify-end gap-2">
+                            <button type="button" data-action="operate" data-product-id="${escapeHtml(productId)}" class="inline-flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2 py-1 text-xs text-purple-200 transition hover:bg-purple-500/20 ${productId ? '' : 'opacity-50 pointer-events-none'}">
+                                <i data-lucide="plus-minus" class="h-3.5 w-3.5"></i>
+                                <span>Operare</span>
+                            </button>
+                            <button type="button" data-action="history" data-product-id="${escapeHtml(productId)}" class="inline-flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-800/80 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-700 ${productId ? '' : 'opacity-50 pointer-events-none'}">
+                                <i data-lucide="history" class="h-3.5 w-3.5"></i>
+                                <span>Istoric</span>
+                            </button>
+                        </div>
                     </div>
                 `;
                 productList.appendChild(card);

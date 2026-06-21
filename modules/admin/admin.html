@@ -234,17 +234,37 @@
             page.className = 'admin-page';
             page.innerHTML = `
                 <div class="max-w-7xl mx-auto space-y-5">
-                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
-                                <p class="text-sm text-slate-400 mt-1">Vizualizare, editare rapidă pentru număr auto și ștergere directă din Supabase.</p>
+                    <div class="grid gap-5 xl:grid-cols-3">
+                        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 xl:col-span-2">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
+                                    <p class="text-sm text-slate-400 mt-1">Vizualizare, editare rapidă pentru număr auto și ștergere directă din Supabase.</p>
+                                </div>
+                                <button id="devize-refresh-btn" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
+                                    Reîmprospătează
+                                </button>
                             </div>
-                            <button id="devize-refresh-btn" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 border border-slate-700 transition-colors">
-                                Reîmprospătează
-                            </button>
+                            <div id="devize-status" class="mt-4 min-h-6 text-sm text-slate-400"></div>
                         </div>
-                        <div id="devize-status" class="mt-4 min-h-6 text-sm text-slate-400"></div>
+                        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5">
+                            <div class="flex items-start gap-3">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-2xl">📦</div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-100">Administrare Consumabile</h3>
+                                    <p class="text-sm text-slate-400 mt-1">Editează nomenclatorul și corectează rapid tranzacțiile de stoc.</p>
+                                </div>
+                            </div>
+                            <div class="mt-5 grid gap-3">
+                                <button type="button" data-open-stock-products class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-3 text-sm font-bold text-white transition-colors">
+                                    Editare Nomenclator
+                                </button>
+                                <button type="button" data-open-stock-movements class="rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-3 text-sm font-bold text-white transition-colors">
+                                    Corecții Tranzacții
+                                </button>
+                            </div>
+                            <div id="stock-admin-status" class="mt-4 min-h-6 text-sm text-slate-400"></div>
+                        </div>
                     </div>
                     <div class="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
                         <div class="overflow-x-auto">
@@ -262,6 +282,66 @@
                             </table>
                         </div>
                     </div>
+                    <div id="stock-products-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
+                        <div class="w-full max-w-5xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
+                            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-100">Editare Nomenclator</h3>
+                                    <p class="text-sm text-slate-400 mt-1">Modifică denumirea și pragul minim direct din tabelul stoc_produse.</p>
+                                </div>
+                                <button type="button" data-close-stock-products class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 transition-colors">
+                                    Închide
+                                </button>
+                            </div>
+                            <div class="px-5 py-4 flex-1 flex flex-col min-h-0">
+                                <div id="stock-products-status" class="mb-4 min-h-6 text-sm text-slate-400 flex-shrink-0"></div>
+                                <div class="overflow-y-auto overflow-x-auto rounded-2xl border border-slate-800 flex-1">
+                                    <table class="w-full text-sm text-slate-200 border-collapse">
+                                        <thead class="sticky top-0 bg-slate-900 text-slate-400 uppercase text-xs tracking-wider z-10 shadow-md">
+                                            <tr class="border-b border-slate-800">
+                                                <th class="px-4 py-3 text-left">Cod</th>
+                                                <th class="px-4 py-3 text-left">Denumire</th>
+                                                <th class="px-4 py-3 text-left">Prag Minim</th>
+                                                <th class="px-4 py-3 text-right">Acțiuni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stock-products-body" class="divide-y divide-slate-800"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="stock-movements-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
+                        <div class="w-full max-w-6xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
+                            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-100">Corecții Tranzacții</h3>
+                                    <p class="text-sm text-slate-400 mt-1">Ultimele 50 de mișcări din stoc_miscari, cu numele produsului și ștergere controlată.</p>
+                                </div>
+                                <button type="button" data-close-stock-movements class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-100 transition-colors">
+                                    Închide
+                                </button>
+                            </div>
+                            <div class="px-5 py-4 flex-1 flex flex-col min-h-0">
+                                <div id="stock-movements-status" class="mb-4 min-h-6 text-sm text-slate-400 flex-shrink-0"></div>
+                                <div class="overflow-y-auto overflow-x-auto rounded-2xl border border-slate-800 flex-1">
+                                    <table class="w-full text-sm text-slate-200 border-collapse">
+                                        <thead class="sticky top-0 bg-slate-900 text-slate-400 uppercase text-xs tracking-wider z-10 shadow-md">
+                                            <tr class="border-b border-slate-800">
+                                                <th class="px-4 py-3 text-left">Data</th>
+                                                <th class="px-4 py-3 text-left">Produs</th>
+                                                <th class="px-4 py-3 text-left">Tip</th>
+                                                <th class="px-4 py-3 text-left">Cantitate</th>
+                                                <th class="px-4 py-3 text-left">Detalii</th>
+                                                <th class="px-4 py-3 text-right">Acțiuni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stock-movements-body" class="divide-y divide-slate-800"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -273,25 +353,69 @@
                 }
 
                 const deleteBtn = event.target.closest('[data-delete-deviz]');
-                if (!deleteBtn) return;
+                if (deleteBtn) {
+                    const idDeviz = deleteBtn.getAttribute('data-delete-deviz');
+                    if (!idDeviz) return;
+                    if (!confirm(`Ștergi devizul ${idDeviz}?`)) return;
 
-                const idDeviz = deleteBtn.getAttribute('data-delete-deviz');
-                if (!idDeviz) return;
-                if (!confirm(`Ștergi devizul ${idDeviz}?`)) return;
+                    setDevizeStatus(`Se șterge ${idDeviz}...`);
+                    deleteBtn.disabled = true;
+                    deleteBtn.classList.add('opacity-60', 'cursor-not-allowed');
 
-                setDevizeStatus(`Se șterge ${idDeviz}...`);
-                deleteBtn.disabled = true;
-                deleteBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                    try {
+                        const { error } = await sb.from('devize').delete().eq('id_deviz', idDeviz);
+                        if (error) throw error;
+                        setDevizeStatus(`Devizul ${idDeviz} a fost șters.`, 'success');
+                        await loadDevizeTable();
+                    } catch (error) {
+                        setDevizeStatus(error.message || 'Eroare la ștergerea devizului.', 'error');
+                        deleteBtn.disabled = false;
+                        deleteBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }
+                    return;
+                }
 
-                try {
-                    const { error } = await sb.from('devize').delete().eq('id_deviz', idDeviz);
-                    if (error) throw error;
-                    setDevizeStatus(`Devizul ${idDeviz} a fost șters.`, 'success');
-                    await loadDevizeTable();
-                } catch (error) {
-                    setDevizeStatus(error.message || 'Eroare la ștergerea devizului.', 'error');
-                    deleteBtn.disabled = false;
-                    deleteBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                if (event.target.closest('[data-open-stock-products]')) {
+                    openStockProductsModal();
+                    return;
+                }
+
+                if (event.target.closest('[data-open-stock-movements]')) {
+                    openStockMovementsModal();
+                    return;
+                }
+
+                if (event.target.closest('[data-close-stock-products]')) {
+                    closeStockProductsModal();
+                    return;
+                }
+
+                if (event.target.closest('[data-close-stock-movements]')) {
+                    closeStockMovementsModal();
+                    return;
+                }
+
+                const editStockBtn = event.target.closest('[data-edit-stock-product]');
+                if (editStockBtn) {
+                    activateStockProductEditor(editStockBtn.getAttribute('data-edit-stock-product'));
+                    return;
+                }
+
+                const saveStockBtn = event.target.closest('[data-save-stock-product]');
+                if (saveStockBtn) {
+                    await saveStockProductEditor(saveStockBtn.getAttribute('data-save-stock-product'));
+                    return;
+                }
+
+                const cancelStockBtn = event.target.closest('[data-cancel-stock-product]');
+                if (cancelStockBtn) {
+                    await loadStockProductsAdmin();
+                    return;
+                }
+
+                const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
+                if (deleteMovementBtn) {
+                    await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
                 }
             });
 
@@ -325,11 +449,63 @@
             el.className = 'mt-4 min-h-6 text-sm text-slate-400';
         }
 
+        function setStockAdminStatus(message, type = 'info') {
+            const el = document.getElementById('stock-admin-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mt-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mt-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mt-4 min-h-6 text-sm text-slate-400';
+        }
+
+        function setStockProductsStatus(message, type = 'info') {
+            const el = document.getElementById('stock-products-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+        }
+
+        function setStockMovementsStatus(message, type = 'info') {
+            const el = document.getElementById('stock-movements-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+        }
+
         function formatDevizDate(value) {
             if (!value) return '-';
             const parts = String(value).split('-');
             if (parts.length !== 3) return String(value);
             return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+        function formatStockMovementDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return date.toLocaleDateString('ro-RO');
         }
 
         function formatDevizMoney(value) {
@@ -370,6 +546,65 @@
             }).join('');
         }
 
+        function renderStockProductsRows(rows) {
+            const tbody = document.getElementById('stock-products-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-slate-500">Nu există produse în nomenclator.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => `
+                <tr class="hover:bg-slate-800/40 transition-colors" data-stock-product-row="${escapeHtml(row.id)}">
+                    <td class="px-4 py-3 font-mono text-slate-300">${escapeHtml(row.cod_articol || '-')}</td>
+                    <td class="px-4 py-3 text-slate-100" data-stock-product-name>${escapeHtml(row.denumire || '-')}</td>
+                    <td class="px-4 py-3 text-slate-300" data-stock-product-threshold>${escapeHtml(row.prag_minim ?? '-')}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button type="button" data-edit-stock-product="${escapeHtml(row.id)}" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-bold text-white transition-colors">
+                            Editează
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderStockMovementsRows(rows) {
+            const tbody = document.getElementById('stock-movements-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există tranzacții.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const details = [row.destinatie, row.observatii].filter(Boolean).join(' - ');
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(formatStockMovementDate(row.data))}</td>
+                        <td class="px-4 py-3 text-slate-100">${escapeHtml(row.stoc_produse?.denumire || '-')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.tip_miscare || '-')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.cantitate ?? '-')}</td>
+                        <td class="px-4 py-3 text-slate-400">${escapeHtml(details || '-')}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" data-delete-stock-movement="${escapeHtml(row.id)}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">
+                                Șterge
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function loadDevizeTable() {
             const tbody = document.getElementById('devize-table-body');
             if (!tbody) return;
@@ -397,6 +632,180 @@
                     </tr>
                 `;
                 setDevizeStatus(error.message || 'Eroare la încărcarea devizelor.', 'error');
+            }
+        }
+
+        function openStockProductsModal() {
+            const modal = document.getElementById('stock-products-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setStockAdminStatus('');
+            loadStockProductsAdmin();
+        }
+
+        function closeStockProductsModal() {
+            const modal = document.getElementById('stock-products-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openStockMovementsModal() {
+            const modal = document.getElementById('stock-movements-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setStockAdminStatus('');
+            loadStockMovementsAdmin();
+        }
+
+        function closeStockMovementsModal() {
+            const modal = document.getElementById('stock-movements-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function loadStockProductsAdmin() {
+            const tbody = document.getElementById('stock-products-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">Se încarcă nomenclatorul...</td>
+                </tr>
+            `;
+            setStockProductsStatus('Se încarcă produsele...');
+
+            try {
+                const { data, error } = await sb
+                    .from('stoc_produse')
+                    .select('id, cod_articol, denumire, prag_minim')
+                    .order('denumire', { ascending: true });
+
+                if (error) throw error;
+                renderStockProductsRows(data || []);
+                setStockProductsStatus(`Au fost încărcate ${data?.length || 0} produse.`, 'success');
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea nomenclatorului.</td>
+                    </tr>
+                `;
+                setStockProductsStatus(error.message || 'Eroare la încărcarea nomenclatorului.', 'error');
+            }
+        }
+
+        function activateStockProductEditor(productId) {
+            const row = document.querySelector(`[data-stock-product-row="${CSS.escape(String(productId))}"]`);
+            if (!row || row.querySelector('input')) return;
+
+            const nameCell = row.querySelector('[data-stock-product-name]');
+            const thresholdCell = row.querySelector('[data-stock-product-threshold]');
+            const actionsCell = row.lastElementChild;
+            const currentName = nameCell?.textContent?.trim() === '-' ? '' : nameCell?.textContent?.trim() || '';
+            const currentThreshold = thresholdCell?.textContent?.trim() === '-' ? '' : thresholdCell?.textContent?.trim() || '';
+
+            if (nameCell) {
+                nameCell.innerHTML = `<input type="text" value="${escapeHtml(currentName)}" data-stock-product-name-input class="w-full rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500">`;
+            }
+            if (thresholdCell) {
+                thresholdCell.innerHTML = `<input type="number" step="0.01" value="${escapeHtml(currentThreshold)}" data-stock-product-threshold-input class="w-32 rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500">`;
+            }
+            if (actionsCell) {
+                actionsCell.innerHTML = `
+                    <div class="flex justify-end gap-2">
+                        <button type="button" data-save-stock-product="${escapeHtml(productId)}" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition-colors">Salvează</button>
+                        <button type="button" data-cancel-stock-product="${escapeHtml(productId)}" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-3 py-2 text-xs font-bold text-slate-100 transition-colors">Anulează</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function saveStockProductEditor(productId) {
+            const row = document.querySelector(`[data-stock-product-row="${CSS.escape(String(productId))}"]`);
+            if (!row) return;
+
+            const nameInput = row.querySelector('[data-stock-product-name-input]');
+            const thresholdInput = row.querySelector('[data-stock-product-threshold-input]');
+            const denumire = nameInput?.value?.trim() || '';
+            const pragRaw = thresholdInput?.value?.trim() || '';
+            const pragMinim = pragRaw === '' ? null : Number(pragRaw);
+
+            if (!denumire) {
+                setStockProductsStatus('Denumirea produsului nu poate fi goală.', 'error');
+                return;
+            }
+            if (pragRaw !== '' && Number.isNaN(pragMinim)) {
+                setStockProductsStatus('Pragul minim trebuie să fie numeric.', 'error');
+                return;
+            }
+
+            setStockProductsStatus(`Se actualizează produsul ${productId}...`);
+            try {
+                const { error } = await sb
+                    .from('stoc_produse')
+                    .update({ denumire, prag_minim: pragMinim })
+                    .eq('id', productId);
+
+                if (error) throw error;
+                setStockProductsStatus('Produsul a fost actualizat.', 'success');
+                setStockAdminStatus('Nomenclatorul a fost actualizat.', 'success');
+                await loadStockProductsAdmin();
+            } catch (error) {
+                setStockProductsStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
+            }
+        }
+
+        async function loadStockMovementsAdmin() {
+            const tbody = document.getElementById('stock-movements-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">Se încarcă tranzacțiile...</td>
+                </tr>
+            `;
+            setStockMovementsStatus('Se încarcă ultimele tranzacții...');
+
+            try {
+                const { data, error } = await sb
+                    .from('stoc_miscari')
+                    .select('id, data, tip_miscare, cantitate, destinatie, observatii, stoc_produse(denumire)')
+                    .order('data', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+                renderStockMovementsRows(data || []);
+                setStockMovementsStatus(`Au fost încărcate ${data?.length || 0} tranzacții.`, 'success');
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea tranzacțiilor.</td>
+                    </tr>
+                `;
+                setStockMovementsStatus(error.message || 'Eroare la încărcarea tranzacțiilor.', 'error');
+            }
+        }
+
+        async function deleteStockMovement(movementId) {
+            if (!movementId) return;
+            if (!confirm('Ești sigur?')) return;
+
+            setStockMovementsStatus(`Se șterge tranzacția ${movementId}...`);
+            try {
+                const { error } = await sb
+                    .from('stoc_miscari')
+                    .delete()
+                    .eq('id', movementId);
+
+                if (error) throw error;
+                setStockMovementsStatus('Tranzacția a fost ștearsă.', 'success');
+                setStockAdminStatus('A fost efectuată o corecție de tranzacție.', 'success');
+                await loadStockMovementsAdmin();
+            } catch (error) {
+                setStockMovementsStatus(error.message || 'Eroare la ștergerea tranzacției.', 'error');
             }
         }
 

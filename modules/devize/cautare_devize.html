@@ -112,7 +112,7 @@
         const getDevizLink = (type, rawId) => {
             const numericId = String(rawId ?? '').replace(/\D/g, '');
             if (type === 'finale') return `deviz_final.html?id=${encodeURIComponent(numericId)}`;
-            return `deviz_estimativ.html?id=${encodeURIComponent(numericId)}`;
+            return `deviz.html?id=${encodeURIComponent(rawId)}`;
         };
 
         const updateTabButtons = () => {
