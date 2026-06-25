@@ -8,9 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="manifest" href="/manifest.json">
-    
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
+    <!-- Header -->
     <header class="shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur">
         <div class="px-4 py-4">
             <div class="grid grid-cols-3 items-center gap-3">
@@ -32,15 +32,18 @@
         </div>
     </header>
 
+    <!-- Bara de căutare -->
     <div class="sticky top-0 z-20 bg-slate-950/90 backdrop-blur py-2 px-4 border-b border-slate-800">
         <input id="searchInput" type="search" placeholder="Caută contract..." class="w-full max-w-md px-4 py-1.5 text-sm bg-slate-900 border border-slate-700 rounded-full text-slate-200 focus:outline-none focus:border-blue-500" />
     </div>
 
+    <!-- Zona principală -->
     <main class="flex-1 overflow-y-auto p-4">
         <div id="contractsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         <div id="emptyState" class="hidden text-center text-slate-500 py-10">Niciun contract.</div>
     </main>
 
+    <!-- Modalul de adăugare -->
     <div id="modalAdd" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
         <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl p-4">
             <div class="text-lg font-extrabold text-blue-300">Contract Nou</div>
@@ -61,6 +64,7 @@
         </div>
     </div>
 
+    <!-- Modalul de vizualizare/editare -->
     <div id="modalView" class="fixed inset-0 hidden items-center justify-center bg-black/70 p-4 z-50">
         <div class="w-full max-w-6xl bg-slate-900 border border-slate-700 rounded-xl p-4 overflow-hidden">
             <div class="flex items-center justify-between gap-3">
@@ -76,18 +80,21 @@
                     <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Detalii</div>
                     <form id="formView" class="grid gap-3">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                            <!-- Câmpuri rearanjate curat în grila de 2 coloane -->
                             <label class="grid gap-1 sm:col-span-2">
                                 <span class="text-xs font-semibold text-slate-400">ID Contract</span>
                                 <input id="viewIdContract" type="text" readonly class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none" />
                             </label>
+                            
                             <input id="viewNumeClient" type="text" placeholder="Nume Client" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
                             <input id="viewVin" type="text" placeholder="Serie VIN" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-mono tracking-wider" />
+                            
                             <input id="viewMasina" type="text" placeholder="Model Mașină" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            <input id="viewNrInmatriculare" type="text" placeholder="Nr. Înmatriculare" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 font-bold uppercase tracking-wider" />
+                            
                             <input id="viewDataContract" type="date" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 [color-scheme:dark]" />
-                            <input id="viewTelefon" type="text" placeholder="Nr. Telefon" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
-                            <input id="viewNrContract" type="text" placeholder="Nr. Contract" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
                             <input id="viewNrDosar" type="text" placeholder="Nr. Dosar / Biblioraft" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
-                            <input id="viewTipContract" type="text" placeholder="Tip Contract" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+                            
                             <textarea id="viewObservatii" placeholder="Observații (ex: lipsă talon)" class="w-full rounded-xl bg-slate-950/40 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 min-h-20 sm:col-span-2"></textarea>
                         </div>
                         <div class="sticky bottom-0 bg-slate-900 p-4 border-t border-slate-800 rounded-xl">
@@ -128,10 +135,8 @@
         const viewNumeClient = document.getElementById('viewNumeClient');
         const viewVin = document.getElementById('viewVin');
         const viewMasina = document.getElementById('viewMasina');
-        const viewTipContract = document.getElementById('viewTipContract');
+        const viewNrInmatriculare = document.getElementById('viewNrInmatriculare');
         const viewDataContract = document.getElementById('viewDataContract');
-        const viewTelefon = document.getElementById('viewTelefon');
-        const viewNrContract = document.getElementById('viewNrContract');
         const viewNrDosar = document.getElementById('viewNrDosar');
         const viewObservatii = document.getElementById('viewObservatii');
         const btnSaveProgress = document.getElementById('btnSaveProgress');
@@ -237,9 +242,8 @@
                 const nume = String(c.nume_client ?? '').toLowerCase();
                 const masina = String(c.masina ?? '').toLowerCase();
                 const vin = String(c.serie_vin ?? '').toLowerCase();
-                const tel = String(c.telefon ?? '').toLowerCase();
-                const nrContract = String(c.nr_contract ?? '').toLowerCase();
-                return id.includes(q) || nume.includes(q) || masina.includes(q) || vin.includes(q) || tel.includes(q) || nrContract.includes(q);
+                const nrInmatriculare = String(c.nr_inmatriculare ?? '').toLowerCase();
+                return id.includes(q) || nume.includes(q) || masina.includes(q) || vin.includes(q) || nrInmatriculare.includes(q);
             });
         };
 
@@ -252,10 +256,9 @@
                 const idContract = c.id_contract || 'C-???';
                 const nume = c.nume_client || 'Date lipsă';
                 const masina = c.masina || 'Date lipsă';
-                const tip = c.tip_contract || 'Date lipsă';
                 const pozeCount = Array.isArray(c.poze) ? c.poze.length : 0;
                 const vin = String(c.serie_vin || '').trim();
-                const telefon = String(c.telefon || '').trim();
+                const nrInmatriculare = String(c.nr_inmatriculare || '').trim();
                 const nrDosar = String(c.nr_dosar || '').trim();
                 const observatii = String(c.observatii || '').trim();
                 return `
@@ -274,14 +277,13 @@
 
                         <div class="flex justify-between items-center mt-2 gap-3">
                             <div class="text-slate-200 min-w-0 break-words">${escapeHtml(nume)}</div>
-                            ${telefon ? `<div class="text-sm text-slate-300 whitespace-nowrap">📞 ${escapeHtml(telefon)}</div>` : ``}
+                            ${nrInmatriculare ? `<div class="text-sm font-bold text-slate-200 whitespace-nowrap bg-slate-800 px-2 py-0.5 rounded border border-slate-700 tracking-wider">🚗 ${escapeHtml(nrInmatriculare.toUpperCase())}</div>` : ``}
                         </div>
 
                         <div class="text-sm text-slate-400 mt-2 break-words">${escapeHtml(masina)}</div>
 
                         <div class="flex justify-between items-center mt-1 gap-3">
                             <div class="text-xs text-slate-400 min-w-0 break-words">${vin ? `VIN: <span class="font-mono tracking-wider text-slate-200">${escapeHtml(vin)}</span>` : 'VIN: Date lipsă'}</div>
-                            <div class="text-xs text-emerald-400 whitespace-nowrap">${escapeHtml(tip)}</div>
                         </div>
 
                         ${observatii ? `
@@ -310,9 +312,10 @@
                 return;
             }
 
+            // Aici cerem doar coloanele noi, fără tip_contract sau nr_contract
             const { data, error } = await supabaseClient
                 .from('contracte')
-                .select('id_contract, nume_client, serie_vin, masina, tip_contract, status, poze, data_contract, telefon, nr_contract, nr_dosar, observatii')
+                .select('id_contract, nume_client, serie_vin, masina, status, poze, data_contract, nr_inmatriculare, nr_dosar, observatii')
                 .order('id_contract', { ascending: false });
 
             if (error) {
@@ -342,10 +345,8 @@
             viewNumeClient.value = row.nume_client ?? '';
             viewVin.value = row.serie_vin ?? '';
             viewMasina.value = row.masina ?? '';
-            viewTipContract.value = row.tip_contract ?? '';
+            viewNrInmatriculare.value = row.nr_inmatriculare ?? '';
             viewDataContract.value = row.data_contract ?? '';
-            viewTelefon.value = row.telefon ?? '';
-            viewNrContract.value = row.nr_contract ?? '';
             viewNrDosar.value = row.nr_dosar ?? '';
             viewObservatii.value = row.observatii ?? '';
 
@@ -377,8 +378,7 @@
                         poze: urls,
                         nume_client: '',
                         serie_vin: '',
-                        masina: '',
-                        tip_contract: '',
+                        masina: ''
                     });
 
                 if (error) throw error;
@@ -398,10 +398,8 @@
             nume_client: viewNumeClient.value.trim(),
             serie_vin: viewVin.value.trim(),
             masina: viewMasina.value.trim(),
-            tip_contract: viewTipContract.value.trim(),
+            nr_inmatriculare: viewNrInmatriculare.value.trim().toUpperCase(),
             data_contract: viewDataContract.value || null,
-            telefon: viewTelefon.value.trim(),
-            nr_contract: viewNrContract.value.trim(),
             nr_dosar: viewNrDosar.value.trim(),
             observatii: viewObservatii.value.trim(),
         });
