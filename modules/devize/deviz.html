@@ -930,12 +930,19 @@ td:nth-child(3) input {
         setStatus('Se salvează...');
 
         const { grandTotal, discountPercent } = calculateTotals();
+        
+        let rawNrAuto = screenNrAuto.value || '';
+        let numar_inmatriculare = rawNrAuto.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (!numar_inmatriculare) {
+            numar_inmatriculare = 'FaraNumar';
+        }
+
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
             autovehicul: (screenAutovehicul.value || '').trim() || null,
             vin: (screenVin.value || '').trim() || null,
-            nr_inmatriculare: (screenNrAuto.value || '').trim() || null,
+            nr_inmatriculare: numar_inmatriculare,
             piese: getScreenItems().map((it) => ({
                 produs: it.descriere,
                 discount: it.apply_discount,
