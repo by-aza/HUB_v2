@@ -270,10 +270,18 @@
             btn.textContent = 'Se salvează...';
             btn.classList.add('opacity-50', 'cursor-not-allowed');
 
+            const normalizePlate = (plate) => {
+                if (!plate) return 'FaraNumar';
+                const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                return cleaned || 'FaraNumar';
+            };
+            
+            const nrInmatriculareNormalized = normalizePlate(document.getElementById('avansNr').value);
+
             const payload = {
                 data_crearii: document.getElementById('avansData').value,
                 model_masina: document.getElementById('avansModel').value.trim(),
-                nr_inmatriculare: document.getElementById('avansNr').value.trim(),
+                nr_inmatriculare: nrInmatriculareNormalized,
                 detalii_avans: document.getElementById('avansDetalii').value.trim() || null,
                 este_arhivat: false,
             };

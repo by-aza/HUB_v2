@@ -600,6 +600,12 @@ td:nth-child(3) input {
         "'": '&#39;',
     })[ch]);
 
+    const normalizePlate = (plate) => {
+        if (!plate) return 'FaraNumar';
+        const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        return cleaned || 'FaraNumar';
+    };
+
     const toNumber = (value) => {
         const n = Number(String(value ?? '').replace(',', '.'));
         return Number.isFinite(n) ? n : 0;
@@ -943,12 +949,16 @@ td:nth-child(3) input {
         setStatus('Se salvează...');
 
         const discountPercent = toNumber(screenDiscount.value); // Preluăm discountPercent aici
+        
+        const nrInmatriculareNormalized = normalizePlate(screenNrAuto.value);
+        screenNrAuto.value = nrInmatriculareNormalized;
+        
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
             autovehicul: (screenAutovehicul.value || '').trim() || null,
             vin: (screenVin.value || '').trim() || null,
-            nr_inmatriculare: (screenNrAuto.value || '').trim() || null,
+            nr_inmatriculare: nrInmatriculareNormalized,
             piese: items.map((it) => ({
                 produs: it.descriere,
                 discount: it.apply_discount,
@@ -1044,8 +1054,9 @@ td:nth-child(3) input {
         }
 
         syncToPrintTemplate();
-        let nrAuto = (screenNrAuto?.value || '').trim();
-        if (!nrAuto) nrAuto = 'Fara Numar';
+        let nrAuto = normalizePlate(screenNrAuto?.value);
+        if (screenNrAuto) screenNrAuto.value = nrAuto;
+        
         const nrDeviz = (screenIdDeviz?.value || '').trim();
         const fileName = `Deviz estimativ-${nrAuto}-${nrDeviz}.pdf`;
         const prevTitle = document.title;

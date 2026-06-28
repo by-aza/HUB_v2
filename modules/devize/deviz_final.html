@@ -517,6 +517,12 @@
             return Number.isFinite(n) ? n : 0;
         };
 
+        const normalizePlate = (plate) => {
+            if (!plate) return 'FaraNumar';
+            const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            return cleaned || 'FaraNumar';
+        };
+
         function escapeHtml(unsafe) {
             if (typeof unsafe !== 'string') return unsafe;
             return unsafe
@@ -1250,7 +1256,11 @@
                 const data_deviz = devizData.data;
                 const client = devizData.client;
                 const auto = devizData.tipAuto;
+                
+                // Normalizare număr înmatriculare
+                devizData.nrInmatriculare = normalizePlate(devizData.nrInmatriculare);
                 const nr_inmatriculare = devizData.nrInmatriculare;
+                
                 const serie_vin = devizData.serieVin;
                 const serie_motor = devizData.serieMotor;
                 const km = devizData.km;
@@ -1573,6 +1583,18 @@
             syncManoperaState();
             recalculatePieseTotals();
 
+            // Obținem datele din input-uri pentru numele fișierului PDF
+            const nrInput = document.getElementById('input-nr-inmatriculare-deviz-final').value.trim();
+            const nrInmat = normalizePlate(nrInput);
+            
+            // Actualizare pe loc (și în data model și input field vizibil)
+            devizData.nrInmatriculare = nrInmat;
+            const inputNr = document.getElementById('input-nr-inmatriculare-deviz-final');
+            if (inputNr) inputNr.value = nrInmat;
+            
+            const devizNrInput = document.getElementById('input-deviz-nr').value.trim();
+            const codDeviz = devizNrInput.replace(/^DF-/, '');
+
             // Salvăm obiectul complet în memoria browserului pentru pagina de print
             localStorage.setItem("currentDevizPrint", JSON.stringify(devizData));
 
@@ -1582,6 +1604,7 @@
             // Opțional: Declanșăm printarea automată când pagina s-a încărcat
             if (printWindow) {
                 printWindow.addEventListener('load', () => {
+                    printWindow.document.title = `DevizFinal-${nrInmat}-DF-${codDeviz}`;
                     setTimeout(() => {
                         printWindow.print();
                     }, 300);

@@ -1,0 +1,19 @@
+I want to merge the Supabase data fetching logic from my index_old.html into my new UI index.html. The new UI uses a state-driven vanilla JS rendering approach (updating birouCards, serviceCards, alerts arrays and calling renderAll()).
+
+Please apply the following features to the new index.html:
+
+1. Supabase Initialization: Add the Supabase CDN and initialize the client using the credentials from index_old.html.
+
+2. Dynamic Greeting: In the new UI, locate the <h1> tag containing "Bună dimineața! Să curgă devizele!". Give it an ID (e.g., greetingText). Update the tick() function to implement the time-based greeting logic from the old code (<12 "Bună dimineața!", <18 "Salutare!", else "Bună seara! Să curgă devizele!").
+
+3. Port Data Fetching to State: Rewrite all the load...Badge functions from the old code (Generator, Consumabile, Avans, AWB, Contracte, Masini, Detailing, Devize). Instead of mutating the DOM directly via getElementById, they must update the meta or badge object properties of the corresponding objects inside the birouCards and serviceCards arrays. After the data is fetched and the arrays are updated, call renderAll().
+
+4. Admin Announcements (Megafon): Fetch the active announcement from admin_announcements. If an active announcement exists, inject it dynamically at the very top (unshift) of the alerts array for the "Centru de Alerte Directe". Use a Megaphone icon (lucide="megaphone") and give it a 'critical' or distinct styling. If no announcement exists, remove it from the array. Call renderAll().
+
+5. Real-Time Subscriptions: Port the sb.channel('dashboard_badges') logic so the arrays auto-update on Postgres changes.
+
+6. Global Search Bar: The new UI has a search input. Add an event listener to it. When the user types (with a small debounce), run a global ilike search across multiple Supabase tables concurrently (flota_auto for VIN/Masina, devize for id_deviz/client, stoc_view_curent for piese). For now, log the matched results in a beautifully styled console.log grouped by category, and add a simple dropdown logic under the search bar to display clickable results.
+
+Ensure the beautiful Tailwind classes, the renderAll() architecture, and the Lucide icons remain intact. Do not break the CSS animations (neon-pulse, shimmer).
+
+Dacă îi dai acest prompt în secțiunea Composer (Ctrl+I sau Cmd+I pe tot fișierul) sau în fereastra de Chat din Cursor, el va rescrie fișierul tău conectând perfect noul design de vechea ta bază de date!

@@ -1,617 +1,1337 @@
 <!DOCTYPE html>
 <html lang="ro" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14161c" />
     <title>HUB Service Auto — Dashboard</title>
+    <meta
+      name="description"
+      content="Centrul de comandă pentru biroul, service-ul și detailing-ul tău auto."
+    />
+
+    <!-- Tailwind CSS (Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="manifest" href="/manifest.json">
 
-    </head>
-<body class="min-h-screen flex flex-col overflow-x-hidden bg-slate-950 text-slate-100 antialiased">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
 
-    <header class="w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <img src="icons/128x128.png" alt="Logo" class="w-12 h-12 rounded-xl shadow-lg cursor-pointer" onclick="cereParolaAdmin()">
-                <div>
-                    <p id="greeting" class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Salutare! Să curgă devizele!</p>
-                    <p class="text-sm text-slate-400 mt-0.5">HUB Service Auto</p>
-                </div>
-            </div>
-            <div class="text-left sm:text-right">
-                <p id="currentDate" class="text-lg font-semibold text-slate-200"></p>
-                <p id="currentTime" class="text-2xl font-mono font-bold text-blue-400 tabular-nums"></p>
-                <div class="flex items-center gap-1 mt-1 sm:justify-end">
-                    <div id="status-dot" class="w-2 h-2 rounded-full"></div>
-                    <span id="status-text" class="text-xs text-slate-400"></span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <div id="admin-banner" class="hidden max-w-7xl mx-auto px-4 sm:px-6 mt-4">
-        <div class="bg-rose-950/50 border border-rose-500/50 rounded-xl py-1.5 px-4 flex items-center justify-between gap-4 animate-pulse-slow shadow-[0_0_15px_rgba(244,63,94,0.2)]">
-            <div class="flex items-center gap-3">
-                <span class="text-xl animate-bounce">📢</span>
-                <p id="admin-banner-text" class="text-rose-200 font-bold text-sm sm:text-base tracking-wide"></p>
-            </div>
-            <button onclick="document.getElementById('admin-banner').classList.add('hidden')" class="text-rose-400 hover:text-rose-300 px-2 font-bold text-lg cursor-pointer">✖</button>
-        </div>
-    </div>
-
-    <main class="flex-1 overflow-y-auto max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-        <div class="flex flex-col gap-8 md:grid md:grid-cols-3 md:gap-6 lg:gap-8">
-
-            <!-- COLOANA 1: BIROU & FINANCIAR -->
-            <section class="min-w-0 flex flex-col gap-5">
-                <h2 class="text-lg font-extrabold uppercase tracking-wider text-blue-400 border-b border-blue-500/30 pb-3">
-                    💼 Birou &amp; Financiar
-                </h2>
-                <div class="flex flex-col gap-4">
-
-                    <a href="modules/devize/deviz.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125V5.25c0-1.036-.84-1.875-1.875-1.875h-8.25A1.875 1.875 0 0 0 2.25 5.25v13.5c0 1.035.84 1.875 1.875 1.875h8.25A1.875 1.875 0 0 0 14.25 18.75V16.5a1.125 1.125 0 0 1 1.125-1.125h1.5a3.375 3.375 0 0 0 3.375-3.375Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12h3.75m-3.75 3h3.75m-3.75-6h3.75"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Devize</span>
-                            <span id="badge-ultimul-deviz" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/devize/avans.html" class="relative flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Evidență Avansuri</span>
-                            <span id="badge-avans" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/formulare/telefoane-clienti.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
-                        </span>
-                        <span class="text-lg font-semibold text-slate-100">Registru Telefoane</span>
-                    </a>
-
-                    <a href="modules/devize/contracte.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Contracte</span>
-                            <span id="badge-contracte" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/devize/cautare_devize.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Căutare Deviz</span>
-                            <span id="badge-total-devize" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/devize/deviz_final.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c0 .969.381 1.9 1.063 2.592a3.75 3.75 0 0 0 4.074 1.123m-5.801-3.715V6.108c0-1.135.845-2.098 1.976-2.192a48.11 48.11 0 0 1 3.183-.08m-9.75 0H9.75a2.25 2.25 0 0 0-2.25 2.25v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25V9.75a2.25 2.25 0 0 0-2.25-2.25H5.25Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Deviz Final</span>
-                            <span id="badge-ultimul-deviz-final" class="text-xs text-slate-400 mt-0.5 truncate">Ultimul Deviz: DF-001</span>
-                        </span>
-                    </a>
-
-
-                </div>
-            </section>
-
-            <!-- COLOANA 2: SERVICE & LOGISTICĂ -->
-            <section class="min-w-0 flex flex-col gap-5">
-                <h2 class="text-lg font-extrabold uppercase tracking-wider text-emerald-400 border-b border-emerald-500/30 pb-3">
-                    🔧 Service &amp; Logistică
-                </h2>
-                <div class="flex flex-col gap-4">
-
-                    <a href="modules/flota/lista_masini.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Listă Mașini</span>
-                            <span id="badge-total-masini" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/flota/baza-vin.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5M7.5 5.25v13.5m4.5-13.5v13.5m4.5-13.5v13.5"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Baza VIN</span>
-                            <span class="text-xs text-slate-400 mt-0.5 truncate">Identificare vehicule</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/formulare/evidenta-awb.html" class="relative flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Evidență AWB</span>
-                            <span id="badge-awb" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/stocuri/piese_stoc.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Piese Stoc</span>
-                            <span class="text-xs text-slate-400 mt-0.5 truncate">Gestionare piese</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/stocuri/consumabile.html" class="relative flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Consumabile</span>
-                            <span id="badge-consumabile" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/formulare/generator.html" class="relative flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span id="badge-generator-dot" class="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]"></span>
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Generator</span>
-                            <span id="badge-generator" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                </div>
-            </section>
-
-            <!-- COLOANA 3: DETAILING & CONSTATĂRI -->
-            <section class="min-w-0 flex flex-col gap-5">
-                <h2 class="text-lg font-extrabold uppercase tracking-wider text-violet-400 border-b border-violet-500/30 pb-3">
-                    ✨ Detailing &amp; Constatări
-                </h2>
-                <div class="flex flex-col gap-4">
-
-                    <a href="modules/formulare/detailing.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-500/15 flex items-center justify-center text-violet-400 group-hover:bg-violet-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
-                        </span>
-                        <span class="flex flex-col min-w-0">
-                            <span class="text-lg font-semibold text-slate-100 leading-tight">Fișă Detailing</span>
-                            <span id="badge-detailing" class="text-xs text-slate-400 mt-0.5 truncate">—</span>
-                        </span>
-                    </a>
-
-                    <a href="modules/formulare/constatari.html" class="flex items-center gap-4 bg-slate-800 hover:bg-slate-700 hover:scale-105 transition-all duration-200 rounded-xl p-5 border border-slate-700/50 shadow-lg group">
-                        <span class="flex-shrink-0 w-12 h-12 rounded-lg bg-violet-500/15 flex items-center justify-center text-violet-400 group-hover:bg-violet-500/25 transition-colors">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c0 .969.381 1.9 1.063 2.592a3.75 3.75 0 0 0 4.074 1.123m-5.801-3.715V6.108c0-1.135.845-2.098 1.976-2.192a48.11 48.11 0 0 1 3.183-.08m-9.75 0H9.75a2.25 2.25 0 0 0-2.25 2.25v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25V9.75a2.25 2.25 0 0 0-2.25-2.25H5.25Z"/></svg>
-                        </span>
-                        <span class="text-lg font-semibold text-slate-100">Constatări</span>
-                    </a>
-
-                </div>
-            </section>
-
-        </div>
-    </main>
+    <!-- Lucide icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
-        const ZILE = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
-        const LUNI = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
-
-        function updateClock() {
-            const now = new Date();
-            const h = now.getHours();
-            let salut = 'Salutare! Să curgă devizele!';
-            if (h < 12) salut = 'Bună dimineața! Să curgă devizele!';
-            else if (h < 18) salut = 'Salutare! Să curgă devizele!';
-            else salut = 'Bună seara! Să curgă devizele!';
-
-            document.getElementById('greeting').textContent = salut;
-            document.getElementById('currentDate').textContent =
-                `${ZILE[now.getDay()]}, ${now.getDate()} ${LUNI[now.getMonth()]} ${now.getFullYear()}`;
-            document.getElementById('currentTime').textContent =
-                now.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-
-        updateClock();
-        setInterval(updateClock, 1000);
-
-        const dbUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
-        const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
-        const sb = supabase.createClient(dbUrl, dbKey);
-        const adminBanner = document.getElementById('admin-banner');
-        const adminBannerText = document.getElementById('admin-banner-text');
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
-
-        const STOC_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7mX8RLv-YJ8OU0zCF3Kt6khLDosTW5wAZJ6Ba83Xd8U24gNqXIupTdwJl_j3tftiOdfAqo2E1cPeL/pub?gid=906891078&single=true&output=csv';
-        const STOC_WATCH = ['Spray Discuri Breckner', 'Spray frane'];
-
-        const todayISO = () => new Date().toLocaleDateString('sv-SE');
-        const monthPrefix = () => {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        };
-
-        const parseUTC = (dateStr) => {
-            if (!dateStr) return null;
-            return new Date(dateStr.includes('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z');
-        };
-
-        const formatLei = (n) => new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 0 }).format(n);
-
-        const extractLei = (text) => {
-            const matches = String(text ?? '').match(/\d+(?:[.,]\d+)?/g);
-            if (!matches) return 0;
-            return matches.reduce((s, m) => s + (parseFloat(m.replace(',', '.')) || 0), 0);
-        };
-
-        const isStocLow = (stoc, prag) => {
-            const s = parseFloat(stoc) || 0;
-            const p = parseFloat(prag) || 0;
-            return s <= p;
-        };
-
-        const parseRawLocalDateTime = (value) => {
-            const raw = String(value ?? '').trim().replace('T', ' ').slice(0, 16);
-            const [datePart, timePart] = raw.split(' ');
-            if (!datePart || !timePart) return null;
-            const [year, month, day] = datePart.split('-').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
-            if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return null;
-            return new Date(year, month - 1, day, hour, minute, 0, 0);
-        };
-
-        const readAnnouncementText = (row) => {
-            if (!row || typeof row !== 'object') return '';
-            return String(
-                row.mesaj ?? row.message ?? row.text ?? row.continut ?? row.content ?? row.titlu ?? ''
-            ).trim();
-        };
-
-        function hideAdminBanner() {
-            adminBanner.classList.add('hidden');
-            adminBannerText.textContent = '';
-        }
-
-        async function loadAdminBanner() {
-            try {
-                const { data, error } = await sb
-                    .from('admin_announcements')
-                    .select('*')
-                    .eq('activ', true)
-                    .limit(1);
-
-                if (error || !Array.isArray(data) || !data.length) {
-                    hideAdminBanner();
-                    return;
-                }
-
-                const message = readAnnouncementText(data[0]);
-                if (!message) {
-                    hideAdminBanner();
-                    return;
-                }
-
-                adminBannerText.textContent = message;
-                adminBanner.classList.remove('hidden');
-            } catch {
-                hideAdminBanner();
-            }
-        }
-
-        async function loadGeneratorBadge() {
-            const dot = document.getElementById('badge-generator-dot');
-            const sub = document.getElementById('badge-generator');
-            const { data, error } = await sb.from('generator_logs').select('*').order('id', { ascending: false });
-            if (error) { sub.textContent = '—'; return; }
-
-            const running = data.find((l) => l.ora_start && !l.ora_stop);
-            if (running) {
-                dot.className = 'absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]';
-            } else {
-                dot.className = 'absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]';
-            }
-
-            const prefix = monthPrefix();
-            let totalMins = 0;
-            let totalLitri = 0;
-            data.forEach((l) => {
-                if (!l.data || !String(l.data).startsWith(prefix)) return;
-                if (l.litri_motorina && l.observatii?.includes('Alimentare')) {
-                    totalLitri += parseFloat(l.litri_motorina) || 0;
-                }
-                if (l.ora_start && l.ora_stop && !l.observatii?.includes('Alimentare')) {
-                    totalMins += Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000);
-                }
-            });
-            if (running && String(running.data).startsWith(prefix)) {
-                totalMins += Math.floor((Date.now() - parseUTC(running.ora_start).getTime()) / 60000);
-            }
-            const h = Math.floor(totalMins / 60);
-            sub.textContent = `${h}h | ${Math.round(totalLitri)}L luna asta`;
-        }
-
-        async function loadConsumabileBadge() {
-    const sub = document.getElementById('badge-consumabile');
-    try {
-        // Interogăm view-ul nostru inteligent din Supabase
-        const { data, error } = await sb
-            .from('stoc_view_curent')
-            .select('*');
-
-        if (error) throw error;
-
-        // Numărăm câte produse sunt la limită sau pe zero
-        const produseCuProbleme = data.filter(item => item.stoc_actual <= item.prag_minim);
-
-        if (produseCuProbleme.length > 0) {
-            sub.textContent = `⚠️ ${produseCuProbleme.length} produse necesită atenție`;
-            sub.className = 'text-xs text-amber-400 mt-0.5 truncate font-semibold';
-        } else {
-            sub.textContent = 'Stoc OK';
-            sub.className = 'text-xs text-emerald-500 mt-0.5 truncate';
-        }
-    } catch (err) {
-        console.error('Eroare badge consumabile:', err);
-        sub.textContent = 'Eroare conexiune';
-    }
-}
-
-        async function loadAvansBadge() {
-            const sub = document.getElementById('badge-avans');
-            const today = todayISO();
-            const { data, error } = await sb
-                .from('evidente_avansuri')
-                .select('detalii_avans, data_crearii')
-                .eq('este_arhivat', false)
-                .eq('data_crearii', today);
-            if (error) { sub.textContent = '—'; return; }
-            const sum = (data || []).reduce((acc, r) => acc + extractLei(r.detalii_avans), 0);
-            sub.textContent = sum > 0 ? `Azi: +${formatLei(sum)} Lei` : 'Azi: 0 Lei';
-        }
-
-        async function loadAwbBadge() {
-            const sub = document.getElementById('badge-awb');
-            const { data, error } = await sb
-                .from('evidenta_awb')
-                .select('pret, stare, is_archived')
-                .eq('stare', 'in_tranzit')
-                .eq('is_archived', false);
-            if (error) { sub.textContent = '—'; return; }
-            const sum = (data || []).reduce((acc, a) => acc + (Number(a.pret) || 0), 0);
-            sub.textContent = `În tranzit: ${formatLei(sum)} Lei`;
-        }
-
-        async function loadUltimulDeviz() {
-            const sub = document.getElementById('badge-ultimul-deviz');
-            const { data, error } = await sb
-                .from('devize')
-                .select('id_deviz')
-                .order('id_deviz', { ascending: false })
-                .limit(1);
-            if (error || !data || !data.length) {
-                sub.textContent = '—';
-                return;
-            }
-            sub.textContent = `Ultimul Deviz: ${data[0].id_deviz}`;
-        }
-
-        async function loadUltimulDevizFinal() {
-            const sub = document.getElementById('badge-ultimul-deviz-final');
-            if (!sub) return;
-            try {
-                const { data, error } = await sb
-                    .from('deviz_final_header')
-                    .select('id_deviz_final')
-                    .order('id_deviz_final', { ascending: false })
-                    .limit(1);
-
-                if (error) throw error;
-                
-                if (data && data.length > 0) {
-                    const devizId = data[0].id_deviz_final;
-                    const formattedId = `DF-${String(devizId).padStart(3, '0')}`;
-                    sub.textContent = `Ultimul: ${formattedId}`;
-                } else {
-                    sub.textContent = 'Niciun deviz final';
-                }
-            } catch (err) {
-                console.error('Eroare la încărcarea ultimului deviz final:', err);
-                sub.textContent = 'Eroare la încărcare';
-            }
-        }
-
-
-        async function loadContracteBadge() {
-            const sub = document.getElementById('badge-contracte');
-            const { count, error } = await sb
-                .from('contracte')
-                .select('*', { count: 'exact', head: true })
-                .ilike('status', '%incomplet%');
-            if (error) {
-                sub.textContent = '—';
-                sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
-                return;
-            }
-            if ((count || 0) > 0) {
-                sub.textContent = `⚠️ ${count} Incomplete`;
-                sub.className = 'text-xs text-red-400 mt-0.5 truncate';
-                return;
-            }
-            sub.textContent = 'Toate la zi';
-            sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
-        }
-
-        async function loadTotalDevize() {
-            const sub = document.getElementById('badge-total-devize');
-            const { count, error } = await sb
-                .from('devize')
-                .select('*', { count: 'exact', head: true });
-            if (error) {
-                sub.textContent = '—';
-                return;
-            }
-            sub.textContent = `Total salvate: ${count || 0}`;
-        }
-
-        async function loadMasiniBadge() {
-            const sub = document.getElementById('badge-total-masini');
-            const { count, error } = await sb
-                .from('flota_auto')
-                .select('*', { count: 'exact', head: true });
-            if (error) {
-                sub.textContent = '—';
-                return;
-            }
-            sub.textContent = `Total: ${count || 0} mașini`;
-        }
-
-        async function loadDetailingBadge() {
-            const sub = document.getElementById('badge-detailing');
-            const { data, error } = await sb
-                .from('detailing')
-                .select('data_programare, status');
-
-            if (error) {
-                sub.textContent = '—';
-                sub.className = 'text-xs text-slate-400 mt-0.5 truncate';
-                return;
-            }
-
-            const now = new Date();
-            let delayed = 0;
-
-            (data || []).forEach((row) => {
-                if (row.status !== 'Programari') return;
-                const raw = String(row.data_programare ?? '').trim().replace('T', ' ');
-                if (raw.length < 16) return;
-
-                const year = Number(raw.slice(0, 4));
-                const month = Number(raw.slice(5, 7));
-                const day = Number(raw.slice(8, 10));
-                const hour = Number(raw.slice(11, 13));
-                const minute = Number(raw.slice(14, 16));
-
-                if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return;
-
-                const scheduled = new Date(year, month - 1, day, hour, minute);
-                if (scheduled < now) delayed += 1;
-            });
-
-            if (delayed > 0) {
-                sub.textContent = `⚠️ ${delayed} Întârzieri`;
-                sub.className = 'text-xs text-red-400 mt-0.5 truncate';
-                return;
-            }
-
-            sub.textContent = 'La zi';
-            sub.className = 'text-xs text-emerald-400/80 mt-0.5 truncate';
-        }
-
-        async function loadAllBadges() {
-            await Promise.all([
-                loadGeneratorBadge(),
-                loadConsumabileBadge(),
-                loadAvansBadge(),
-                loadAwbBadge(),
-                loadUltimulDeviz(),
-                loadContracteBadge(),
-                loadTotalDevize(),
-                loadMasiniBadge(),
-                loadDetailingBadge(),
-                loadUltimulDevizFinal()
-            ]);
-        }
-
-        loadAllBadges();
-        setInterval(loadAllBadges, 60000);
-        loadAdminBanner();
-        setInterval(loadAdminBanner, 60000);
-
-        sb.channel('dashboard_badges')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'generator_logs' }, loadGeneratorBadge)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'evidente_avansuri' }, loadAvansBadge)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'evidenta_awb' }, loadAwbBadge)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_announcements' }, loadAdminBanner)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'admin_announcements' }, loadAdminBanner)
-            .subscribe();
-
-        function setConnectionStatus(state) {
-            if (state === 'online') {
-                statusDot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
-                statusText.textContent = 'Sistem Online';
-                statusText.className = 'text-xs text-emerald-400';
-                return;
-            }
-
-            if (state === 'checking') {
-                statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-                statusText.textContent = 'Verific conexiunea...';
-                statusText.className = 'text-xs text-amber-400';
-                return;
-            }
-
-            statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
-            statusText.textContent = 'Sistem Offline';
-            statusText.className = 'text-xs text-red-400';
-        }
-
-        async function updateConnectionStatus() {
-            if (!navigator.onLine) {
-                setConnectionStatus('offline');
-                return;
-            }
-
-            setConnectionStatus('checking');
-
-            try {
-                const { error } = await sb.from('devize').select('id_deviz', { head: true, count: 'exact' });
-                if (error) throw error;
-                setConnectionStatus('online');
-            } catch {
-                setConnectionStatus('offline');
-            }
-        }
-
-        updateConnectionStatus();
-        window.addEventListener('online', updateConnectionStatus);
-        window.addEventListener('offline', updateConnectionStatus);
-        setInterval(updateConnectionStatus, 30000);
-
-        function cereParolaAdmin() {
-            const parola = prompt("Acces restricționat. Introdu parola:");
-            if (parola === "boss2026") {
-                window.location.href = "modules/admin/admin.html";
-            } else if (parola !== null) {
-                alert("Parolă incorectă!");
-            }
-        }
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+            },
+            colors: {
+              background: "#14161c",
+              foreground: "#f1f2f4",
+              card: "#1b1e26",
+              popover: "#1d2029",
+              primary: { DEFAULT: "#2dd4cf", foreground: "#161b24" },
+              secondary: { DEFAULT: "#262a34", foreground: "#f1f2f4" },
+              muted: { DEFAULT: "#22262f", foreground: "#98a0ad" },
+              accent: { DEFAULT: "#2a2f3a", foreground: "#f1f2f4" },
+              destructive: "#ef4757",
+              warning: { DEFAULT: "#f5b32b", foreground: "#2a1f05" },
+              success: { DEFAULT: "#27c79a", foreground: "#06231a" },
+              border: "rgba(255,255,255,0.09)",
+              sidebar: {
+                DEFAULT: "#181b22",
+                foreground: "#e9eaee",
+                accent: "#262a34",
+                border: "rgba(255,255,255,0.08)",
+              },
+            },
+            borderRadius: {
+              lg: "0.85rem",
+              xl: "1.2rem",
+              "2xl": "1.5rem",
+            },
+          },
+        },
+      };
     </script>
-</body>
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .font-mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* Neon glow pulse */
+      @keyframes neon-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 var(--glow-soft);
+        }
+        50% {
+          box-shadow: 0 0 18px 2px var(--glow-strong);
+        }
+      }
+      .animate-neon {
+        animation: neon-pulse 2.4s ease-in-out infinite;
+      }
+
+      /* Shimmer sweep on hover */
+      @keyframes shimmer-sweep {
+        0% {
+          transform: translateX(-150%) skewX(-20deg);
+        }
+        100% {
+          transform: translateX(250%) skewX(-20deg);
+        }
+      }
+      .shimmer-on-hover {
+        position: relative;
+        overflow: hidden;
+      }
+      .shimmer-on-hover::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(241, 242, 244, 0.12),
+          transparent
+        );
+        transform: translateX(-150%) skewX(-20deg);
+        pointer-events: none;
+      }
+      .shimmer-on-hover:hover::after {
+        animation: shimmer-sweep 0.9s ease;
+      }
+
+      /* Float */
+      @keyframes float-soft {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+      .animate-float {
+        animation: float-soft 4s ease-in-out infinite;
+      }
+
+      /* Dotted grid background */
+      .bg-grid {
+        background-image: radial-gradient(
+          circle at 1px 1px,
+          rgba(241, 242, 244, 0.07) 1px,
+          transparent 0
+        );
+        background-size: 26px 26px;
+      }
+
+      /* Marquee - Setari scris derulant */
+      @keyframes marquee-scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .animate-marquee-scroll {
+        animation: marquee-scroll 15s linear infinite !important;
+      }
+      .mask-fade-edges {
+        mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+      }
+
+      /* Sidebar collapse state */
+      #sidebar {
+        width: 260px;
+        transition: width 0.3s ease;
+      }
+      #sidebar.collapsed {
+        width: 76px;
+      }
+      #sidebar.collapsed .sidebar-label,
+      #sidebar.collapsed .sidebar-section-title,
+      #sidebar.collapsed .sidebar-brand-text,
+      #sidebar.collapsed .collapse-label {
+        display: none;
+      }
+      #sidebar.collapsed .nav-btn {
+        justify-content: center;
+      }
+
+      /* Custom scrollbar */
+      nav::-webkit-scrollbar {
+        width: 6px;
+      }
+      nav::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 9999px;
+      }
+    </style>
+  </head>
+
+  <body class="bg-background text-foreground antialiased">
+    <div class="flex min-h-screen">
+      <!-- ============ SIDEBAR ============ -->
+      <aside
+        id="sidebar"
+        class="sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar"
+      >
+        <!-- Brand -->
+<div class="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
+  <div class="grid size-12 shrink-0 place-items-center rounded-xl">
+    <a href="#" onclick="event.preventDefault(); cereParolaAdmin();" class="hover:opacity-80 transition-opacity">
+       <img src="icons/128x128.png" alt="Admin" class="h-10 w-10 object-contain">
+    </a>
+  </div>
+  
+  <!-- Am adăugat 'brand-text' și 'transition-opacity duration-300' -->
+  <div class="brand-text flex flex-col transition-opacity duration-300">
+    <span class="font-bold text-sidebar-foreground whitespace-nowrap">HUB Service</span>
+    <span class="text-[10px] text-sidebar-foreground/60 whitespace-nowrap">Auto Command 2026</span>
+  </div>
+</div>
+
+        <!-- Nav (rendered by JS) -->
+        <nav id="nav" class="flex-1 overflow-y-auto px-3 py-4"></nav>
+
+        <!-- Collapse toggle -->
+        <div class="border-t border-sidebar-border p-3">
+          <button
+            type="button"
+            id="collapseBtn"
+            class="flex w-full items-center justify-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+          >
+            <i data-lucide="chevron-left" class="size-[18px] toggle-icon"></i>
+            <span class="collapse-label">Restrânge</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ============ MAIN COLUMN ============ -->
+      <div class="flex min-w-0 flex-1 flex-col">
+        <!-- ===== TOP BAR ===== -->
+        <header
+          class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-xl md:px-6"
+        >
+          <!-- Search -->
+          <div class="relative hidden flex-1 md:block">
+            <div class="relative max-w-md">
+              <i
+                data-lucide="search"
+                class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              ></i>
+              <input
+                id="globalSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Caută deviz, VIN, client…"
+                class="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/25"
+              />
+              <div
+                id="searchDropdown"
+                class="absolute left-0 top-full z-50 mt-1 hidden w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/40"
+              ></div>
+            </div>
+          </div>
+
+          <div class="flex flex-1 items-center justify-end gap-3 md:flex-none">
+            <!-- Date + clock -->
+            <div
+              class="hidden items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 sm:flex"
+            >
+              <i data-lucide="calendar-days" class="size-4 text-muted-foreground"></i>
+              <div class="leading-tight">
+                <p id="dateLabel" class="text-[11px] text-muted-foreground">—</p>
+                <p
+                  id="timeLabel"
+                  class="font-mono text-sm font-semibold tabular-nums text-primary"
+                >
+                  --:--:--
+                </p>
+              </div>
+            </div>
+
+            <!-- AI Chat -->
+            <button
+              type="button"
+              class="group relative flex items-center gap-2 overflow-hidden rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:-translate-y-0.5 opacity-50 cursor-not-allowed"
+            >
+              <i data-lucide="sparkles" class="size-4"></i>
+              <span class="hidden sm:inline">AI Chat</span>
+            </button>
+
+            <!-- Notifications -->
+            <button
+              type="button"
+              aria-label="Notificări"
+              class="relative grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <i data-lucide="bell" class="size-[18px]"></i>
+              <span
+                class="absolute right-2 top-2 size-2 rounded-full bg-destructive shadow-[0_0_8px_#ef4757] "
+              ></span>
+            </button>
+
+            <!-- User -->
+            <button
+              type="button"
+              class="flex items-center gap-2.5 rounded-xl border border-border bg-card py-1 pl-1 pr-3 transition-colors hover:border-primary/40 "
+            >
+              <span
+                class="grid size-8 place-items-center rounded-lg bg-secondary font-mono text-xs font-bold text-foreground opacity-50 cursor-not-allowed"
+              >
+                MV
+              </span>
+              <span class="hidden leading-tight md:block">
+                <span class="block text-sm font-semibold text-foreground opacity-50 cursor-not-allowed">Mecanic Vlad</span>
+                <span class="flex items-center gap-1.5">
+                  <span id="statusDot" class="size-2 rounded-full bg-success"></span>
+                  <span id="statusText" class="text-[11px] text-success">Sistem Online</span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8 md:py-8">
+          <!-- Greeting -->
+          <div class="mb-6">
+            <h1 id="greetingText" class="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              Bună dimineața! Să curgă devizele!
+            </h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Panou de comandă HUB Service Auto — totul într-un singur loc.
+            </p>
+          </div>
+
+          <!-- Alert center -->
+          <section
+            aria-label="Centru de alerte directe"
+            class="mx-auto mb-8 max-w-5xl rounded-2xl border border-border bg-card/60 p-4 shadow-xl shadow-black/20 md:p-5"
+          >
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2.5 shrink-0">
+                <span class="grid size-8 place-items-center rounded-lg bg-destructive/15 text-destructive">
+                  <i data-lucide="alert-triangle" class="size-[18px]"></i>
+                </span>
+                <div>
+                  <h2 class="text-sm font-semibold text-foreground">Centru de Alerte Directe</h2>
+                  <p id="alertSubtitle" class="text-xs text-muted-foreground">Se încarcă alertele…</p>
+                </div>
+              </div>
+              
+              <!-- Admin Announcement Container -->
+<div id="adminAnnouncementContainer" class="hidden flex items-center gap-3 px-4 py-2 border border-warning/20 bg-warning/5 rounded-xl min-w-0 flex-1">
+  <span class="shrink-0 text-warning">📢</span>
+  <div id="adminAnnouncementWrapper" class="relative flex-1 overflow-hidden whitespace-nowrap text-sm font-medium text-warning">
+    <div id="adminAnnouncementScroll" class="inline-flex gap-8">
+      <p class="adminAnnouncementText"></p>
+      <p class="adminAnnouncementText hidden"></p>
+    </div>
+  </div>
+</div>
+            </div>
+            <div id="alertGrid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+          </section>
+
+          <!-- Detailing & Constatări — hero -->
+          <div class="mb-8">
+            <div class="mb-4 flex items-center gap-2.5">
+              <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
+                <i data-lucide="sparkles" class="size-[18px]"></i>
+              </span>
+              <div>
+                <h2 class="text-sm font-bold uppercase tracking-wider text-foreground">
+                  Detailing &amp; Constatări
+                </h2>
+                <p class="text-xs text-muted-foreground">Procese vizuale — recomandate echipei</p>
+              </div>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <!-- Detailing -->
+              <a
+                href="modules/formulare/detailing.html"
+                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
+              >
+                <div class="bg-grid absolute inset-0 opacity-60"></div>
+                <div
+                  class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"
+                ></div>
+                <div class="relative flex items-start justify-between">
+                  <span
+                    class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110"
+                  >
+                    <i data-lucide="sparkles" class="size-6 animate-float"></i>
+                  </span>
+                  <span
+                    id="badge-detailing"
+                    class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"
+                  >
+                    <i data-lucide="droplets" class="size-3.5"></i>
+                    —
+                  </span>
+                </div>
+                <div class="relative mt-6">
+                  <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
+                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
+                  </p>
+                  <span
+                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
+                  >
+                    <i data-lucide="play" class="size-4 fill-current"></i>
+                    Începe sesiunea
+                  </span>
+                </div>
+              </a>
+
+              <!-- Constatări -->
+              <a
+                href="modules/formulare/constatari.html"
+                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
+              >
+                <div class="bg-grid absolute inset-0 opacity-60"></div>
+                <div
+                  class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"
+                ></div>
+                <div class="relative flex items-start justify-between">
+                  <span
+                    class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110"
+                  >
+                    <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
+                  </span>
+                  <span
+                    class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success"
+                  >
+                    Recomandat
+                  </span>
+                </div>
+                <div class="relative mt-6">
+                  <h3 class="text-xl font-bold text-foreground">Constatări</h3>
+                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
+                    intervenție.
+                  </p>
+                  <span
+                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success"
+                  >
+                    <i data-lucide="play" class="size-4 fill-current"></i>
+                    Constatare nouă
+                  </span>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Bento grid: Birou + Service -->
+          <div class="grid gap-8 xl:grid-cols-2">
+            <section>
+              <div class="mb-4 flex items-center gap-2.5">
+                <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
+                  <i data-lucide="receipt-text" class="size-[18px]"></i>
+                </span>
+                <div>
+                  <h2 class="text-sm font-bold uppercase tracking-wider text-foreground">
+                    Birou &amp; Financiar
+                  </h2>
+                  <p class="text-xs text-muted-foreground">Devize, contracte și evidențe</p>
+                </div>
+              </div>
+              <div id="birouGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+            </section>
+
+            <section>
+              <div class="mb-4 flex items-center gap-2.5">
+                <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
+                  <i data-lucide="wrench" class="size-[18px]"></i>
+                </span>
+                <div>
+                  <h2 class="text-sm font-bold uppercase tracking-wider text-foreground">
+                    Service &amp; Logistică
+                  </h2>
+                  <p class="text-xs text-muted-foreground">Mașini, piese și consumabile</p>
+                </div>
+              </div>
+              <div id="serviceGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      /* ---------------- DATA ---------------- */
+      const navSections = [
+        {
+          title: "Birou",
+          items: [
+            { id: "devize", label: "Devize", icon: "file-text", url: "modules/devize/deviz.html" },
+            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html" },
+            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html" },
+            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html" },
+            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html" },
+            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html" },
+          ],
+        },
+        {
+          title: "Service",
+          items: [
+            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html" },
+            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html" },
+            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html" },
+            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html" },
+            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html" },
+            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html" },
+          ],
+        },
+        {
+          title: "Detailing",
+          items: [
+            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html" },
+            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html" },
+          ],
+        },
+        {
+          title: "Admin",
+          items: [
+            { id: "panou", label: "Panou Control", icon: "layout-dashboard", url: "index.html" },
+            { id: "arhiva", label: "Arhivă", icon: "archive", url: "#" },
+            { id: "setari", label: "Setări", icon: "settings", url: "#" },
+          ],
+        },
+      ];
+
+      const iconTone = {
+        neutral: "bg-secondary text-foreground",
+        primary: "bg-primary/15 text-primary",
+        warning: "bg-warning/15 text-warning",
+        critical: "bg-destructive/15 text-destructive",
+        success: "bg-success/15 text-success",
+      };
+      const badgeTone = {
+        primary: "bg-primary/15 text-primary",
+        warning: "bg-warning/15 text-warning ring-1 ring-warning/30",
+        critical: "bg-destructive/15 text-destructive ring-1 ring-destructive/30 animate-neon",
+        success: "bg-success/15 text-success",
+      };
+      const glowMap = {
+        primary: ["rgba(45,212,207,0.55)", "rgba(45,212,207,0.45)"],
+        warning: ["rgba(245,179,43,0.55)", "rgba(245,179,43,0.45)"],
+        critical: ["rgba(239,71,87,0.55)", "rgba(239,71,87,0.45)"],
+        success: ["rgba(39,199,154,0.55)", "rgba(39,199,154,0.45)"],
+      };
+
+      const birouCards = [
+        { id: "devize", title: "Devize", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html" },
+        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html" },
+        { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html" },
+        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html" },
+        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html" },
+        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html" },
+      ];
+
+      const serviceCards = [
+        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html" },
+        { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html" },
+        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html" },
+        { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html" },
+        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html" },
+        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html" },
+      ];
+
+      const alerts = [];
+      let adminAnnouncementText = null;
+      let detailingHeroMeta = "—";
+      const alertMetrics = { contracte: 0, consumabile: 0, generatorState: "off", generatorStart: null, generatorDuration: null, generatorLitri: 0 };
+
+      const dbUrl = "https://xyovkxmtbvgcwavuyxxu.supabase.co";
+      const dbKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74";
+      const sb = supabase.createClient(dbUrl, dbKey);
+
+      const todayISO = () => new Date().toLocaleDateString("sv-SE");
+      const monthPrefix = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      };
+      const parseUTC = (dateStr) => {
+        if (!dateStr) return null;
+        return new Date(dateStr.includes("Z") || dateStr.includes("+") ? dateStr : dateStr + "Z");
+      };
+      const formatLei = (n) => new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 }).format(n);
+      const extractLei = (text) => {
+        const matches = String(text ?? "").match(/\d+(?:[.,]\d+)?/g);
+        if (!matches) return 0;
+        return matches.reduce((s, m) => s + (parseFloat(m.replace(",", ".")) || 0), 0);
+      };
+      const readAnnouncementText = (row) => {
+        if (!row || typeof row !== "object") return "";
+        return String(row.mesaj ?? row.message ?? row.text ?? row.continut ?? row.content ?? row.titlu ?? "").trim();
+      };
+
+      function patchCard(arr, id, patch) {
+        const card = arr.find((c) => c.id === id);
+        if (card) Object.assign(card, patch);
+      }
+
+      function initMarquee() {
+        const adminContainer = document.getElementById('adminAnnouncementContainer');
+        const adminWrapper = document.getElementById('adminAnnouncementWrapper');
+        const adminScroll = document.getElementById('adminAnnouncementScroll');
+        const adminTexts = document.querySelectorAll('.adminAnnouncementText');
+
+        if (!adminContainer || !adminWrapper || !adminScroll) return;
+
+        if (adminAnnouncementText) {
+          adminTexts.forEach(el => el.textContent = adminAnnouncementText);
+          adminContainer.classList.remove('hidden');
+          adminContainer.classList.add('flex');
+          
+          requestAnimationFrame(() => {
+            const containerWidth = adminWrapper.clientWidth;
+            const textWidth = adminTexts[0].scrollWidth;
+            
+            if (textWidth > containerWidth) {
+              if (adminTexts[1]) adminTexts[1].classList.remove('hidden');
+              adminScroll.style.animation = 'none';
+              void adminScroll.offsetWidth; // Force reflow
+              adminScroll.style.setProperty('--scroll-amount', `-${textWidth + 32}px`); // 32px is the 2rem gap
+              adminScroll.classList.add('animate-marquee-scroll');
+            } else {
+              if (adminTexts[1]) adminTexts[1].classList.add('hidden');
+              adminScroll.classList.remove('animate-marquee-scroll');
+              adminScroll.style.animation = 'none';
+            }
+          });
+        } else {
+          adminContainer.classList.add('hidden');
+          adminContainer.classList.remove('flex');
+        }
+      }
+
+      function rebuildAlerts() {
+        const next = [];
+
+        initMarquee();
+
+        if (alertMetrics.contracte > 0) {
+          next.push({
+            id: "contracte",
+            count: String(alertMetrics.contracte),
+            label: "Contracte Incomplete",
+            detail: "Contracte fara date",
+            icon: "file-warning",
+            level: "warning",
+            url: "modules/devize/contracte.html",
+          });
+        }
+
+        if (alertMetrics.consumabile > 0) {
+          next.push({
+            id: "consumabile",
+            count: String(alertMetrics.consumabile),
+            label: "Produse sub stoc",
+            detail: "Consumabile de comandat",
+            icon: "package-x",
+            level: "critical",
+            url: "modules/stocuri/consumabile.html",
+          });
+        }
+
+        if (alertMetrics.generatorState === "on") {
+          next.push({
+            id: "generator",
+            count: "!",
+            label: "Generator pornit",
+            detail: `Start: ${alertMetrics.generatorStart}`,
+            icon: "zap",
+            level: "gen_on",
+            url: "modules/formulare/generator.html",
+          });
+        } else if (alertMetrics.generatorState === "off") {
+          next.push({
+            id: "generator",
+            count: "✓",
+            label: "Generator oprit",
+            detail: `Ultima sesiune: ${alertMetrics.generatorDuration || "N/A"}`,
+            icon: "zap-off",
+            level: "gen_off",
+            url: "modules/formulare/generator.html",
+          });
+        }
+
+        alerts.length = 0;
+        alerts.push(...next);
+
+        const sub = document.getElementById("alertSubtitle");
+        if (sub) {
+          const n = next.length;
+          sub.textContent = n
+            ? `${n} element${n === 1 ? "" : "e"} necesită atenția ta`
+            : "Nicio alertă activă";
+        }
+      }
+      const alertLevel = {
+        critical: { glow: glowMap.critical, ring: "border-destructive/40 hover:border-destructive/70", chip: "bg-destructive/15 text-destructive", count: "text-destructive", anim: "animate-neon" },
+        warning: { glow: glowMap.warning, ring: "border-warning/40 hover:border-warning/70", chip: "bg-warning/15 text-warning", count: "text-warning", anim: "animate-neon" },
+        gen_on: { glow: glowMap.critical, ring: "border-destructive/40 border-l-4 border-l-destructive hover:border-destructive/70", chip: "bg-destructive/15 text-destructive", count: "text-destructive", anim: "animate-neon" },
+        gen_off: { glow: glowMap.success, ring: "border-border border-l-4 border-l-success hover:border-success/40", chip: "bg-success/15 text-success", count: "text-success", anim: "" },
+      };
+
+      /* ---------------- RENDER ---------------- */
+      let activeId = "panou";
+
+      function renderNav() {
+        const nav = document.getElementById("nav");
+        nav.innerHTML = navSections
+          .map(
+            (section) => `
+            <div class="mb-5">
+              <p class="sidebar-section-title mb-2 px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">${section.title}</p>
+              <ul class="flex flex-col gap-1">
+                ${section.items
+                  .map((item) => {
+                    const isActive = item.id === activeId;
+                    return `
+                    <li>
+                      <a href="${item.url}" data-id="${item.id}" title="${item.label}"
+                        class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-foreground"
+                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                        }">
+                        ${isActive ? `<span class="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_#2dd4cf]"></span>` : ""}
+                        <i data-lucide="${item.icon}" class="size-[18px] shrink-0 ${isActive ? "text-primary" : ""}"></i>
+                        <span class="sidebar-label truncate">${item.label}</span>
+                      </a>
+                    </li>`;
+                  })
+                  .join("")}
+              </ul>
+            </div>`
+          )
+          .join("");
+
+        lucide.createIcons();
+      }
+
+      function cardHTML(card) {
+        const glow = card.badge ? glowMap[card.badge.tone] : null;
+        const dotClass =
+          card.statusDot === "running"
+            ? "bg-success animate-pulse shadow-[0_0_8px_rgba(39,199,154,0.8)]"
+            : "bg-destructive shadow-[0_0_6px_#ef4757]";
+        return `
+          <a href="${card.url}"
+            class="shimmer-on-hover group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-lg shadow-black/20 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30">
+            ${card.statusDot ? `<span class="absolute right-3 top-3 size-2.5 rounded-full ${dotClass}"></span>` : ""}
+            <div class="flex items-start justify-between">
+              <span class="grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-105 ${iconTone[card.tone]}">
+                <i data-lucide="${card.icon}" class="size-5"></i>
+              </span>
+              <i data-lucide="arrow-up-right" class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="truncate text-[15px] font-semibold text-foreground">${card.title}</h3>
+              <p class="mt-0.5 truncate text-xs text-muted-foreground">${card.meta}</p>
+            </div>
+            ${
+              card.badge
+                ? `<span style="--glow-soft:${glow[0]};--glow-strong:${glow[1]}"
+                     class="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeTone[card.badge.tone]}">${card.badge.label}</span>`
+                : ""
+            }
+          </a>`;
+      }
+
+      function alertHTML(a) {
+        const s = alertLevel[a.level];
+        return `
+          <a href="${a.url}" style="--glow-soft:${s.glow[0]};--glow-strong:${s.glow[1]}"
+            class="group flex w-full items-center gap-3 rounded-xl border bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 ${s.anim ? s.anim : ''} ${s.ring}">
+            <span class="grid size-11 shrink-0 place-items-center rounded-lg ${s.chip}">
+              <i data-lucide="${a.icon}" class="size-5"></i>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-baseline gap-1.5">
+                <span class="font-mono text-lg font-bold tabular-nums ${s.count}">${a.count}</span>
+                <span class="truncate text-sm font-semibold text-foreground">${a.label}</span>
+              </span>
+              <span class="block truncate text-xs text-muted-foreground">${a.detail}</span>
+            </span>
+            <i data-lucide="arrow-right" class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"></i>
+          </a>`;
+      }
+
+      function renderAll() {
+        document.getElementById("birouGrid").innerHTML = birouCards.map(cardHTML).join("");
+        document.getElementById("serviceGrid").innerHTML = serviceCards.map(cardHTML).join("");
+        document.getElementById("alertGrid").innerHTML = alerts.map(alertHTML).join("");
+
+        const detailingBadge = document.getElementById("badge-detailing");
+        if (detailingBadge) {
+          detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+        }
+
+        renderNav();
+        lucide.createIcons();
+      }
+
+      /* ---------------- SIDEBAR TOGGLE ---------------- */
+      const sidebar = document.getElementById("sidebar");
+      const collapseBtn = document.getElementById("collapseBtn");
+
+      if (localStorage.getItem("sidebarCollapsed") === "true") {
+        sidebar.classList.add("collapsed");
+        document.querySelector(".brand-text").classList.add("hidden"); // Ascunde textul la refresh
+        const icon = collapseBtn.querySelector(".toggle-icon");
+        if (icon) icon.setAttribute("data-lucide", "panel-left");
+      }
+
+      collapseBtn.addEventListener("click", () => {
+    sidebar.classList.toggle("collapsed");
+    const collapsed = sidebar.classList.contains("collapsed");
+    localStorage.setItem("sidebarCollapsed", collapsed);
+    
+    // --- NOU: Ascunde/Afișează textul ---
+    const brandText = document.querySelector(".brand-text");
+    if (collapsed) {
+        brandText.classList.add("hidden"); 
+    } else {
+        brandText.classList.remove("hidden");
+    }
+    // ------------------------------------
+
+    const icon = collapseBtn.querySelector(".toggle-icon");
+    icon.setAttribute("data-lucide", collapsed ? "panel-left" : "chevron-left");
+    lucide.createIcons();
+});
+
+      /* ---------------- LIVE CLOCK ---------------- */
+      const DAYS = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
+      const MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"];
+      const pad = (n) => n.toString().padStart(2, "0");
+      function tick() {
+        const now = new Date();
+        const h = now.getHours();
+        let salut = "Bună seara! Să curgă devizele!";
+        if (h < 12) salut = "Bună dimineața! Să curgă devizele!";
+        else if (h < 18) salut = "Salutare! Să curgă devizele!";
+
+        document.getElementById("greetingText").textContent = salut;
+        document.getElementById("dateLabel").textContent =
+          `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+        document.getElementById("timeLabel").textContent =
+          `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      }
+
+      /* ---------------- SUPABASE LOADERS ---------------- */
+      async function loadAdminAnnouncement() {
+        try {
+          const { data, error } = await sb
+            .from("admin_announcements")
+            .select("*")
+            .eq("activ", true)
+            .limit(1);
+
+          if (error || !Array.isArray(data) || !data.length) {
+            adminAnnouncementText = null;
+            return;
+          }
+
+          const message = readAnnouncementText(data[0]);
+          adminAnnouncementText = message || null;
+        } catch {
+          adminAnnouncementText = null;
+        }
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return "N/A";
+        const d = parseUTC(iso);
+        const pad = (n) => n.toString().padStart(2, "0");
+        const today = new Date();
+        if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth()) {
+          return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      async function loadGeneratorBadge() {
+        const { data, error } = await sb.from("generator_logs").select("*").order("id", { ascending: false });
+        if (error) {
+          patchCard(serviceCards, "generator", { meta: "—" });
+          return;
+        }
+
+        const running = data.find((l) => l.ora_start && !l.ora_stop);
+        const lastLog = data[0];
+
+        alertMetrics.generatorState = running ? "on" : "off";
+        if (running) {
+          alertMetrics.generatorStart = formatDateTime(running.ora_start);
+        } else if (lastLog && lastLog.ora_start && lastLog.ora_stop) {
+          const start = parseUTC(lastLog.ora_start);
+          const stop = parseUTC(lastLog.ora_stop);
+          const mins = Math.floor((stop - start) / 60000);
+          const h = Math.floor(mins / 60);
+          const m = mins % 60;
+          alertMetrics.generatorDuration = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        } else {
+          alertMetrics.generatorDuration = "N/A";
+        }
+
+        const prefix = monthPrefix();
+        let totalMins = 0;
+        let totalLitri = 0;
+
+        data.forEach((l) => {
+          if (!l.data || !String(l.data).startsWith(prefix)) return;
+          if (l.litri_motorina && l.observatii?.includes("Alimentare")) {
+            totalLitri += parseFloat(l.litri_motorina) || 0;
+          }
+          if (l.ora_start && l.ora_stop && !l.observatii?.includes("Alimentare")) {
+            totalMins += Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000);
+          }
+        });
+
+        if (running && String(running.data).startsWith(prefix)) {
+          totalMins += Math.floor((Date.now() - parseUTC(running.ora_start).getTime()) / 60000);
+        }
+
+        const hours = Math.floor(totalMins / 60);
+        alertMetrics.generatorLitri = Math.round(totalLitri);
+
+        patchCard(serviceCards, "generator", {
+          meta: `${hours}h | ${Math.round(totalLitri)}L luna asta`,
+        });
+      }
+
+      async function loadConsumabileBadge() {
+        try {
+          const { data, error } = await sb.from("stoc_view_curent").select("*");
+          if (error) throw error;
+
+          const probleme = (data || []).filter((item) => item.stoc_actual <= item.prag_minim);
+          alertMetrics.consumabile = probleme.length;
+
+          if (probleme.length > 0) {
+            patchCard(serviceCards, "consumabile", {
+              meta: `⚠️ ${probleme.length} produse necesită atenție`,
+              tone: "critical",
+              badge: null,
+            });
+          } else {
+            patchCard(serviceCards, "consumabile", {
+              meta: "Stoc OK",
+              tone: "success",
+              badge: null,
+            });
+          }
+        } catch {
+          patchCard(serviceCards, "consumabile", { meta: "Eroare conexiune", badge: null });
+        }
+      }
+
+      async function loadAvansBadge() {
+        const today = todayISO();
+        const { data, error } = await sb
+          .from("evidente_avansuri")
+          .select("detalii_avans, data_crearii")
+          .eq("este_arhivat", false)
+          .eq("data_crearii", today);
+
+        if (error) {
+          patchCard(birouCards, "avansuri", { meta: "—" });
+          return;
+        }
+
+        const sum = (data || []).reduce((acc, r) => acc + extractLei(r.detalii_avans), 0);
+        patchCard(birouCards, "avansuri", {
+          meta: sum > 0 ? `Azi: +${formatLei(sum)} Lei` : "Azi: 0 Lei",
+        });
+      }
+
+      async function loadAwbBadge() {
+        const { data, error } = await sb
+          .from("evidenta_awb")
+          .select("pret, stare, is_archived")
+          .eq("stare", "in_tranzit")
+          .eq("is_archived", false);
+
+        if (error) {
+          patchCard(serviceCards, "awb", { meta: "—" });
+          return;
+        }
+
+        const sum = (data || []).reduce((acc, a) => acc + (Number(a.pret) || 0), 0);
+        patchCard(serviceCards, "awb", { meta: `În tranzit: ${formatLei(sum)} Lei` });
+      }
+
+      async function loadUltimulDeviz() {
+        const { data, error } = await sb
+          .from("devize")
+          .select("id_deviz")
+          .order("id_deviz", { ascending: false })
+          .limit(1);
+
+        if (error || !data?.length) {
+          patchCard(birouCards, "devize", { meta: "—" });
+          return;
+        }
+
+        patchCard(birouCards, "devize", { meta: `Ultimul: ${data[0].id_deviz}` });
+      }
+
+      async function loadUltimulDevizFinal() {
+        try {
+          const { data, error } = await sb
+            .from("deviz_final_header")
+            .select("id_deviz_final")
+            .order("id_deviz_final", { ascending: false })
+            .limit(1);
+
+          if (error) throw error;
+
+          if (data?.length) {
+            const formattedId = `DF-${String(data[0].id_deviz_final).padStart(3, "0")}`;
+            patchCard(birouCards, "deviz-final", { meta: `Ultimul: ${formattedId}` });
+          } else {
+            patchCard(birouCards, "deviz-final", { meta: "Niciun deviz final" });
+          }
+        } catch {
+          patchCard(birouCards, "deviz-final", { meta: "Eroare la încărcare" });
+        }
+      }
+
+      async function loadContracteBadge() {
+        const { count, error } = await sb
+          .from("contracte")
+          .select("*", { count: "exact", head: true })
+          .ilike("status", "%incomplet%");
+
+        if (error) {
+          alertMetrics.contracte = 0;
+          patchCard(birouCards, "contracte", { meta: "—", badge: null });
+          return;
+        }
+
+        alertMetrics.contracte = count || 0;
+
+        if (alertMetrics.contracte > 0) {
+          patchCard(birouCards, "contracte", {
+            meta: `⚠️ ${alertMetrics.contracte} incomplete`,
+            badge: null,
+          });
+        } else {
+          patchCard(birouCards, "contracte", {
+            meta: "Toate la zi",
+            badge: null,
+          });
+        }
+      }
+
+      async function loadTotalDevize() {
+        const { count, error } = await sb.from("devize").select("*", { count: "exact", head: true });
+        patchCard(birouCards, "cautare", {
+          meta: error ? "—" : `Total salvate: ${count || 0}`,
+        });
+      }
+
+      async function loadMasiniBadge() {
+        const { count, error } = await sb.from("flota_auto").select("*", { count: "exact", head: true });
+        patchCard(serviceCards, "masini", {
+          meta: error ? "—" : `Total: ${count || 0} mașini`,
+        });
+      }
+
+      async function loadDetailingBadge() {
+        const { data, error } = await sb.from("detailing").select("data_programare, status");
+
+        if (error) {
+          detailingHeroMeta = "—";
+          return;
+        }
+
+        const now = new Date();
+        let delayed = 0;
+
+        (data || []).forEach((row) => {
+          if (row.status !== "Programari") return;
+          const raw = String(row.data_programare ?? "").trim().replace("T", " ");
+          if (raw.length < 16) return;
+
+          const year = Number(raw.slice(0, 4));
+          const month = Number(raw.slice(5, 7));
+          const day = Number(raw.slice(8, 10));
+          const hour = Number(raw.slice(11, 13));
+          const minute = Number(raw.slice(14, 16));
+          if ([year, month, day, hour, minute].some((part) => Number.isNaN(part))) return;
+
+          const scheduled = new Date(year, month - 1, day, hour, minute);
+          if (scheduled < now) delayed += 1;
+        });
+
+        detailingHeroMeta = delayed > 0 ? `⚠️ ${delayed} Întârzieri` : "La zi";
+      }
+
+      async function loadAllBadges() {
+        await Promise.all([
+          loadAdminAnnouncement(),
+          loadGeneratorBadge(),
+          loadConsumabileBadge(),
+          loadAvansBadge(),
+          loadAwbBadge(),
+          loadUltimulDeviz(),
+          loadContracteBadge(),
+          loadTotalDevize(),
+          loadMasiniBadge(),
+          loadDetailingBadge(),
+          loadUltimulDevizFinal(),
+        ]);
+        rebuildAlerts();
+        renderAll();
+      }
+
+      async function refreshDashboard() {
+        await loadAllBadges();
+      }
+
+      /* ---------------- CONNECTION STATUS ---------------- */
+      function setConnectionStatus(state) {
+        const dot = document.getElementById("statusDot");
+        const text = document.getElementById("statusText");
+        if (!dot || !text) return;
+
+        if (state === "online") {
+          dot.className = "size-2 rounded-full bg-success animate-pulse";
+          text.textContent = "Sistem Online";
+          text.className = "text-[11px] text-success";
+          return;
+        }
+        if (state === "checking") {
+          dot.className = "size-2 rounded-full bg-warning animate-pulse";
+          text.textContent = "Verific conexiunea…";
+          text.className = "text-[11px] text-warning";
+          return;
+        }
+        dot.className = "size-2 rounded-full bg-destructive";
+        text.textContent = "Sistem Offline";
+        text.className = "text-[11px] text-destructive";
+      }
+
+      async function updateConnectionStatus() {
+        if (!navigator.onLine) {
+          setConnectionStatus("offline");
+          return;
+        }
+        setConnectionStatus("checking");
+        try {
+          const { error } = await sb.from("devize").select("id_deviz", { head: true, count: "exact" });
+          if (error) throw error;
+          setConnectionStatus("online");
+        } catch {
+          setConnectionStatus("offline");
+        }
+      }
+
+      /* ---------------- GLOBAL SEARCH ---------------- */
+      const globalSearch = document.getElementById("globalSearch");
+      const searchDropdown = document.getElementById("searchDropdown");
+      let searchTimer = null;
+
+      function renderSearchDropdown(groups) {
+        const total = groups.reduce((n, g) => n + g.items.length, 0);
+        if (!total) {
+          searchDropdown.innerHTML =
+            '<div class="px-4 py-3 text-sm text-muted-foreground">Niciun rezultat.</div>';
+          searchDropdown.classList.remove("hidden");
+          return;
+        }
+
+        searchDropdown.innerHTML = groups
+          .filter((g) => g.items.length)
+          .map(
+            (g) => `
+            <div class="border-b border-border/60 last:border-0">
+              <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">${g.title}</div>
+              ${g.items
+                .map(
+                  (item) => `
+                <a href="${item.url}" class="flex items-start gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-accent/60">
+                  <i data-lucide="${item.icon}" class="mt-0.5 size-4 shrink-0 text-primary"></i>
+                  <span class="min-w-0">
+                    <span class="block truncate font-semibold text-foreground">${escapeHtml(item.label)}</span>
+                    <span class="block truncate text-xs text-muted-foreground">${escapeHtml(item.detail)}</span>
+                  </span>
+                </a>`
+                )
+                .join("")}
+            </div>`
+          )
+          .join("");
+
+        searchDropdown.classList.remove("hidden");
+        lucide.createIcons();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[ch]);
+      }
+
+      async function runGlobalSearch(query) {
+        const q = query.trim();
+        if (!q) {
+          searchDropdown.classList.add("hidden");
+          searchDropdown.innerHTML = "";
+          return;
+        }
+
+        const safe = q.replace(/[%_*,]/g, "").trim();
+        if (!safe) return;
+
+        const pattern = `%${safe}%`;
+        const quoted = `"${pattern.replace(/"/g, '\\"')}"`;
+
+        const [flotaRes, devizeRes, stocRes] = await Promise.all([
+          sb
+            .from("flota_auto")
+            .select("id, nr_inmatriculare, vin, marca")
+            .or(`nr_inmatriculare.ilike.${quoted},vin.ilike.${quoted},marca.ilike.${quoted}`)
+            .limit(8),
+          sb
+            .from("devize")
+            .select("id_deviz, autovehicul, nr_inmatriculare")
+            .or(`id_deviz.ilike.${quoted},autovehicul.ilike.${quoted},nr_inmatriculare.ilike.${quoted}`)
+            .limit(8),
+          sb
+            .from("stoc_view_curent")
+            .select("id, cod_articol, denumire")
+            .or(`denumire.ilike.${quoted},cod_articol.ilike.${quoted}`)
+            .limit(8),
+        ]);
+
+        const groups = [
+          {
+            title: "Flotă Auto",
+            items: (flotaRes.data || []).map((r) => ({
+              label: r.nr_inmatriculare || r.marca || "Mașină",
+              detail: [r.marca, r.vin].filter(Boolean).join(" · ") || "VIN necunoscut",
+              url: "modules/flota/lista_masini.html",
+              icon: "car",
+            })),
+          },
+          {
+            title: "Devize",
+            items: (devizeRes.data || []).map((r) => ({
+              label: r.id_deviz || "Deviz",
+              detail: [r.autovehicul, r.nr_inmatriculare].filter(Boolean).join(" · ") || "—",
+              url: `modules/devize/deviz.html?id=${encodeURIComponent(r.id_deviz || "")}`,
+              icon: "file-text",
+            })),
+          },
+          {
+            title: "Stoc Consumabile",
+            items: (stocRes.data || []).map((r) => ({
+              label: r.denumire || r.cod_articol || "Produs",
+              detail: r.cod_articol ? `Cod: ${r.cod_articol}` : "Consumabil",
+              url: "modules/stocuri/consumabile.html",
+              icon: "boxes",
+            })),
+          },
+        ];
+
+        console.groupCollapsed(`%c🔍 Căutare HUB: "${q}"`, "color:#2dd4cf;font-weight:bold;font-size:13px");
+        groups.forEach((g) => {
+          if (!g.items.length) return;
+          console.group(`%c${g.title} (${g.items.length})`, "color:#f5b32b;font-weight:bold");
+          g.items.forEach((item) => console.log(`→ ${item.label} — ${item.detail}`));
+          console.groupEnd();
+        });
+        console.groupEnd();
+
+        renderSearchDropdown(groups);
+      }
+
+      if (globalSearch) {
+        globalSearch.addEventListener("input", (e) => {
+          clearTimeout(searchTimer);
+          const val = e.target.value;
+          searchTimer = setTimeout(() => runGlobalSearch(val), 280);
+        });
+
+        globalSearch.addEventListener("focus", () => {
+          if (globalSearch.value.trim()) runGlobalSearch(globalSearch.value);
+        });
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!searchDropdown || !globalSearch) return;
+        if (!searchDropdown.contains(e.target) && e.target !== globalSearch) {
+          searchDropdown.classList.add("hidden");
+        }
+      });
+
+      /* ---------------- INIT ---------------- */
+      renderAll();
+      tick();
+      setInterval(tick, 1000);
+      loadAllBadges();
+      setInterval(loadAllBadges, 60000);
+      updateConnectionStatus();
+      setInterval(updateConnectionStatus, 30000);
+      window.addEventListener("online", updateConnectionStatus);
+      window.addEventListener("offline", updateConnectionStatus);
+      window.addEventListener("resize", initMarquee);
+
+      sb.channel("dashboard_badges")
+        .on("postgres_changes", { event: "*", schema: "public", table: "generator_logs" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "evidenta_awb" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "admin_announcements" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "contracte" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "detailing" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "devize" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "flota_auto" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "stoc_view_curent" }, refreshDashboard)
+        .subscribe();
+
+      </script>
+
+<script>
+function cereParolaAdmin() {
+    const parola = prompt("Acces restricționat. Introdu parola:");
+    
+    if (parola === "boss2026") {
+        // Dacă e corect, navigăm
+        window.location.href = "modules/admin/admin.html";
+    } else if (parola !== null) {
+        // Dacă e greșit, alertă și nu facem nimic (rămâne pe index)
+        alert("Parolă incorectă!");
+    }
+    // Dacă e null (a dat cancel), nu facem nimic
+}
+</script>
+
+  </body>
 </html>
