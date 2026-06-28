@@ -172,10 +172,12 @@
       }
 
       /* Custom scrollbar */
-      nav::-webkit-scrollbar {
+      nav::-webkit-scrollbar,
+      .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
       }
-      nav::-webkit-scrollbar-thumb {
+      nav::-webkit-scrollbar-thumb,
+      .custom-scrollbar::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.12);
         border-radius: 9999px;
       }
@@ -275,13 +277,15 @@
 
             <!-- Notifications -->
             <button
+              id="notificationsBtn"
               type="button"
               aria-label="Notificări"
               class="relative grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
             >
               <i data-lucide="bell" class="size-[18px]"></i>
               <span
-                class="absolute right-2 top-2 size-2 rounded-full bg-destructive shadow-[0_0_8px_#ef4757] "
+                id="notificationDot"
+                class="absolute right-2 top-2 size-2 rounded-full bg-destructive shadow-[0_0_8px_#ef4757] hidden"
               ></span>
             </button>
 
@@ -1331,6 +1335,126 @@ function cereParolaAdmin() {
     }
     // Dacă e null (a dat cancel), nu facem nimic
 }
+</script>
+
+<!-- =========================================
+     SYSTEM NOTIFICATIONS MODAL
+     ========================================= -->
+<div id="notificationsModalOverlay" class="fixed inset-0 z-50 hidden bg-background/80 backdrop-blur-sm transition-opacity">
+  <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-border bg-card p-6 shadow-2xl shadow-black/60">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+        <i data-lucide="bell-ring" class="size-5 text-primary"></i>
+        Actualizări Sistem
+      </h2>
+      <button id="closeNotificationsBtn" class="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+        <i data-lucide="x" class="size-5"></i>
+      </button>
+    </div>
+    <div id="notificationsList" class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+      <!-- Updates vor fi injectate aici -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================
+   SYSTEM NOTIFICATIONS (MANUAL UPDATES)
+   ========================================= 
+   Adaugă noi update-uri în array-ul de mai jos. 
+   ID-ul trebuie să fie mai mare decât cel anterior. 
+*/
+const SYSTEM_UPDATES = [
+  {
+    id: 2, // <-- Schimbi ID-ul (ex: de la 1 la 2) ca să reapară bulina roșie la toată lumea
+    date: "2026-06-29",
+    title: "Versiune Nouă HUB v2.1",
+    // Folosim o listă de mesaje în loc de un singur text lung:
+    description: [
+      "De acum, numerele se salvează automat în formatul CT12ABC, chiar dacă sunt scrise cu spații sau cratime.",
+      "Am actualizat designul paginii de index pentru o navigare mai rapidă și un aspect mai curat.",
+      "Am adăugat modulul de notificări și am optimizat încărcarea devizelor finale."
+    ]
+  }
+];
+
+const notifBtn = document.getElementById("notificationsBtn");
+const notifDot = document.getElementById("notificationDot");
+const notifModal = document.getElementById("notificationsModalOverlay");
+const closeNotifBtn = document.getElementById("closeNotificationsBtn");
+const notifList = document.getElementById("notificationsList");
+
+function checkNotifications() {
+  if (!SYSTEM_UPDATES || SYSTEM_UPDATES.length === 0) return;
+  
+  const latestUpdate = [...SYSTEM_UPDATES].sort((a, b) => b.id - a.id)[0];
+  const storedId = localStorage.getItem("lastSeenUpdateId");
+  
+  if (storedId !== String(latestUpdate.id)) {
+    notifDot.classList.remove("hidden");
+  } else {
+    notifDot.classList.add("hidden");
+  }
+}
+
+function renderNotifications() {
+  if (!SYSTEM_UPDATES || SYSTEM_UPDATES.length === 0) {
+    notifList.innerHTML = '<p class="text-sm text-muted-foreground">Nu există actualizări recente.</p>';
+    return;
+  }
+  
+  const sortedUpdates = [...SYSTEM_UPDATES].sort((a, b) => b.id - a.id);
+  notifList.innerHTML = sortedUpdates.map(update => {
+    const descHtml = Array.isArray(update.description)
+      ? `<ul class="list-disc text-sm text-muted-foreground leading-relaxed pl-6 mt-2 space-y-1">\n          ${update.description.map(item => `<li>${item}</li>`).join("")}\n         </ul>`
+      : `<p class="text-sm text-muted-foreground leading-relaxed pl-2 mt-2">${update.description}</p>`;
+
+    return `
+    <div class="rounded-xl border border-border bg-background/50 p-4 transition-colors hover:border-primary/40 relative overflow-hidden group">
+      <!-- Glow effect pe marginea din stanga -->
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary/40 group-hover:bg-primary transition-colors"></div>
+      <div class="mb-2 flex items-center justify-between">
+        <h3 class="font-semibold text-foreground text-sm pl-2">${update.title}</h3>
+        <span class="font-mono text-xs text-muted-foreground bg-accent px-2 py-0.5 rounded-md">${update.date}</span>
+      </div>
+      ${descHtml}
+    </div>
+  `}).join("");
+  
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+function openNotifications() {
+  renderNotifications();
+  notifModal.classList.remove("hidden");
+  
+  if (SYSTEM_UPDATES && SYSTEM_UPDATES.length > 0) {
+    const latestUpdate = [...SYSTEM_UPDATES].sort((a, b) => b.id - a.id)[0];
+    localStorage.setItem("lastSeenUpdateId", String(latestUpdate.id));
+  }
+  notifDot.classList.add("hidden");
+}
+
+function closeNotifications() {
+  notifModal.classList.add("hidden");
+}
+
+if (notifBtn) {
+  notifBtn.addEventListener("click", openNotifications);
+}
+if (closeNotifBtn) {
+  closeNotifBtn.addEventListener("click", closeNotifications);
+}
+if (notifModal) {
+  notifModal.addEventListener("click", (e) => {
+    if (e.target === notifModal) closeNotifications();
+  });
+}
+
+// Rulare inițială
+checkNotifications();
 </script>
 
   </body>
