@@ -21,11 +21,7 @@ body {
     background: #020617;
     color: #e2e8f0;
     margin: 0;
-
-    async function salvareDeviz() {
-        // --- NOU
-    async function salvareDeviz() {
-        // --- NOU
+    padding: 0;
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -600,12 +596,6 @@ td:nth-child(3) input {
         "'": '&#39;',
     })[ch]);
 
-    const normalizePlate = (plate) => {
-        if (!plate) return 'FaraNumar';
-        const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-        return cleaned || 'FaraNumar';
-    };
-
     const toNumber = (value) => {
         const n = Number(String(value ?? '').replace(',', '.'));
         return Number.isFinite(n) ? n : 0;
@@ -925,15 +915,6 @@ td:nth-child(3) input {
     };
 
     async function salvareDeviz() {
-        // Validare: verifică dacă tabelul de piese este gol sau totalul general este 0.00 RON
-        const items = getScreenItems();
-        const { grandTotal } = calculateTotals();
-
-        if (items.length === 0 || grandTotal === 0) {
-            alert("Nu poți salva un deviz gol!");
-            return false; // Oprește salvarea
-        }
-
         let idDeviz = (screenIdDeviz.value || '').trim();
         if (!idDeviz) {
             const parsed = parseDevizNumber(ultimulDevizId);
@@ -948,18 +929,14 @@ td:nth-child(3) input {
         setBusy(true);
         setStatus('Se salvează...');
 
-        const discountPercent = toNumber(screenDiscount.value); // Preluăm discountPercent aici
-        
-        const nrInmatriculareNormalized = normalizePlate(screenNrAuto.value);
-        screenNrAuto.value = nrInmatriculareNormalized;
-        
+        const { grandTotal, discountPercent } = calculateTotals();
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
             autovehicul: (screenAutovehicul.value || '').trim() || null,
             vin: (screenVin.value || '').trim() || null,
-            nr_inmatriculare: nrInmatriculareNormalized,
-            piese: items.map((it) => ({
+            nr_inmatriculare: (screenNrAuto.value || '').trim() || null,
+            piese: getScreenItems().map((it) => ({
                 produs: it.descriere,
                 discount: it.apply_discount,
                 qty: it.cantitate,
@@ -1054,9 +1031,8 @@ td:nth-child(3) input {
         }
 
         syncToPrintTemplate();
-        let nrAuto = normalizePlate(screenNrAuto?.value);
-        if (screenNrAuto) screenNrAuto.value = nrAuto;
-        
+        let nrAuto = (screenNrAuto?.value || '').trim();
+        if (!nrAuto) nrAuto = 'Fara Numar';
         const nrDeviz = (screenIdDeviz?.value || '').trim();
         const fileName = `Deviz estimativ-${nrAuto}-${nrDeviz}.pdf`;
         const prevTitle = document.title;
