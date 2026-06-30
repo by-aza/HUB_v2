@@ -1420,7 +1420,11 @@ async function salveazaEmailSofer(idMasina, nrAuto) {
     try {
         const { error } = await sb
             .from('flota_auto')
-            .update({ email_sofer: emailNou })
+            .update({ 
+                id: idMasina,
+                nr_inmatriculare: nrAuto,
+                email_sofer: emailNou 
+            })
             .eq('id', idMasina);
 
         if (error) throw error;
