@@ -1217,7 +1217,7 @@
         const pattern = `%${safe}%`;
         const quoted = `"${pattern.replace(/"/g, '\\"')}"`;
 
-        const [flotaRes, devizeRes, stocRes] = await Promise.all([
+        const [flotaRes, devizeRes, stocRes, avansRes] = await Promise.all([
           sb
             .from("flota_auto")
             .select("id, nr_inmatriculare, vin, marca")
@@ -1232,6 +1232,11 @@
             .from("stoc_view_curent")
             .select("id, cod_articol, denumire")
             .or(`denumire.ilike.${quoted},cod_articol.ilike.${quoted}`)
+            .limit(8),
+          sb
+            .from("evidente_avansuri")
+            .select("id, model_masina, nr_inmatriculare, detalii_avans")
+            .or(`model_masina.ilike.${quoted},nr_inmatriculare.ilike.${quoted},detalii_avans.ilike.${quoted}`)
             .limit(8),
         ]);
 
@@ -1261,6 +1266,15 @@
               detail: r.cod_articol ? `Cod: ${r.cod_articol}` : "Consumabil",
               url: "modules/stocuri/consumabile.html",
               icon: "boxes",
+            })),
+          },
+          {
+            title: "Avansuri",
+            items: (avansRes.data || []).map((r) => ({
+              label: r.model_masina || r.nr_inmatriculare || "Avans",
+              detail: r.detalii_avans || "—",
+              url: "modules/avansuri/evidente_avansuri.html",
+              icon: "wallet",
             })),
           },
         ];
