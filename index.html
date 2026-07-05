@@ -13,6 +13,150 @@
     <!-- Tailwind CSS (Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+
+<script>
+    // Global user data storage
+    window.USER_DATA = {
+        nume: null,
+        prenume: null,
+        rol_id: null,
+        permissions: {}
+    };
+    let isAdmin = false;
+
+    async function loadDashboard() {
+        // 1. Get Supabase session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session) {
+            window.location.href = 'modules/admin/login.html';
+            return;
+        }
+
+        try {
+            // 2. Single query for user profile + permissions
+            const { data, error } = await supabaseClient
+                .from('auth_profiles')
+                .select('nume, prenume, porecla, rol_id, permissions, auth_roles(numire_rol)')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (error) throw error;
+            
+            // 3. Store in global window.USER_DATA
+            window.USER_DATA = {
+                nume: data.nume,
+                prenume: data.prenume,
+                rol_id: data.rol_id,
+                permissions: data.permissions || {},
+                porecla: data.porecla,
+                auth_roles: data.auth_roles
+            };
+
+            isAdmin = Number(data.rol_id) === 1;
+
+            // 4. Adjust activeId if needed
+            if (!isAdmin && activeId === 'panou') {
+                activeId = 'devize';
+            }
+
+            // 5. Update user-specific UI
+            updateUserUI(data, session.user.email);
+            
+            // 6. Render UI
+            try {
+                renderAll();
+            } catch (err) {
+                console.error("Error rendering UI:", err);
+            }
+            
+            // 7. Load all widgets with individual try/catch
+            try { await loadAdminAnnouncement(); } catch (e) { console.warn("Admin announcement widget failed:", e); }
+            try { await loadAllBadges(); } catch (e) { console.warn("All badges failed:", e); }
+            
+            // 8. Apply permissions LAST (doesn't block data fetching)
+            applyPermissions();
+            
+        } catch (e) {
+            console.error("Error: User data not loaded:", e);
+        }
+    }
+
+    function applyPermissions() {
+        // Permission-gated elements
+        const permissionElements = document.querySelectorAll('.permission-gated');
+        permissionElements.forEach(el => {
+            const requiredPermission = el.dataset.permission;
+            if (requiredPermission) {
+                // Check if user is admin OR has the permission enabled
+                const isAllowed = Number(window.USER_DATA.rol_id) === 1 || window.USER_DATA.permissions?.[requiredPermission] === true;
+                if (!isAllowed) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = ''; // Show if allowed
+                }
+            }
+        });
+    }
+
+    function updateUserUI(profile, email) {
+        // Display name (porecla → prenume → email)
+        const displayName = profile?.porecla || profile?.prenume || email;
+        const userDisplayName = document.getElementById('userDisplayName');
+        if (userDisplayName) {
+            userDisplayName.textContent = displayName;
+        }
+
+        // Dropdown
+        const userFullName = document.getElementById('userFullName');
+        if (userFullName) {
+            if (profile) {
+                userFullName.textContent = `${profile.nume} ${profile.prenume}`;
+            } else {
+                userFullName.textContent = email;
+            }
+        }
+
+        const userEmailSpan = document.getElementById('userEmail');
+        if (userEmailSpan) {
+            userEmailSpan.textContent = email;
+        }
+
+        const userRole = document.getElementById('userRole');
+        if (userRole) {
+            if (profile?.auth_roles?.numire_rol) {
+                userRole.textContent = profile.auth_roles.numire_rol;
+            } else {
+                userRole.textContent = "N/A";
+            }
+        }
+    }
+
+    function toggleUserDropdown() {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('userDropdown');
+        const userTrigger = document.getElementById('userTrigger');
+        if (dropdown && userTrigger && !userTrigger.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    async function IesiDinCont() {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'modules/admin/login.html';
+    }
+    
+    // Run initialization on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -290,23 +434,48 @@
             </button>
 
             <!-- User -->
-            <button
-              type="button"
-              class="flex items-center gap-2.5 rounded-xl border border-border bg-card py-1 pl-1 pr-3 transition-colors hover:border-primary/40 "
-            >
-              <span
-                class="grid size-8 place-items-center rounded-lg bg-secondary font-mono text-xs font-bold text-foreground opacity-50 cursor-not-allowed"
+            <div class="relative">
+              <div
+                id="userTrigger"
+                class="flex flex-col items-end cursor-pointer"
+                onclick="toggleUserDropdown()"
               >
-                B
-              </span>
-              <span class="hidden leading-tight md:block">
-                <span class="block text-sm font-semibold text-foreground opacity-50 cursor-not-allowed">User CSN</span>
+                <span
+                  id="userDisplayName"
+                  class="text-sm font-semibold text-foreground transition-colors hover:text-white"
+                >
+                  User
+                </span>
                 <span class="flex items-center gap-1.5">
                   <span id="statusDot" class="size-2 rounded-full bg-success"></span>
                   <span id="statusText" class="text-[11px] text-success">Sistem Online</span>
                 </span>
-              </span>
-            </button>
+              </div>
+
+              <!-- Dropdown -->
+              <div
+                id="userDropdown"
+                class="absolute right-0 top-full z-[100] mt-2 hidden w-64 overflow-hidden rounded-xl border border-[#29292e] bg-[#1d1d22] shadow-lg"
+              >
+                <div class="flex flex-col gap-4 p-5">
+                  <!-- User info -->
+                  <div class="flex flex-col gap-2">
+                    <span id="userFullName" class="text-base font-bold text-foreground"></span>
+                    <span id="userEmail" class="text-sm" style="color: #a8a8b3;"></span>
+                    <span id="userRole" class="text-sm" style="color: #a8a8b3;"></span>
+                  </div>
+
+                  <!-- Logout button -->
+                  <button
+                    type="button"
+                    onclick="IesiDinCont()"
+                    class="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Ieși din cont
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -484,38 +653,38 @@
         {
           title: "Birou",
           items: [
-            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html" },
-            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html" },
-            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html" },
-            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html" },
-            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html" },
-            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html" },
+            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html", permission: "devize" },
+            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "devize" },
+            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "devize" },
+            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "devize" },
+            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "devize" },
+            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "devize" },
           ],
         },
         {
           title: "Service",
           items: [
-            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html" },
-            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html" },
-            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html" },
-            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html" },
-            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html" },
-            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html" },
+            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "flota" },
+            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "flota" },
+            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "magazie" },
+            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "magazie" },
+            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "magazie" },
+            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "magazie" },
           ],
         },
         {
           title: "Detailing",
           items: [
-            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html" },
-            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html" },
+            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "constatari" },
+            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html", permission: "constatari" },
           ],
         },
         {
           title: "Admin",
           items: [
-            { id: "panou", label: "Panou Control", icon: "layout-dashboard", url: "index.html" },
-            { id: "arhiva", label: "Arhivă", icon: "archive", url: "#" },
-            { id: "setari", label: "Setări", icon: "settings", url: "#" },
+            { id: "panou", label: "Gestionare Useri", icon: "layout-dashboard", url: "modules/admin/panou_control.html", adminOnly: true, permission: "admin_panel" },
+            { id: "arhiva", label: "Arhivă", icon: "archive", url: "#", adminOnly: true, permission: "admin_panel" },
+            { id: "setari", label: "Setări", icon: "settings", url: "#", adminOnly: true, permission: "admin_panel" },
           ],
         },
       ];
@@ -703,15 +872,24 @@
         const nav = document.getElementById("nav");
         nav.innerHTML = navSections
           .map(
-            (section) => `
+            (section) => {
+              // Filter items: user is admin OR has the permission OR item has no permission requirement
+              const filteredItems = section.items.filter(item => {
+                if (!item.permission) return true;
+                return Number(window.USER_DATA.rol_id) === 1 || window.USER_DATA.permissions?.[item.permission] === true;
+              });
+              if (filteredItems.length === 0) return '';
+              return `
             <div class="mb-5">
               <p class="sidebar-section-title mb-2 px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">${section.title}</p>
               <ul class="flex flex-col gap-1">
-                ${section.items
+                ${filteredItems
                   .map((item) => {
                     const isActive = item.id === activeId;
+                    const permissionClass = item.permission ? 'permission-gated' : '';
+                    const permissionAttr = item.permission ? `data-permission="${item.permission}"` : '';
                     return `
-                    <li>
+                    <li ${permissionAttr} ${permissionClass}>
                       <a href="${item.url}" data-id="${item.id}" title="${item.label}"
                         class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                           isActive
@@ -726,7 +904,8 @@
                   })
                   .join("")}
               </ul>
-            </div>`
+            </div>`;
+            }
           )
           .join("");
 
@@ -1095,20 +1274,20 @@
 
       async function loadAllBadges() {
         await Promise.all([
-          loadAdminAnnouncement(),
-          loadGeneratorBadge(),
-          loadConsumabileBadge(),
-          loadAvansBadge(),
-          loadAwbBadge(),
-          loadUltimulDeviz(),
-          loadContracteBadge(),
-          loadTotalDevize(),
-          loadMasiniBadge(),
-          loadDetailingBadge(),
-          loadUltimulDevizFinal(),
+          loadAdminAnnouncement().catch(e => console.warn("loadAdminAnnouncement failed:", e)),
+          loadGeneratorBadge().catch(e => console.warn("loadGeneratorBadge failed:", e)),
+          loadConsumabileBadge().catch(e => console.warn("loadConsumabileBadge failed:", e)),
+          loadAvansBadge().catch(e => console.warn("loadAvansBadge failed:", e)),
+          loadAwbBadge().catch(e => console.warn("loadAwbBadge failed:", e)),
+          loadUltimulDeviz().catch(e => console.warn("loadUltimulDeviz failed:", e)),
+          loadContracteBadge().catch(e => console.warn("loadContracteBadge failed:", e)),
+          loadTotalDevize().catch(e => console.warn("loadTotalDevize failed:", e)),
+          loadMasiniBadge().catch(e => console.warn("loadMasiniBadge failed:", e)),
+          loadDetailingBadge().catch(e => console.warn("loadDetailingBadge failed:", e)),
+          loadUltimulDevizFinal().catch(e => console.warn("loadUltimulDevizFinal failed:", e)),
         ]);
-        rebuildAlerts();
-        renderAll();
+        try { rebuildAlerts(); } catch (e) { console.warn("rebuildAlerts failed:", e); }
+        try { renderAll(); } catch (e) { console.warn("renderAll failed:", e); }
       }
 
       async function refreshDashboard() {

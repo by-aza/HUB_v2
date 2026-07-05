@@ -6,48 +6,201 @@
     <title>HUB Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #14161c;
+            --bg-alt: #181b22;
+            --panel: rgba(27, 30, 38, 0.72);
+            --panel-strong: rgba(27, 30, 38, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.12);
+            --text: #f1f2f4;
+            --muted: #98a0ad;
+            --accent: #2dd4cf;
+            --accent-2: #22d3ee;
+            --shadow: rgba(0, 0, 0, 0.35);
+        }
+        .hidden { display: none !important; }
+        body {
+            display: flex;
+            min-height: 100vh;
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .admin-sidebar {
+            width: 250px;
+            padding: 1rem 0.8rem;
+            background: linear-gradient(180deg, rgba(24, 27, 34, 0.96), rgba(19, 21, 28, 0.98));
+            border-right: 1px solid var(--border);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 12px 0 36px rgba(0,0,0,0.35);
+            backdrop-filter: blur(18px);
+        }
+        .sidebar-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.82rem 0.95rem;
+            margin-bottom: 0.45rem;
+            border-radius: 0.95rem;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--muted);
+            font-weight: 600;
+            text-align: left;
+            transition: all 180ms ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar-btn:hover {
+            background: rgba(38, 42, 52, 0.72);
+            color: var(--text);
+            transform: translateX(2px);
+        }
+        .sidebar-btn.active {
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.16), rgba(34, 211, 238, 0.12));
+            color: #ffffff;
+            border-color: rgba(45, 212, 207, 0.32);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.08), 0 0 0 1px rgba(45, 212, 207, 0.08);
+        }
+        .sidebar-btn.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 1.15rem;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 10px rgba(45, 212, 207, 0.6);
+        }
+        .admin-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #14161c 0%, #1a1d25 100%);
+        }
+        .glass-header {
+            border-bottom: 1px solid var(--border);
+            background: rgba(20, 22, 28, 0.82);
+            backdrop-filter: blur(18px);
+        }
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            background: radial-gradient(circle at top left, rgba(45, 212, 207, 0.08), transparent 28%), linear-gradient(180deg, rgba(20, 22, 28, 0.97), rgba(17, 19, 25, 0.98));
+        }
+        .devize-subtab-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(24, 27, 34, 0.75);
+            color: #9aa4b2;
+            transition: all 180ms ease;
+        }
+        .devize-subtab-btn:hover {
+            color: #f8fafc;
+            background: rgba(35, 40, 50, 0.9);
+            border-color: rgba(45, 212, 207, 0.24);
+            transform: translateY(-1px);
+        }
+        .devize-subtab-btn.active {
+            color: #fff;
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.18), rgba(34, 211, 238, 0.12));
+            border-color: rgba(45, 212, 207, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
+        }
+        .consumabile-subtab-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(24, 27, 34, 0.75);
+            color: #9aa4b2;
+            transition: all 180ms ease;
+        }
+        .consumabile-subtab-btn:hover {
+            color: #f8fafc;
+            background: rgba(35, 40, 50, 0.9);
+            border-color: rgba(45, 212, 207, 0.24);
+            transform: translateY(-1px);
+        }
+        .consumabile-subtab-btn.active {
+            color: #fff;
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.18), rgba(34, 211, 238, 0.12));
+            border-color: rgba(45, 212, 207, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
+        }
+        body .glass-panel {
+            background: linear-gradient(135deg, rgba(27, 30, 38, 0.8), rgba(26, 29, 36, 0.62));
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 1.25rem;
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(18px);
+        }
+        body .glass-panel-soft {
+            background: linear-gradient(135deg, rgba(27, 30, 38, 0.7), rgba(24, 27, 34, 0.56));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(16px);
+        }
+        .sidebar-back {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(27, 30, 38, 0.62);
+            color: #e9eaee;
+            transition: all 180ms ease;
+        }
+        .sidebar-back:hover {
+            background: rgba(38, 42, 52, 0.8);
+            border-color: rgba(45, 212, 207, 0.24);
+            color: var(--text);
+        }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
 
     <!-- MENIU LATERAL (SIDEBAR) -->
-    <aside class="w-64 flex-shrink-0 bg-slate-900/80 border-r border-slate-800/60 flex flex-col backdrop-blur-md">
+    <aside class="admin-sidebar sticky top-0 h-screen flex-shrink-0 flex flex-col backdrop-blur-md">
         <div class="h-16 flex items-center px-6 border-b border-slate-800/60">
             <h1 class="text-lg font-extrabold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            <!-- Tab Activ -->
-            <button id="tab-megafon" onclick="schimbaTab('page-megafon', 'tab-megafon')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer">
-                <span>📢</span> Megafon Anunțuri
+            <!-- Meniu lateral admin -->
+            <button id="tab-megafon" onclick="schimbaTab('sectiune-megafon', 'tab-megafon')" class="sidebar-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold cursor-pointer">
+                <span>📢</span> Megafon
             </button>
-            
-            <!-- Tab Inactiv -->
-            <button id="tab-alerte" onclick="schimbaTab('page-alerte', 'tab-alerte')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
-                <span>🔔</span> Alerte Email (ITP)
+            <button id="tab-alerte" onclick="schimbaTab('sectiune-alerte', 'tab-alerte')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>🔔</span> Alerte Email
             </button>
-            
-            <button id="tab-jurnal" onclick="schimbaTab('page-jurnal', 'tab-jurnal')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
-                <span>🕵️</span> Jurnal Activitate
-            </button>
-
-            <button id="tab-devize" onclick="schimbaTab('page-devize', 'tab-devize')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
+            <button id="tab-devize" onclick="schimbaTab('sectiune-devize', 'tab-devize')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>🧾</span> Gestiune Devize
+            </button>
+            <button id="tab-consumabile" onclick="schimbaTab('sectiune-consumabile', 'tab-consumabile')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>📦</span> Consumabile
+            </button>
+            <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>👤</span> Gestionare Useri
             </button>
         </nav>
 
         <div class="p-4 border-t border-slate-800/60">
-            <a href="../../index.html" class="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300 transition-colors">
+            <a href="../../index.html" class="sidebar-back flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl text-sm font-bold transition-colors">
                 <- Înapoi la HUB
             </a>
         </div>
     </aside>
 
     <!-- ZONA DE CONȚINUT PRINCIPALĂ -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="admin-main flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- Header Conținut -->
-        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/60 bg-slate-900/40">
+        <header class="glass-header h-16 flex items-center justify-between px-8">
             <h2 id="page-title" class="text-xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h2>
             <div class="flex items-center gap-3">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -55,11 +208,11 @@
             </div>
         </header>
 
-        <!-- Conținut Tab (Aici vom injecta panourile) -->
-        <div id="content-area" class="flex-1 overflow-y-auto p-8">
-            <div id="page-megafon" class="admin-page">
+        <!-- Conținut Tab -->
+        <div id="content-area" class="content-area flex-1 overflow-y-auto p-8">
+            <div id="sectiune-megafon" class="admin-page">
                 <div class="max-w-4xl mx-auto">
-                    <div class="rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                    <div class="glass-panel p-5">
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600/15 border border-rose-500/30 text-3xl">📢</div>
                             <div>
@@ -75,19 +228,18 @@
                         <textarea id="admin-message-input" rows="3" class="w-full rounded-2xl bg-slate-950/70 border border-slate-800/70 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60 resize-y" placeholder="Scrie aici mesajul care va apărea pe toate ecranele..."></textarea>
 
                         <div class="flex items-center justify-between mt-4 gap-3">
-    <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
-        Trimite
-    </button>
-    
-    <button id="stop-announcement-btn" onclick="opresteAnunt()" type="button" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-3 text-sm font-bold text-slate-100 transition-colors">
-        Oprește
-    </button>
-</div>
+                            <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
+                                Trimite
+                            </button>
+                            <button id="stop-announcement-btn" onclick="opresteAnunt()" type="button" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-3 text-sm font-bold text-slate-100 transition-colors">
+                                Oprește
+                            </button>
+                        </div>
 
                         <div id="admin-status" class="mt-3 min-h-6 text-sm text-slate-400"></div>
                     </div>
 
-                    <div class="mt-6 rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                    <div class="mt-6 glass-panel p-5">
                         <div class="flex items-start justify-between gap-4 mb-4">
                             <div>
                                 <h4 class="text-xl font-bold text-slate-100">Istoric Anunțuri</h4>
@@ -115,10 +267,9 @@
                 </div>
             </div>
 
-            <div id="page-alerte" class="admin-page hidden">
+            <div id="sectiune-alerte" class="admin-page hidden">
                 <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
-                <!-- Section 1: General Email Settings -->
-                <div class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-5 mb-6">
+                <div class="glass-panel p-5 mb-6">
                     <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
                     <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
                     <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
@@ -126,7 +277,6 @@
                     </button>
                 </div>
 
-                <!-- Section 2: Fleet Table -->
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
@@ -136,71 +286,705 @@
                             <th class="py-3 text-right">Acțiuni</th>
                         </tr>
                     </thead>
-                    <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60">
-                        <!-- Rows will be dynamically populated here -->
-                    </tbody>
+                    <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60"></tbody>
                 </table>
             </div>
 
-            <div id="page-jurnal" class="admin-page hidden"><h2 class="text-xl font-bold text-slate-100 mb-6">Jurnal Activitate</h2><p class="text-slate-400">În curând...</p></div>
+            <div id="sectiune-devize" class="admin-page hidden">
+                <div class="max-w-7xl mx-auto space-y-4">
+                    <div class="glass-panel p-4">
+                        <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
+                        <p class="mt-1 text-sm text-slate-400">Comută rapid între devize estimative și devize finale, cu un flux clar și modern.</p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button id="devize-estimative-tab" type="button" onclick="switchDevizeSubtab('devize-estimative-tab')" class="devize-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Devize Estimative</button>
+                            <button id="devize-finale-tab" type="button" onclick="switchDevizeSubtab('devize-finale-tab')" class="devize-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Devize Finale</button>
+                        </div>
+                    </div>
 
+                    <div id="devize-estimative-tab-panel" class="devize-subtab-panel glass-panel overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Nr. Deviz</th>
+                                        <th class="px-4 py-3 text-left">Auto/Client</th>
+                                        <th class="px-4 py-3 text-left">Total</th>
+                                        <th class="px-4 py-3 text-left">Creat de (User)</th>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-devize-estimative" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="devize-finale-tab-panel" class="devize-subtab-panel glass-panel hidden overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Nr. Deviz</th>
+                                        <th class="px-4 py-3 text-left">Auto/Client</th>
+                                        <th class="px-4 py-3 text-left">Total</th>
+                                        <th class="px-4 py-3 text-left">Creat de (User)</th>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-devize-finale" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sectiune-consumabile" class="admin-page hidden">
+                <div class="w-full max-w-7xl mx-auto space-y-5">
+                    <div class="glass-panel p-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-100">Consumabile</h2>
+                            <p class="mt-1 text-sm text-slate-400">Gestionează nomenclatorul de produse și istoricul mișcărilor de stoc dintr-o singură interfață.</p>
+                        </div>
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                            <input id="stock-search-input" type="search" placeholder="Caută produs..." class="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none sm:w-64">
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <button id="consumabile-nomenclator-tab" type="button" data-consumabile-subtab="consumabile-nomenclator-tab" class="consumabile-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Nomenclator</button>
+                                <button id="consumabile-miscari-tab" type="button" data-consumabile-subtab="consumabile-miscari-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Corecții Tranzacții</button>
+                                <button id="consumabile-produse-tab" type="button" data-consumabile-subtab="consumabile-produse-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Administrare Produse</button>
+                            </div>
+                        </div>
+                        <div id="stock-admin-status" class="mt-3 text-sm text-slate-400"></div>
+                    </div>
+
+                    <div id="consumabile-nomenclator-tab-panel" class="consumabile-subtab-panel glass-panel overflow-hidden">
+                        <div id="stock-products-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Cod</th>
+                                        <th class="px-4 py-3 text-left">Denumire</th>
+                                        <th class="px-4 py-3 text-left">Prag minim</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-products-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="consumabile-miscari-tab-panel" class="consumabile-subtab-panel glass-panel hidden overflow-hidden">
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                                <div class="flex flex-wrap gap-3">
+                                    <label class="text-sm text-slate-300">
+                                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">De la</span>
+                                        <input id="stock-movements-start-date" type="date" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    </label>
+                                    <label class="text-sm text-slate-300">
+                                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Până la</span>
+                                        <input id="stock-movements-end-date" type="date" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    </label>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button id="apply-stock-movements-filter" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
+                                    <button id="reset-stock-movements-filter" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 border border-slate-700 transition-colors">Resetează</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="stock-movements-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-left">Produs</th>
+                                        <th class="px-4 py-3 text-left">Tip</th>
+                                        <th class="px-4 py-3 text-left">Cantitate</th>
+                                        <th class="px-4 py-3 text-left">Detalii</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-movements-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="consumabile-produse-tab-panel" class="consumabile-subtab-panel glass-panel hidden overflow-hidden">
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" data-stock-products-filter="active" class="stock-products-filter-btn rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors">Active</button>
+                                <button type="button" data-stock-products-filter="archived" class="stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700">Arhivate</button>
+                                <button type="button" data-stock-products-filter="all" class="stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700">Toate</button>
+                            </div>
+                        </div>
+                        <div id="stock-products-admin-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Cod</th>
+                                        <th class="px-4 py-3 text-left">Denumire</th>
+                                        <th class="px-4 py-3 text-left">Prag minim</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-products-admin-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sectiune-useri" class="admin-page hidden">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <div class="glass-panel p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Gestionare Utilizatori</h2>
+                                <p class="mt-1 text-sm text-slate-400">Editează profiluri și permisiuni direct din interfața admin.</p>
+                            </div>
+                            <button id="btn-refresh-users" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 border border-slate-700 transition-colors">
+                                Reîmprospătează
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                        <div class="glass-panel p-5">
+                            <h3 class="text-lg font-semibold text-slate-100 mb-4">Lista utilizatori</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm text-slate-200">
+                                    <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                        <tr>
+                                            <th class="py-3 pr-4 text-left">Nume complet</th>
+                                            <th class="py-3 pr-4 text-left">Poreclă</th>
+                                            <th class="py-3 pr-4 text-left">Telefon</th>
+                                            <th class="py-3 pr-4 text-left">Rol</th>
+                                            <th class="py-3 text-right">Acțiuni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody" class="divide-y divide-slate-800/70"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="actionPanel" class="glass-panel p-5">
+                            <h3 id="panelTitle" class="text-lg font-semibold text-slate-100 mb-4">Crează utilizator nou</h3>
+                            <form id="userForm" class="space-y-4">
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="email" class="text-sm font-medium text-slate-300">Email</label>
+                                        <input type="email" id="email" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="email@exemplu.com">
+                                    </div>
+                                    <div id="passwordField" class="space-y-2">
+                                        <label for="parola" class="text-sm font-medium text-slate-300">Parolă</label>
+                                        <input type="password" id="parola" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Parolă">
+                                    </div>
+                                </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="nume" class="text-sm font-medium text-slate-300">Nume</label>
+                                        <input type="text" id="nume" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Nume">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="prenume" class="text-sm font-medium text-slate-300">Prenume</label>
+                                        <input type="text" id="prenume" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Prenume">
+                                    </div>
+                                </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="porecla" class="text-sm font-medium text-slate-300">Poreclă</label>
+                                        <input type="text" id="porecla" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Poreclă">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="telefon" class="text-sm font-medium text-slate-300">Telefon</label>
+                                        <input type="text" id="telefon" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Telefon">
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label for="rol" class="text-sm font-medium text-slate-300">Rol</label>
+                                    <select id="rol" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                        <option value="1">Admin</option>
+                                        <option value="2">Manager</option>
+                                        <option value="3">Birou</option>
+                                        <option value="4">Magazioner</option>
+                                        <option value="5">Electrician</option>
+                                        <option value="6">Vopsitor</option>
+                                        <option value="7">Tinichigiu</option>
+                                        <option value="8">Mecanic</option>
+                                    </select>
+                                </div>
+                                <div class="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                                    <h4 class="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Permisiuni acces</h4>
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_panou_control" class="rounded border-slate-600 bg-slate-900"> Panou Control</label>
+                                        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_constatari" class="rounded border-slate-600 bg-slate-900"> Constatări</label>
+                                        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_devize" class="rounded border-slate-600 bg-slate-900"> Devize</label>
+                                        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_magazie" class="rounded border-slate-600 bg-slate-900"> Magazie</label>
+                                        <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_flota" class="rounded border-slate-600 bg-slate-900"> Flotă Auto</label>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button type="submit" id="submitBtn" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Crează Utilizator</button>
+                                    <button type="button" id="deleteUserBtn" class="hidden rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Șterge Utilizator</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
     <script>
-        function schimbaTab(paginaId, butonId) {
-            if (paginaId === 'page-devize') {
-                renderDevizePage();
-            } else {
-                restoreStaticAdminPages();
-            }
-
-            // 1. Ascunde toate paginile
-            document.querySelectorAll('.admin-page').forEach(page => {
+        function schimbaTab(sectiuneId, butonId) {
+            // Schimbare dinamică tab-uri
+            document.querySelectorAll('.admin-page').forEach((page) => {
                 page.classList.add('hidden');
             });
-            // 2. Arată pagina selectată
-            const paginaSelectata = document.getElementById(paginaId);
-            if (paginaSelectata) paginaSelectata.classList.remove('hidden');
 
-            // 3. Resetează toate butoanele
-            const butoane = ['tab-megafon', 'tab-alerte', 'tab-jurnal', 'tab-devize'];
-            butoane.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer';
-                }
+            const sectiuneSelectata = document.getElementById(sectiuneId);
+            if (sectiuneSelectata) {
+                sectiuneSelectata.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('.sidebar-btn').forEach((btn) => {
+                btn.classList.remove('active');
             });
 
-            // 4. Activează butonul selectat
             const butonActiv = document.getElementById(butonId);
             if (butonActiv) {
-                butonActiv.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer';
+                butonActiv.classList.add('active');
             }
 
             if (pageTitle) {
-                if (paginaId === 'page-megafon') pageTitle.textContent = 'Megafon (Anunțuri Interne)';
-                if (paginaId === 'page-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
-                if (paginaId === 'page-jurnal') pageTitle.textContent = 'Jurnal Activitate';
-                if (paginaId === 'page-devize') pageTitle.textContent = 'Gestiune Devize';
+                if (sectiuneId === 'sectiune-megafon') pageTitle.textContent = 'Megafon (Anunțuri Interne)';
+                if (sectiuneId === 'sectiune-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
+                if (sectiuneId === 'sectiune-devize') pageTitle.textContent = 'Gestiune Devize';
+                if (sectiuneId === 'sectiune-consumabile') pageTitle.textContent = 'Consumabile';
+                if (sectiuneId === 'sectiune-useri') pageTitle.textContent = 'Gestionare Useri';
             }
 
-            if (paginaId === 'page-alerte') {
+            if (sectiuneId === 'sectiune-alerte') {
                 loadAlertePage();
+                incarcaFlotaAlerte();
+                incarcaEmailGeneral();
             }
-            if (paginaId === 'page-megafon') {
+            if (sectiuneId === 'sectiune-megafon') {
                 loadAnnouncementHistory();
                 updateMegafonUI();
             }
-            if (paginaId === 'page-devize') {
-                loadDevizeTable();
+            if (sectiuneId === 'sectiune-useri') {
+                initUserManagement();
             }
-            // Dacă deschidem pagina de alerte, încărcăm mașinile
-        if (paginaId === 'page-alerte') {
-            incarcaFlotaAlerte();
-            incarcaEmailGeneral();
+            if (sectiuneId === 'sectiune-devize') {
+                loadDevizeSections();
+            }
+            if (sectiuneId === 'sectiune-consumabile') {
+                switchConsumabileSubtab('consumabile-nomenclator-tab');
+                loadStockProductsAdmin();
+                loadStockMovementsAdmin();
+                loadStockProductsManagement();
+            }
         }
+
+        function switchDevizeSubtab(tabId) {
+            document.querySelectorAll('.devize-subtab-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.id === tabId);
+            });
+
+            document.querySelectorAll('.devize-subtab-panel').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
+            });
         }
+
+        function switchConsumabileSubtab(tabId) {
+            document.querySelectorAll('.consumabile-subtab-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.id === tabId);
+            });
+
+            document.querySelectorAll('.consumabile-subtab-panel').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
+            });
+        }
+
+        function getCreatorLabelFromRow(row, creatorsById = new Map()) {
+            const directValue = [
+                row?.created_by_name,
+                row?.creator_name,
+                row?.user_name,
+                row?.creat_de,
+                row?.created_by_display_name,
+                row?.created_by_email,
+                row?.email,
+                row?.nume,
+                row?.prenume,
+                row?.porecla,
+                row?.created_by,
+                row?.user_id,
+                row?.created_by_id,
+                row?.author_id,
+                row?.id_user,
+                row?.creator_id
+            ].find((value) => value !== null && value !== undefined && String(value).trim() !== '');
+
+            if (directValue) {
+                const directText = String(directValue).trim();
+                if (directText && directText !== 'undefined' && directText !== 'null') return directText;
+            }
+
+            const creatorId = row?.created_by ?? row?.user_id ?? row?.created_by_id ?? row?.author_id ?? row?.id_user ?? row?.creator_id;
+            if (creatorId && creatorsById.has(String(creatorId))) {
+                return creatorsById.get(String(creatorId));
+            }
+
+            return '—';
+        }
+
+        async function resolveCreatorNameMap(rows) {
+            const creatorIds = [...new Set(rows
+                .map((row) => row?.created_by ?? row?.user_id ?? row?.created_by_id ?? row?.author_id ?? row?.id_user ?? row?.creator_id)
+                .filter((value) => value !== null && value !== undefined && String(value).trim() !== ''))];
+
+            if (!creatorIds.length) return new Map();
+
+            try {
+                const { data, error } = await sb
+                    .from('auth_profiles')
+                    .select('id, nume, prenume, porecla, email')
+                    .in('id', creatorIds);
+
+                if (error || !Array.isArray(data)) return new Map();
+
+                const map = new Map();
+                data.forEach((profile) => {
+                    const displayName = [profile.nume, profile.prenume].filter(Boolean).join(' ').trim()
+                        || profile.porecla
+                        || profile.email
+                        || profile.id;
+                    map.set(String(profile.id), displayName);
+                });
+                return map;
+            } catch {
+                return new Map();
+            }
+        }
+
+        function renderDevizeEstimativeRows(rows) {
+            const tbody = document.getElementById('tbody-devize-estimative');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există devize estimative.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const idDeviz = escapeHtml(row.id_deviz || '-');
+                const autoClient = escapeHtml([row.autovehicul, row.client, row.nume_client].filter(Boolean).join(' / ') || '-');
+                const total = escapeHtml(formatDevizMoney(row.total_general));
+                const dataValue = escapeHtml(formatDevizDate(row.data_deviz));
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-100">${idDeviz}</td>
+                        <td class="px-4 py-3 text-slate-300">${autoClient}</td>
+                        <td class="px-4 py-3 text-slate-100 font-semibold">${total}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row._creator_name || '—')}</td>
+                        <td class="px-4 py-3 text-slate-400">${dataValue}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderDevizeFinaleRows(rows) {
+            const tbody = document.getElementById('tbody-devize-finale');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există devize finale.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const idDeviz = escapeHtml(row.id_deviz_final || '-');
+                const autoClient = escapeHtml([row.auto, row.client, row.nume_client].filter(Boolean).join(' / ') || '-');
+                const total = escapeHtml(formatDevizMoney(row.total_general));
+                const dataValue = escapeHtml(formatDevizDate(row.data_deviz));
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-100">${idDeviz}</td>
+                        <td class="px-4 py-3 text-slate-300">${autoClient}</td>
+                        <td class="px-4 py-3 text-slate-100 font-semibold">${total}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row._creator_name || '—')}</td>
+                        <td class="px-4 py-3 text-slate-400">${dataValue}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadDevizeEstimativeRows() {
+            const tbody = document.getElementById('tbody-devize-estimative');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Se încarcă devizele estimative...</td></tr>';
+
+            try {
+                const { data, error } = await sb
+                    .from('devize')
+                    .select('*')
+                    .order('data_deviz', { ascending: false });
+
+                if (error) throw error;
+
+                const creatorMap = await resolveCreatorNameMap(data || []);
+                const rows = (data || []).map((row) => ({ ...row, _creator_name: getCreatorLabelFromRow(row, creatorMap) }));
+                renderDevizeEstimativeRows(rows);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca devizele estimative.')}</td></tr>`;
+            }
+        }
+
+        async function loadDevizeFinaleRows() {
+            const tbody = document.getElementById('tbody-devize-finale');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Se încarcă devizele finale...</td></tr>';
+
+            try {
+                const { data, error } = await sb
+                    .from('deviz_final_header')
+                    .select('*')
+                    .order('data_deviz', { ascending: false });
+
+                if (error) throw error;
+
+                const creatorMap = await resolveCreatorNameMap(data || []);
+                const rows = (data || []).map((row) => ({ ...row, _creator_name: getCreatorLabelFromRow(row, creatorMap) }));
+                renderDevizeFinaleRows(rows);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca devizele finale.')}</td></tr>`;
+            }
+        }
+
+        async function loadDevizeSections() {
+            await Promise.all([loadDevizeEstimativeRows(), loadDevizeFinaleRows()]);
+        }
+
+        let currentEditUserId = null;
+        let isEditMode = false;
+
+        function resetUserForm() {
+            isEditMode = false;
+            currentEditUserId = null;
+            const form = document.getElementById('userForm');
+            const deleteBtn = document.getElementById('deleteUserBtn');
+            const passwordField = document.getElementById('passwordField');
+            const emailInput = document.getElementById('email');
+            if (form) form.reset();
+            if (deleteBtn) deleteBtn.classList.add('hidden');
+            if (passwordField) passwordField.style.display = 'block';
+            if (emailInput) emailInput.readOnly = false;
+            document.getElementById('panelTitle').textContent = 'Crează utilizator nou';
+            document.getElementById('submitBtn').textContent = 'Crează Utilizator';
+            const boxes = ['perm_panou_control', 'perm_constatari', 'perm_devize', 'perm_magazie', 'perm_flota'];
+            boxes.forEach((id) => {
+                const box = document.getElementById(id);
+                if (box) box.checked = false;
+            });
+        }
+
+        function populateUserForm(user) {
+            isEditMode = true;
+            currentEditUserId = user.id;
+            const deleteBtn = document.getElementById('deleteUserBtn');
+            const passwordField = document.getElementById('passwordField');
+            const emailInput = document.getElementById('email');
+            document.getElementById('panelTitle').textContent = 'Editează Utilizator';
+            document.getElementById('submitBtn').textContent = 'Actualizează Utilizator';
+            if (deleteBtn) deleteBtn.classList.remove('hidden');
+            if (passwordField) passwordField.style.display = 'none';
+            if (emailInput) emailInput.readOnly = true;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('nume').value = user.nume || '';
+            document.getElementById('prenume').value = user.prenume || '';
+            document.getElementById('porecla').value = user.porecla || '';
+            document.getElementById('telefon').value = user.telefon || '';
+            if (user.rol_id) document.getElementById('rol').value = user.rol_id;
+            const permissions = user.permissions || {};
+            document.getElementById('perm_panou_control').checked = Boolean(permissions.panou_control);
+            document.getElementById('perm_constatari').checked = Boolean(permissions.constatari);
+            document.getElementById('perm_devize').checked = Boolean(permissions.devize);
+            document.getElementById('perm_magazie').checked = Boolean(permissions.magazie);
+            document.getElementById('perm_flota').checked = Boolean(permissions.flota);
+        }
+
+        async function initUserManagement() {
+            const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500">Se încarcă utilizatorii...</td></tr>';
+            try {
+                const { data: { session } = {} } = await sb.auth.getSession();
+                if (!session) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-amber-400">Autentificare necesară.</td></tr>';
+                    return;
+                }
+
+                const { data: profile, error: profileError } = await sb
+                    .from('auth_profiles')
+                    .select('rol_id, permissions')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const isAllowed = !profileError && profile && (Number(profile.rol_id) === 1 || profile.permissions?.panou_control === true);
+                if (!isAllowed) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-rose-400">Acces interzis.</td></tr>';
+                    return;
+                }
+
+                const { data: users, error } = await sb
+                    .from('auth_profiles')
+                    .select('id, nume, prenume, porecla, telefon, email, rol_id, permissions, auth_roles(id, numire_rol)')
+                    .order('nume', { ascending: true });
+
+                if (error) throw error;
+
+                tbody.innerHTML = '';
+                users.forEach((user) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-800/40 transition-colors';
+                    row.innerHTML = `
+                        <td class="py-3 pr-4 text-slate-100">${user.nume || ''} ${user.prenume || ''}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.porecla || '-'}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.telefon || '-'}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.auth_roles?.numire_rol || 'N/A'}</td>
+                        <td class="py-3 text-right">
+                            <button type="button" class="edit-user-btn rounded-xl bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-semibold text-white transition-colors" data-user='${JSON.stringify(user)}'>Editează</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                tbody.querySelectorAll('.edit-user-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const user = JSON.parse(btn.getAttribute('data-user') || '{}');
+                        populateUserForm(user);
+                    });
+                });
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-rose-400">Eroare: ${error.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            resetUserForm();
+            loadDevizeSections();
+            document.getElementById('btn-refresh-users')?.addEventListener('click', initUserManagement);
+            document.getElementById('userForm')?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (isEditMode) {
+                    const updatedPermissions = {
+                        panou_control: document.getElementById('perm_panou_control').checked,
+                        constatari: document.getElementById('perm_constatari').checked,
+                        devize: document.getElementById('perm_devize').checked,
+                        magazie: document.getElementById('perm_magazie').checked,
+                        flota: document.getElementById('perm_flota').checked
+                    };
+
+                    const { error } = await sb
+                        .from('auth_profiles')
+                        .update({
+                            nume: document.getElementById('nume').value,
+                            prenume: document.getElementById('prenume').value,
+                            porecla: document.getElementById('porecla').value,
+                            telefon: document.getElementById('telefon').value,
+                            rol_id: Number(document.getElementById('rol').value),
+                            permissions: updatedPermissions
+                        })
+                        .eq('id', currentEditUserId);
+
+                    if (error) {
+                        alert('Eroare la actualizare: ' + error.message);
+                        return;
+                    }
+                    alert('Actualizare realizată cu succes!');
+                } else {
+                    alert('Creare: funcționalitate viitoare');
+                    return;
+                }
+
+                resetUserForm();
+                initUserManagement();
+            });
+
+            document.getElementById('deleteUserBtn')?.addEventListener('click', async () => {
+                if (!currentEditUserId) return;
+                if (!window.confirm('Sigur doriți să ștergeți acest utilizator?')) return;
+                alert('Ștergere: funcționalitate viitoare');
+                resetUserForm();
+                initUserManagement();
+            });
+
+            document.addEventListener('click', (event) => {
+                const actionPanel = document.getElementById('actionPanel');
+                const usersTableBody = document.getElementById('usersTableBody');
+                if (actionPanel && usersTableBody && !actionPanel.contains(event.target) && !usersTableBody.contains(event.target)) {
+                    resetUserForm();
+                }
+            });
+        });
+
+        document.addEventListener('click', async (event) => {
+            const subtabButton = event.target.closest('[data-consumabile-subtab]');
+            if (subtabButton) {
+                switchConsumabileSubtab(subtabButton.getAttribute('data-consumabile-subtab'));
+                return;
+            }
+
+            const applyFilterButton = event.target.closest('#apply-stock-movements-filter');
+            if (applyFilterButton) {
+                await loadStockMovementsAdmin();
+                return;
+            }
+
+            const resetFilterButton = event.target.closest('#reset-stock-movements-filter');
+            if (resetFilterButton) {
+                const startInput = document.getElementById('stock-movements-start-date');
+                const endInput = document.getElementById('stock-movements-end-date');
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                await loadStockMovementsAdmin();
+                return;
+            }
+
+            const productFilterButton = event.target.closest('[data-stock-products-filter]');
+            if (productFilterButton) {
+                stockProductsManagementFilter = productFilterButton.getAttribute('data-stock-products-filter') || 'active';
+                updateStockProductsFilterButtons();
+                await loadStockProductsManagement();
+                return;
+            }
+
+            const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
+            if (archiveProductBtn) {
+                await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
+                return;
+            }
+
+            const reactivateProductBtn = event.target.closest('[data-reactivate-stock-product]');
+            if (reactivateProductBtn) {
+                await setStockProductActive(reactivateProductBtn.getAttribute('data-reactivate-stock-product'), true);
+            }
+        });
 
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
@@ -218,6 +1002,17 @@
         const contentArea = document.getElementById('content-area');
         const staticAdminPages = Array.from(contentArea.querySelectorAll('.admin-page'));
         let devizePage = null;
+        let stockProductsManagementFilter = 'active';
+        let stockSearchReloadTimer = null;
+
+        document.getElementById('stock-search-input')?.addEventListener('input', () => {
+            clearTimeout(stockSearchReloadTimer);
+            stockSearchReloadTimer = setTimeout(() => {
+                loadStockProductsAdmin();
+                loadStockMovementsAdmin();
+                loadStockProductsManagement();
+            }, 250);
+        });
 
         function restoreStaticAdminPages() {
             if (!contentArea) return;
@@ -416,6 +1211,18 @@
                 const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
                 if (deleteMovementBtn) {
                     await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
+                    return;
+                }
+
+                const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
+                if (archiveProductBtn) {
+                    await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
+                    return;
+                }
+
+                const reactivateProductBtn = event.target.closest('[data-reactivate-stock-product]');
+                if (reactivateProductBtn) {
+                    await setStockProductActive(reactivateProductBtn.getAttribute('data-reactivate-stock-product'), true);
                 }
             });
 
@@ -469,14 +1276,14 @@
             if (!el) return;
             el.textContent = message || '';
             if (type === 'success') {
-                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
                 return;
             }
             if (type === 'error') {
-                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
                 return;
             }
-            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
         }
 
         function setStockMovementsStatus(message, type = 'info') {
@@ -484,14 +1291,41 @@
             if (!el) return;
             el.textContent = message || '';
             if (type === 'success') {
-                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
                 return;
             }
             if (type === 'error') {
-                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
                 return;
             }
-            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
+        }
+
+        function setStockProductsManagementStatus(message, type = 'info') {
+            const el = document.getElementById('stock-products-admin-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
+        }
+
+        function getStockSearchTerm() {
+            return document.getElementById('stock-search-input')?.value?.trim().toLowerCase() || '';
+        }
+
+        function matchesStockSearch(row) {
+            const term = getStockSearchTerm();
+            if (!term) return true;
+            const productName = row?.stoc_produse?.denumire || row?.denumire || '';
+            const productCode = row?.cod_articol || '';
+            return `${productName} ${productCode}`.toLowerCase().includes(term);
         }
 
         function formatDevizDate(value) {
@@ -571,6 +1405,48 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function updateStockProductsFilterButtons() {
+            document.querySelectorAll('[data-stock-products-filter]').forEach((btn) => {
+                const isActive = btn.getAttribute('data-stock-products-filter') === stockProductsManagementFilter;
+                btn.className = isActive
+                    ? 'stock-products-filter-btn rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors'
+                    : 'stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700';
+            });
+        }
+
+        function renderStockProductsManagementRows(rows) {
+            const tbody = document.getElementById('stock-products-admin-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există produse pentru filtrul selectat.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const isActive = row.activ !== false;
+                const statusClass = isActive ? 'text-emerald-300' : 'text-slate-500';
+                const statusLabel = isActive ? 'Activ' : 'Arhivat';
+                const actionButton = isActive
+                    ? `<button type="button" data-archive-stock-product="${escapeHtml(row.id)}" class="rounded-xl bg-amber-600 hover:bg-amber-500 px-3 py-2 text-xs font-bold text-white transition-colors">Arhivează</button>`
+                    : `<button type="button" data-reactivate-stock-product="${escapeHtml(row.id)}" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition-colors">Reactivează</button>`;
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-300">${escapeHtml(row.cod_articol || '-')}</td>
+                        <td class="px-4 py-3 text-slate-100">${escapeHtml(row.denumire || '-')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.prag_minim ?? '-')}</td>
+                        <td class="px-4 py-3 font-semibold ${statusClass}">${statusLabel}</td>
+                        <td class="px-4 py-3 text-right">${actionButton}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function renderStockMovementsRows(rows) {
@@ -685,8 +1561,9 @@
                     .order('denumire', { ascending: true });
 
                 if (error) throw error;
-                renderStockProductsRows(data || []);
-                setStockProductsStatus(`Au fost încărcate ${data?.length || 0} produse.`, 'success');
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockProductsRows(filteredRows);
+                setStockProductsStatus(`Au fost încărcate ${filteredRows.length} produse.`, 'success');
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -753,14 +1630,81 @@
                 setStockProductsStatus('Produsul a fost actualizat.', 'success');
                 setStockAdminStatus('Nomenclatorul a fost actualizat.', 'success');
                 await loadStockProductsAdmin();
+                await loadStockProductsManagement();
             } catch (error) {
                 setStockProductsStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
+            }
+        }
+
+        async function loadStockProductsManagement() {
+            const tbody = document.getElementById('stock-products-admin-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă produsele...</td>
+                </tr>
+            `;
+            updateStockProductsFilterButtons();
+            setStockProductsManagementStatus('Se încarcă produsele...');
+
+            try {
+                let query = sb
+                    .from('stoc_produse')
+                    .select('id, cod_articol, denumire, prag_minim, activ')
+                    .order('denumire', { ascending: true });
+
+                if (stockProductsManagementFilter === 'active') {
+                    query = query.or('activ.eq.true,activ.is.null');
+                }
+                if (stockProductsManagementFilter === 'archived') {
+                    query = query.eq('activ', false);
+                }
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockProductsManagementRows(filteredRows);
+                setStockProductsManagementStatus(`Au fost încărcate ${filteredRows.length} produse.`, 'success');
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea produselor.</td>
+                    </tr>
+                `;
+                setStockProductsManagementStatus(error.message || 'Eroare la încărcarea produselor.', 'error');
+            }
+        }
+
+        async function setStockProductActive(productId, isActive) {
+            if (!productId) return;
+            const actionLabel = isActive ? 'reactivează' : 'arhivează';
+            setStockProductsManagementStatus(`Se ${actionLabel} produsul ${productId}...`);
+
+            try {
+                const { error } = await sb
+                    .from('stoc_produse')
+                    .update({ activ: isActive })
+                    .eq('id', productId);
+
+                if (error) throw error;
+                setStockProductsManagementStatus(isActive ? 'Produsul a fost reactivat.' : 'Produsul a fost arhivat.', 'success');
+                setStockAdminStatus(isActive ? 'Produs reactivat.' : 'Produs arhivat.', 'success');
+                await loadStockProductsManagement();
+                await loadStockProductsAdmin();
+            } catch (error) {
+                console.error(error);
+                setStockProductsManagementStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
             }
         }
 
         async function loadStockMovementsAdmin() {
             const tbody = document.getElementById('stock-movements-body');
             if (!tbody) return;
+
+            const startDate = document.getElementById('stock-movements-start-date')?.value || '';
+            const endDate = document.getElementById('stock-movements-end-date')?.value || '';
 
             tbody.innerHTML = `
                 <tr>
@@ -770,15 +1714,21 @@
             setStockMovementsStatus('Se încarcă ultimele tranzacții...');
 
             try {
-                const { data, error } = await sb
+                let query = sb
                     .from('stoc_miscari')
-                    .select('id, data, tip_miscare, cantitate, destinatie, observatii, stoc_produse(denumire)')
+                    .select('id, data, tip_miscare, cantitate, destinatie, observatii, stoc_produse(denumire)');
+
+                if (startDate) query = query.gte('data', startDate);
+                if (endDate) query = query.lte('data', endDate);
+
+                const { data, error } = await query
                     .order('data', { ascending: false })
-                    .limit(50);
+                    .limit(100);
 
                 if (error) throw error;
-                renderStockMovementsRows(data || []);
-                setStockMovementsStatus(`Au fost încărcate ${data?.length || 0} tranzacții.`, 'success');
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockMovementsRows(filteredRows);
+                setStockMovementsStatus(`Au fost încărcate ${filteredRows.length} tranzacții.`, 'success');
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -1508,6 +2458,7 @@ async function salveazaEmailGeneral(btn) {
         });
 
         loadAnnouncementHistory();
+        schimbaTab('sectiune-megafon', 'tab-megafon');
     </script>
     
 </body>

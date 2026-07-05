@@ -5,55 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB CSN GARAGE — Autentificare</title>
     <style>
-        body {
-            background-color: #121214; /* Fundal dark asortat cu indexul tau */
-            color: #e1e1e6;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background-color: #1d1d22; /* Caseta text usor mai deschisa */
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 360px;
-            text-align: center;
-        }
-        h2 { margin-bottom: 24px; color: #ffffff; }
+        body { background-color: #121214; color: #e1e1e6; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background-color: #1d1d22; padding: 40px; border-radius: 8px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        h2 { color: #ffffff; margin-bottom: 24px; }
         .input-group { margin-bottom: 20px; text-align: left; }
         label { display: block; margin-bottom: 8px; color: #a8a8b3; font-size: 14px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 4px;
-            border: 1px solid #29292e;
-            background-color: #121214;
-            color: #ffffff;
-            box-sizing: border-box;
-        }
-        input:focus { border-color: #4cf3a8; outline: none; } /* Accent verde la selectare */
-        button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            background-color: #00b37e; /* Buton verde profesional */
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+        input { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #29292e; background-color: #121214; color: #ffffff; box-sizing: border-box; }
+        input:focus { border-color: #4cf3a8; outline: none; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 4px; background-color: #00b37e; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
         button:hover { background-color: #00875f; }
         .error-msg { color: #f75a68; font-size: 14px; margin-top: 15px; display: none; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
+    <script src="../../js/config.js"></script>
 </head>
 <body>
 
@@ -73,32 +37,56 @@
         <button type="submit">Intră în cont</button>
     </form>
 
-    <div id="errorBox" class="error-msg">Email sau parolă greșită!</div>
+    <div id="errorBox" class="error-msg"></div>
 </div>
 
 <script>
-    // Prindem formularul de login din HTML
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault(); // Oprim reincarcarea paginii
-        
+        e.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const errorBox = document.getElementById('errorBox');
         
-        errorBox.style.display = 'none'; // Ascundem erorile vechi
+        errorBox.style.display = 'none';
 
-        // Trimitem datele catre Supabase Auth folosind clientul global din config.js
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Verificăm noul obiect schimbat
+        if (typeof supabaseClient === 'undefined') {
+            errorBox.textContent = "Eroare CORE: Conexiunea Supabase nu a putut fi încărcată.";
+            errorBox.style.display = 'block';
+            return;
+        }
+
+        // Modificat aici din 'supabase' în 'supabaseClient'
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password,
         });
 
         if (error) {
-            errorBox.textContent = "Eroare: " + error.message; // Afisam eroarea reala (ex: date gresite)
+            errorBox.textContent = "Eroare: " + error.message;
             errorBox.style.display = 'block';
         } else {
-            // Daca logarea e cu succes, il trimitem direct pe prima pagina a HUB-ului
-            window.location.href = 'index.html';
+            // Fetch user profile to determine role
+            const { data: profile, error: profError } = await supabaseClient
+                .from('auth_profiles')
+                .select('rol_id')
+                .eq('id', data.user.id)
+                .single();
+            
+            if (profError || !profile) {
+                // Fallback to main dashboard if profile fetch fails
+                window.location.href = '../../index.html';
+                return;
+            }
+            
+            // Redirect based on user role
+            if (Number(profile.rol_id) === 8) { // Mecanic
+                window.location.href = '../../modules/formulare/constatari.html';
+            } else if (Number(profile.rol_id) === 6) { // Detailing
+                window.location.href = '../../modules/formulare/detailing.html';
+            } else { // All other roles (Admin, Manager, Birou, etc.)
+                window.location.href = '../../index.html';
+            }
         }
     });
 </script>
