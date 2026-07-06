@@ -160,6 +160,29 @@
             border-color: rgba(45, 212, 207, 0.24);
             color: var(--text);
         }
+        .admin-fixed-section {
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .admin-fixed-shell {
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-table-panel {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-table-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
@@ -183,6 +206,9 @@
             </button>
             <button id="tab-consumabile" onclick="schimbaTab('sectiune-consumabile', 'tab-consumabile')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>📦</span> Consumabile
+            </button>
+            <button id="tab-audit-log" onclick="schimbaTab('sectiune-audit-log', 'tab-audit-log')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>📋</span> Audit Log
             </button>
             <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>👤</span> Gestionare Useri
@@ -267,32 +293,39 @@
                 </div>
             </div>
 
-            <div id="sectiune-alerte" class="admin-page hidden">
-                <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
-                <div class="glass-panel p-5 mb-6">
-                    <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
-                    <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
-                    <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
-                        Salvează Adrese Generale
-                    </button>
+            <div id="sectiune-alerte" class="admin-page hidden admin-fixed-section">
+                <div class="mx-auto flex h-full max-w-7xl min-h-0 flex-col gap-6">
+                    <div class="flex-shrink-0">
+                        <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
+                        <div class="glass-panel p-5">
+                            <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
+                            <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
+                            <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
+                                Salvează Adrese Generale
+                            </button>
+                        </div>
+                    </div>
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 z-10 border-b border-slate-800/80 bg-[rgba(20,22,28,0.96)] text-xs uppercase tracking-wider text-slate-400 backdrop-blur">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left">Nr. Auto</th>
+                                        <th class="py-3 pr-4 text-left">Expiră În</th>
+                                        <th class="py-3 pr-4 text-left">Email Șofer (Notificare individuală)</th>
+                                        <th class="py-3 px-4 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
-                            <th class="py-3 pr-4">Nr. Auto</th>
-                            <th class="py-3 pr-4">Expiră În</th>
-                            <th class="py-3 pr-4">Email Șofer (Notificare individuală)</th>
-                            <th class="py-3 text-right">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60"></tbody>
-                </table>
             </div>
 
-            <div id="sectiune-devize" class="admin-page hidden">
-                <div class="max-w-7xl mx-auto space-y-4">
-                    <div class="glass-panel p-4">
+            <div id="sectiune-devize" class="admin-page hidden admin-fixed-section">
+                <div class="max-w-7xl mx-auto admin-fixed-shell gap-4">
+                    <div class="glass-panel p-4 flex-shrink-0">
                         <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
                         <p class="mt-1 text-sm text-slate-400">Comută rapid între devize estimative și devize finale, cu un flux clar și modern.</p>
                         <div class="mt-4 flex flex-wrap gap-2">
@@ -301,10 +334,10 @@
                         </div>
                     </div>
 
-                    <div id="devize-estimative-tab-panel" class="devize-subtab-panel glass-panel overflow-hidden">
-                        <div class="overflow-x-auto">
+                    <div id="devize-estimative-tab-panel" class="devize-subtab-panel glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
                             <table class="min-w-full text-sm text-slate-200">
-                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Nr. Deviz</th>
                                         <th class="px-4 py-3 text-left">Auto/Client</th>
@@ -319,10 +352,10 @@
                         </div>
                     </div>
 
-                    <div id="devize-finale-tab-panel" class="devize-subtab-panel glass-panel hidden overflow-hidden">
-                        <div class="overflow-x-auto">
+                    <div id="devize-finale-tab-panel" class="devize-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
+                        <div class="admin-table-scroll">
                             <table class="min-w-full text-sm text-slate-200">
-                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Nr. Deviz</th>
                                         <th class="px-4 py-3 text-left">Auto/Client</th>
@@ -339,9 +372,9 @@
                 </div>
             </div>
 
-            <div id="sectiune-consumabile" class="admin-page hidden">
-                <div class="w-full max-w-7xl mx-auto space-y-5">
-                    <div class="glass-panel p-4">
+            <div id="sectiune-consumabile" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <div class="glass-panel p-4 flex-shrink-0">
                         <div>
                             <h2 class="text-2xl font-bold text-slate-100">Consumabile</h2>
                             <p class="mt-1 text-sm text-slate-400">Gestionează nomenclatorul de produse și istoricul mișcărilor de stoc dintr-o singură interfață.</p>
@@ -357,11 +390,11 @@
                         <div id="stock-admin-status" class="mt-3 text-sm text-slate-400"></div>
                     </div>
 
-                    <div id="consumabile-nomenclator-tab-panel" class="consumabile-subtab-panel glass-panel overflow-hidden">
+                    <div id="consumabile-nomenclator-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel overflow-hidden">
                         <div id="stock-products-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
-                        <div class="overflow-x-auto">
+                        <div class="admin-table-scroll">
                             <table class="min-w-full text-sm text-slate-200">
-                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Cod</th>
                                         <th class="px-4 py-3 text-left">Denumire</th>
@@ -374,7 +407,7 @@
                         </div>
                     </div>
 
-                    <div id="consumabile-miscari-tab-panel" class="consumabile-subtab-panel glass-panel hidden overflow-hidden">
+                    <div id="consumabile-miscari-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
                         <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
                             <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                                 <div class="flex flex-wrap gap-3">
@@ -394,9 +427,9 @@
                             </div>
                         </div>
                         <div id="stock-movements-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
-                        <div class="overflow-x-auto">
+                        <div class="admin-table-scroll">
                             <table class="min-w-full text-sm text-slate-200">
-                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Data</th>
                                         <th class="px-4 py-3 text-left">Produs</th>
@@ -411,7 +444,7 @@
                         </div>
                     </div>
 
-                    <div id="consumabile-produse-tab-panel" class="consumabile-subtab-panel glass-panel hidden overflow-hidden">
+                    <div id="consumabile-produse-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
                         <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
                             <div class="flex flex-wrap items-center gap-2">
                                 <button type="button" data-stock-products-filter="active" class="stock-products-filter-btn rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors">Active</button>
@@ -420,9 +453,9 @@
                             </div>
                         </div>
                         <div id="stock-products-admin-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
-                        <div class="overflow-x-auto">
+                        <div class="admin-table-scroll">
                             <table class="min-w-full text-sm text-slate-200">
-                                <thead class="bg-slate-900/70 text-xs uppercase tracking-wider text-slate-400">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Cod</th>
                                         <th class="px-4 py-3 text-left">Denumire</th>
@@ -432,6 +465,37 @@
                                     </tr>
                                 </thead>
                                 <tbody id="stock-products-admin-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sectiune-audit-log" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <div class="glass-panel p-4 flex-shrink-0">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-100">Audit Log</h2>
+                            <p class="mt-1 text-sm text-slate-400">Istoric acțiuni importante din HUB AUTO.</p>
+                        </div>
+                    </div>
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-left">Utilizator</th>
+                                        <th class="px-4 py-3 text-left">Modul</th>
+                                        <th class="px-4 py-3 text-left">Acțiune</th>
+                                        <th class="px-4 py-3 text-left">Descriere</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-log-body" class="divide-y divide-slate-800/70">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă logurile...</td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -565,6 +629,7 @@
                 if (sectiuneId === 'sectiune-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
                 if (sectiuneId === 'sectiune-devize') pageTitle.textContent = 'Gestiune Devize';
                 if (sectiuneId === 'sectiune-consumabile') pageTitle.textContent = 'Consumabile';
+                if (sectiuneId === 'sectiune-audit-log') pageTitle.textContent = 'Audit Log';
                 if (sectiuneId === 'sectiune-useri') pageTitle.textContent = 'Gestionare Useri';
             }
 
@@ -588,6 +653,9 @@
                 loadStockProductsAdmin();
                 loadStockMovementsAdmin();
                 loadStockProductsManagement();
+            }
+            if (sectiuneId === 'sectiune-audit-log' && typeof loadAuditLogs === 'function') {
+                loadAuditLogs();
             }
         }
 
@@ -974,6 +1042,12 @@
                 return;
             }
 
+            const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
+            if (deleteMovementBtn) {
+                await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
+                return;
+            }
+
             const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
             if (archiveProductBtn) {
                 await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
@@ -1342,6 +1416,13 @@
             return date.toLocaleDateString('ro-RO');
         }
 
+        function formatAuditLogDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return date.toLocaleString('ro-RO');
+        }
+
         function formatDevizMoney(value) {
             const amount = Number(value);
             if (!Number.isFinite(amount)) return '0.00 RON';
@@ -1479,6 +1560,59 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('audit-log-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă logurile...</td>
+                </tr>
+            `;
+
+            try {
+                const { data, error } = await sb
+                    .from('audit_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (!data?.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există încă activitate înregistrată.</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = data.map((row) => {
+                    const utilizator = row.utilizator ?? row.user_name ?? row.user_email ?? row.created_by_name ?? row.created_by ?? '—';
+                    const modul = row.modul ?? row.module ?? '—';
+                    const actiune = row.actiune ?? row.action ?? '—';
+                    const descriere = row.descriere ?? row.description ?? '—';
+                    return `
+                        <tr class="hover:bg-slate-800/40 transition-colors">
+                            <td class="px-4 py-3 text-slate-300">${escapeHtml(formatAuditLogDate(row.created_at))}</td>
+                            <td class="px-4 py-3 text-slate-100">${escapeHtml(utilizator)}</td>
+                            <td class="px-4 py-3 text-slate-300">${escapeHtml(modul)}</td>
+                            <td class="px-4 py-3 text-slate-300">${escapeHtml(actiune)}</td>
+                            <td class="px-4 py-3 text-slate-400">${escapeHtml(descriere)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea logurilor: ${escapeHtml(error.message || 'Necunoscută')}</td>
+                    </tr>
+                `;
+            }
         }
 
         async function loadDevizeTable() {
@@ -1755,6 +1889,7 @@
                 setStockAdminStatus('A fost efectuată o corecție de tranzacție.', 'success');
                 await loadStockMovementsAdmin();
             } catch (error) {
+                console.error(error);
                 setStockMovementsStatus(error.message || 'Eroare la ștergerea tranzacției.', 'error');
             }
         }

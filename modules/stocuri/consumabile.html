@@ -82,6 +82,9 @@
         .toast-exit {
             animation: toastOut 0.25s ease-in forwards;
         }
+        body.modal-open {
+            overflow: hidden;
+        }
         @keyframes toastIn {
             from { opacity: 0; transform: translateY(12px) scale(0.96); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -229,8 +232,8 @@
     </div>
 
     <div id="historyModal" class="fixed inset-0 z-[1100] hidden items-center justify-center bg-black/70 p-4">
-        <div class="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div class="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex flex-shrink-0 items-center justify-between border-b border-slate-800 px-5 py-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-100">Istoric produs</h2>
                     <p id="historyModalTitle" class="text-xs text-slate-400">Mișcările recente pentru produsul selectat.</p>
@@ -239,14 +242,14 @@
                     <i data-lucide="x" class="h-4 w-4"></i>
                 </button>
             </div>
-            <div class="px-5 py-5">
-                <div id="historyState" class="hidden rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm text-slate-300"></div>
-                <div class="mb-4 flex flex-wrap items-center gap-2">
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-5">
+                <div id="historyState" class="hidden flex-shrink-0 rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 text-sm text-slate-300"></div>
+                <div class="mb-4 flex flex-shrink-0 flex-wrap items-center gap-2">
                     <button type="button" data-history-filter="toate" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Toate</button>
                     <button type="button" data-history-filter="intrare" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Doar Intrări</button>
                     <button type="button" data-history-filter="iesire" class="history-filter-pill rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-200 transition hover:bg-slate-700">Doar Ieșiri</button>
                 </div>
-                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                <div class="min-h-0 flex-1 overflow-y-auto overflow-x-auto rounded-xl border border-slate-800">
                     <table class="w-full text-sm text-slate-200">
                         <thead class="bg-slate-800/90 text-xs uppercase tracking-wide text-slate-400">
                             <tr>
@@ -565,6 +568,7 @@
         function openHistoryModal() {
             document.getElementById('historyModal').classList.remove('hidden');
             document.getElementById('historyModal').classList.add('flex');
+            document.body.classList.add('modal-open');
             setHistoryState('');
             lucide.createIcons();
         }
@@ -572,6 +576,7 @@
         function closeHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
             document.getElementById('historyModal').classList.remove('flex');
+            document.body.classList.remove('modal-open');
             document.getElementById('historyTableBody').innerHTML = '';
             document.getElementById('historyModalTitle').textContent = 'Mișcările recente pentru produsul selectat.';
             currentHistoryRows = [];
