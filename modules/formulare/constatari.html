@@ -233,7 +233,7 @@
   }
   .overlay.open { opacity: 1; pointer-events: all; }
   .drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; width: 500px; max-width: 97vw;
+    position: fixed; top: 0; right: 0; bottom: 0; width: 700px; max-width: 97vw;
     background: var(--surface); border-left: 1px solid var(--border);
     z-index: 201; transform: translateX(100%);
     transition: transform .28s cubic-bezier(.4,0,.2,1);
@@ -462,7 +462,7 @@
 <div class="toolbar">
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="text" id="searchInput" placeholder="Nr. înmatriculare, model, VIN..." oninput="renderCards()">
+    <input type="text" id="searchInput" placeholder="Nr. înmatriculare, model, VIN, client..." oninput="renderCards()">
   </div>
   <div class="filter-tabs">
     <button class="filter-tab active" onclick="setFilter('all',this)">Toate</button>
@@ -497,16 +497,39 @@
   </div>
 
   <div class="drawer-body">
-    <!-- Rând 1: Placă + KM -->
+    <!-- Rând fișă + client -->
     <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Nr. fișă</label>
+        <input class="form-input mono-input" id="fNrFisa" type="text" readonly>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Client</label>
+        <input class="form-input" id="fClient" type="text" placeholder="Nume client">
+      </div>
+    </div>
+    <!-- Rând telefon + placă -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Telefon</label>
+        <input class="form-input mono-input" id="fTelefon" type="tel" placeholder="07xx xxx xxx">
+      </div>
       <div class="form-group">
         <label class="form-label">Nr. Înmatriculare *</label>
         <input class="form-input mono-input" id="fPlate" type="text" placeholder="CT 00 ABC"
-               oninput="this.value=this.value.toUpperCase()">
+               oninput="this.value=normalizeAlphaNumUpper(this.value)">
+      </div>
+    </div>
+
+    <!-- Rând KM intrare + KM ieșire -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">KM intrare</label>
+        <input class="form-input mono-input" id="fKm" type="number" placeholder="ex: 125000" min="0">
       </div>
       <div class="form-group">
-        <label class="form-label">Kilometraj</label>
-        <input class="form-input mono-input" id="fKm" type="number" placeholder="ex: 125000" min="0">
+        <label class="form-label">KM ieșire</label>
+        <input class="form-input mono-input" id="fKmIesire" type="number" placeholder="ex: 125120" min="0">
       </div>
     </div>
     <!-- Model -->
@@ -519,7 +542,7 @@
       <label class="form-label">Serie VIN</label>
       <input class="form-input mono-input" id="fVin" type="text"
              placeholder="ex: WVWZZZ3CZDE012345" style="font-size:12px"
-             oninput="this.value=this.value.toUpperCase()">
+             oninput="this.value=normalizeAlphaNumUpper(this.value)">
     </div>
 
     <div class="divider"></div>
@@ -684,11 +707,16 @@ function fromSB(row) {
     : [];
   return {
     id:            row.id,
-    created_at:    (row.created_at || '').substring(0, 10),
+    created_at:    row.created_at || '',
+    date:          (row.created_at || '').substring(0, 10),
+    nr_fisa:       row.nr_fisa == null || row.nr_fisa === '' ? '' : String(row.nr_fisa).padStart(4, '0'),
+    client:        row.client || '',
+    telefon:       row.telefon || '',
     plate:         row.nr_inmatriculare || '',
     model:         row.model_masina || '',
     vin:           row.serie_vin || '',
     km:            row.kilometraj || null,
+    km_iesire:     row.km_iesire || null,
     client_desc:   row.defectiuni_client || '',
     mechanic_desc: row.defectiuni_mecanic || '',
     parts,
@@ -702,10 +730,14 @@ function fromSB(row) {
 // Conversie obiect intern → payload pentru Supabase
 function toSB(c) {
   return {
+    nr_fisa:            c.nr_fisa,
+    client:             c.client,
+    telefon:            c.telefon,
     nr_inmatriculare:   c.plate,
     model_masina:       c.model,
     serie_vin:          c.vin,
     kilometraj:         c.km ? parseInt(c.km) : null,
+    km_iesire:          c.km_iesire ? parseInt(c.km_iesire) : null,
     defectiuni_client:  c.client_desc,
     defectiuni_mecanic: c.mechanic_desc,
     piese_utilizate:    c.parts.join(' | '),
@@ -772,12 +804,39 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function normalizeAlphaNumUpper(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function normalizeClient(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function formatDateRO(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+async function getNextNrFisa() {
+  const { data, error } = await sb
+    .from(TABLE)
+    .select('nr_fisa')
+    .not('nr_fisa', 'is', null)
+    .order('nr_fisa', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  const maxNr = data && data[0] ? parseInt(data[0].nr_fisa, 10) : 0;
+  return String((Number.isNaN(maxNr) ? 0 : maxNr) + 1).padStart(4, '0');
+}
+
 function renderCards() {
   const grid = document.getElementById('cardsGrid');
   const q = document.getElementById('searchInput').value.toLowerCase();
   const visible = cards.filter(c => {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
-    if (q && !`${c.plate} ${c.model} ${c.vin}`.toLowerCase().includes(q)) return false;
+    if (q && !`${c.plate} ${c.model} ${c.vin} ${c.client} ${c.telefon} ${c.nr_fisa}`.toLowerCase().includes(q)) return false;
     return true;
   });
   document.getElementById('countNum').textContent = visible.length;
@@ -796,6 +855,9 @@ function renderCards() {
     const partsHtml = c.parts.length
       ? c.parts.map(p => `<span class="part-tag">${esc(p)}</span>`).join('')
       : '<span style="color:var(--muted);font-size:12px">—</span>';
+    const fisaText = c.nr_fisa ? `Fișa ${esc(c.nr_fisa)}` : '';
+    const dateText = formatDateRO(c.created_at || c.date);
+    const metaLines = [fisaText, dateText, c.client ? esc(c.client) : ''].filter(Boolean).join('<br>');
     return `
     <article class="card" data-status="${esc(c.status)}" data-id="${c.id}">
       ${c.urgent ? `<div class="urgent-ribbon">🚨 URGENT</div>` : ''}
@@ -806,7 +868,7 @@ function renderCards() {
           ${c.vin ? `<div class="vin-badge">${esc(c.vin)}</div>` : ''}
         </div>
         <div class="card-meta">
-          <div class="meta-date">${esc(c.created_at)}</div>
+          <div class="meta-date">${metaLines}</div>
           ${c.km ? `<div class="meta-km">${Number(c.km).toLocaleString('ro-RO')} km</div>` : ''}
           <div class="status-pill ${sv.pill}">
             <div class="dot" style="background:${sv.color}"></div>${esc(sv.label)}
@@ -867,18 +929,27 @@ function setFilter(s, btn) {
 // ═══════════════════════════════════════════════════════
 // DRAWER DESCHIDE / ÎNCHIDE
 // ═══════════════════════════════════════════════════════
-function openDrawer() {
+async function openDrawer() {
   editId = null; partsArr = []; isUrgent = false;
   document.getElementById('drawerTitle').textContent = 'Mașină Nouă';
   document.getElementById('drawerSub').textContent = 'Completează datele de constatare';
-  document.getElementById('saveBtn').textContent = 'Salvează Constatarea';
-  ['fPlate','fKm','fModel','fVin','fClientDesc','fMechanicDesc','fObs'].forEach(id => document.getElementById(id).value = '');
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.textContent = 'Se generează fișa...';
+  saveBtn.disabled = true;
+  ['fNrFisa','fClient','fTelefon','fKmIesire','fPlate','fKm','fModel','fVin','fClientDesc','fMechanicDesc','fObs'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fStatus').value = 'In lucru';
   syncUrgentUI();
   renderPartsChips();
   document.getElementById('mainDrawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
   setTimeout(() => document.getElementById('fPlate').focus(), 280);
+  try {
+    document.getElementById('fNrFisa').value = await getNextNrFisa();
+  } catch(e) {
+    toast('Nu am putut genera nr. fișă: ' + (e.message || e), 'error');
+  }
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Salvează Constatarea';
 }
 
 function openEdit(id) {
@@ -890,6 +961,11 @@ function openEdit(id) {
   document.getElementById('drawerTitle').textContent = 'Editează — ' + c.plate;
   document.getElementById('drawerSub').textContent = c.model || '';
   document.getElementById('saveBtn').textContent = 'Salvează Modificările';
+  document.getElementById('saveBtn').disabled = false;
+  document.getElementById('fNrFisa').value = c.nr_fisa || '';
+  document.getElementById('fClient').value = c.client || '';
+  document.getElementById('fTelefon').value = c.telefon || '';
+  document.getElementById('fKmIesire').value = c.km_iesire || '';
   document.getElementById('fPlate').value = c.plate;
   document.getElementById('fKm').value = c.km || '';
   document.getElementById('fModel').value = c.model;
@@ -913,17 +989,36 @@ function closeDrawer() {
 // SALVARE (INSERT / UPDATE) PRIN SUPABASE CLIENT
 // ═══════════════════════════════════════════════════════
 async function saveCard() {
-  const plate = document.getElementById('fPlate').value.trim().toUpperCase();
+  const plate = normalizeAlphaNumUpper(document.getElementById('fPlate').value);
+  document.getElementById('fPlate').value = plate;
   if (!plate) {
     toast('Nr. înmatriculare este obligatoriu!', 'error');
     document.getElementById('fPlate').focus();
     return;
   }
+  let nrFisa = document.getElementById('fNrFisa').value.trim();
+  if (!editId && !nrFisa) {
+    try {
+      nrFisa = await getNextNrFisa();
+      document.getElementById('fNrFisa').value = nrFisa;
+    } catch(e) {
+      toast('Nu am putut genera nr. fișă: ' + (e.message || e), 'error');
+      return;
+    }
+  }
+  const client = normalizeClient(document.getElementById('fClient').value);
+  const vin = normalizeAlphaNumUpper(document.getElementById('fVin').value);
+  document.getElementById('fClient').value = client;
+  document.getElementById('fVin').value = vin;
   const payload = {
+    nr_fisa:       nrFisa,
+    client,
+    telefon:       document.getElementById('fTelefon').value.trim(),
     plate,
     km:            document.getElementById('fKm').value || null,
+    km_iesire:     document.getElementById('fKmIesire').value || null,
     model:         document.getElementById('fModel').value.trim(),
-    vin:           document.getElementById('fVin').value.trim().toUpperCase(),
+    vin,
     client_desc:   document.getElementById('fClientDesc').value.trim(),
     mechanic_desc: document.getElementById('fMechanicDesc').value.trim(),
     parts:         partsArr,
@@ -946,7 +1041,7 @@ async function saveCard() {
     } else {
       const { data, error } = await sb.from(TABLE).insert(toSB(payload)).select();
       if (error) throw error;
-      const newCard = data && data[0] ? fromSB(data[0]) : { ...payload, id: Date.now(), created_at: new Date().toISOString().substring(0,10), photos: [] };
+      const newCard = data && data[0] ? fromSB(data[0]) : { ...payload, id: Date.now(), created_at: new Date().toISOString(), date: new Date().toISOString().substring(0,10), photos: [] };
       cards.unshift(newCard);
       toast('Constatare adăugată ✓', 'success');
     }
@@ -1071,56 +1166,18 @@ function handlePhotoUpload(e) {
 function printCard(id) {
   const c = cards.find(x => x.id === id);
   if (!c) return;
-  const sv = STATUS_VALUES[c.status] || STATUS_VALUES['In lucru'];
-  const w = window.open('', '_blank', 'width=720,height=960');
-  
-  // Construiesc piese HTML (fără backticks imbricate)
-  let partsHtml = '—';
-  if (c.parts.length) {
-    partsHtml = c.parts.map(p => '<span class="tag">' + p + '</span>').join('');
-  }
-  
-  const html = `<!DOCTYPE html><html><head><title>Constatare ${c.plate}</title>
-  <style>
-    body{font-family:Arial,sans-serif;padding:36px;max-width:660px;margin:0 auto;color:#111;font-size:14px}
-    h1{font-size:24px;margin:0 0 2px;letter-spacing:.05em}
-    .sub{color:#555;font-size:14px;margin-bottom:20px}
-    table{width:100%;border-collapse:collapse;margin-bottom:18px}
-    td{padding:9px 11px;border:1px solid #ddd;font-size:13px}
-    td:first-child{background:#f5f5f5;font-weight:600;width:36%;white-space:nowrap}
-    .s{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.06em;margin:18px 0 6px}
-    
-    /* MODIFICARE AICI: Am mărit min-height la 190px pentru spațiu de scris olograf */
-    .box{background:#f9f9f9;border:1px solid #ddd;border-radius:4px;padding:11px 13px;font-size:13px;line-height:1.6;min-height:190px;box-sizing:border-box}
-    
-    .tags{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0}
-    .tag{border:1px solid #009ab5;color:#007a9a;padding:2px 9px;border-radius:4px;font-size:12px}
-    .urgent{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;padding:5px 12px;border-radius:4px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:14px}
-    .footer{margin-top:32px;border-top:1px solid #ddd;padding-top:14px;font-size:11px;color:#888;display:flex;justify-content:space-between}
-    
-    @media print{
-      body{padding:16px}
-      /* Economisim cartuș la print și păstrăm chenarul curat */
-      .box{background:transparent !important;border:1px solid #999 !important}
-    }
-  </style></head><body>
-  ${c.urgent ? '<div class="urgent">🚨 URGENT</div>' : ''}
-  <h1>${c.plate}</h1>
-  <div class="sub">${c.model||''}${c.vin ? ' | VIN: ' + c.vin : ''}</div>
-  <table>
-    <tr><td>Kilometraj</td><td>${c.km ? Number(c.km).toLocaleString('ro-RO') + ' km' : '—'}</td></tr>
-    <tr><td>Data intrare</td><td>${c.created_at||'—'}</td></tr>
-    <tr><td>Status</td><td><strong>${sv.label}</strong></td></tr>
-  </table>
-  <div class="s">Defecțiuni solicitate de client</div><div class="box">${c.client_desc||'—'}</div>
-  <div class="s">Defecțiuni găsite de mecanic</div><div class="box">${c.mechanic_desc||'—'}</div>
-  <div class="s">Piese utilizate</div><div class="box"><div class="tags">${partsHtml}</div></div>
-  ${c.obs ? `<div class="s">Observații</div><div class="box">${c.obs}</div>` : ''}
-  <div class="footer"><span>AUTO.HUB Service</span><span>Generat: ${new Date().toLocaleDateString('ro-RO')}</span></div>
-  <script>window.onload=()=>window.print();<\/script></body></html>`;
-  
-  w.document.write(html);
-  w.document.close();
+  localStorage.setItem('currentConstatarePrint', JSON.stringify({
+    nrFisa: c.nr_fisa || '',
+    data: c.created_at || c.date || '',
+    client: c.client || '',
+    telefon: c.telefon || '',
+    nrAuto: c.plate || '',
+    marcaAuto: c.model || '',
+    kmIntrare: c.km || '',
+    kmIesire: c.km_iesire || '',
+    defectiuniClient: c.client_desc || ''
+  }));
+  window.open('constatare-print.html', '_blank');
 }
 
 

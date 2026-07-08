@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Fișă de Constatare</title>
+  <style>
+    /* ================= CONFIGURARE RAPIDĂ FIȘĂ PRINT =================
+       Schimbă valorile de mai jos pentru ajustări manuale rapide.
+
+       Fonturi:
+       - --company-name-font-size: mărime font nume firmă din antet
+       - --company-line-font-size: mărime font linii date firmă din antet
+       - --title-font-size: mărime font titlu fișă
+       - --table-font-size: mărime font tabele
+       - --status-header-font-size: mărime font OK / PROBLEMA
+
+       Rânduri și coloane VERIFICARE TEHNICĂ:
+       - --check-row-height: înălțime rânduri normale
+       - --check-row-tall-height: înălțime rând lung, ex. rândul 5
+       - --col-verificare-width: lățime coloană VERIFICARE
+       - --col-ok-width: lățime coloană OK
+       - --col-problema-width: lățime coloană PROBLEMĂ
+       - coloana OBSERVAȚII ocupă automat spațiul rămas.
+
+       Antet NR fișă / dată:
+       - --doc-number-gap: spațiere între NR, număr, slash și dată
+       - --doc-number-value-width: lățimea zonelor pentru număr și dată
+
+       Watermark:
+       - --watermark-left / --watermark-top: poziție watermark
+       - --watermark-width: dimensiune watermark
+       - --watermark-opacity: opacitate watermark
+
+       Semnături:
+       - --signature-client-margin-top: distanță până la SEMNATURA CLIENT
+       - --signature-row-margin-top: distanță până la NUME/SEMNATURA MECANIC
+    */
+    :root {
+      --company-name-font-size: 10pt;
+      --company-line-font-size: 6.8pt;
+      --title-font-size: 11pt;
+      --table-font-size: 8.8pt;
+      --status-header-font-size: 8pt;
+
+      --check-row-height: 5.5mm;
+      --check-row-tall-height: 12mm;
+      --col-nr-width: 8mm;
+      --col-verificare-width: 57mm;
+      --col-ok-width: 8mm;
+      --col-problema-width: 18mm; /* Dacă textul "PROBLEMA" iese din casetă, mărește această valoare sau micșorează fontul headerului STATUS */
+
+      --doc-number-gap: 1mm;
+      --doc-number-value-width: 15mm;
+
+      --watermark-left: 50%;
+      --watermark-top: 55%;
+      --watermark-width: 158mm;
+      --watermark-opacity: 0.12;
+
+      --signature-client-margin-top: 4mm;
+      --signature-row-margin-top: 8mm;
+    }
+
+    /* === PRINT / PAGINĂ A4 ===
+       Controlează dimensiunea paginii tipărite și marginile fizice ale foii. */
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    /* === RESET GENERAL ===
+       Asigură calcul predictibil al dimensiunilor pentru toate elementele. */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* === BAZĂ DOCUMENT ===
+       Controlează fontul implicit, fundalul și păstrarea culorilor la print. */
+    body {
+      margin: 0;
+      background: #fff;
+      color: #000;
+      font-family: Arial, sans-serif;
+      font-size: 9pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* === CONTAINER FOAIE ===
+       Definește suprafața vizibilă a fișei și păstrează conținutul într-o pagină A4. */
+    .page {
+      width: 190mm;
+      min-height: 277mm;
+      margin: 0 auto;
+      position: relative;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* === WATERMARK ===
+       Controlează poziția, dimensiunea și transparența logo-ului de fundal. */
+    .watermark {
+      position: absolute;
+      left: var(--watermark-left);
+      top: var(--watermark-top);
+      width: var(--watermark-width);
+      height: auto;
+      transform: translate(-50%, -50%);
+      opacity: var(--watermark-opacity);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* === STRAT CONȚINUT ===
+       Ține tabelele și textele deasupra watermark-ului. */
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* === ANTET FIRMĂ ===
+       Controlează blocul cu numele firmei, punctul de lucru și datele fiscale. */
+    .company {
+      text-align: center;
+      padding-top: 4mm;
+      line-height: 1.35;
+    }
+
+    .company-name {
+      font-size: var(--company-name-font-size);
+      font-weight: 700;
+      margin-bottom: 1mm;
+    }
+
+    .company-line {
+      font-size: var(--company-line-font-size);
+      margin-top: 0.8mm;
+    }
+
+    /* === TITLU FIȘĂ ===
+       Controlează titlul central al documentului. */
+    .title {
+      text-align: center;
+      font-size: var(--title-font-size);
+      font-weight: 700;
+      margin-top: 1mm;
+    }
+
+    /* === NR FIȘĂ / DATĂ ===
+       Controlează linia "NR 0001 / 08.07.2026" din antet. */
+    .doc-number {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: var(--doc-number-gap);
+      margin-top: 1mm;
+      margin-bottom: 6mm;
+      font-size: 10pt;
+      font-weight: 700;
+    }
+
+    .doc-number .value {
+      min-width: var(--doc-number-value-width);
+      text-align: center;
+      font-weight: 400;
+    }
+
+    /* === TABELE: STIL GENERAL ===
+       Setări comune pentru toate tabelele: lățime, borduri, celule și padding. */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    td,
+    th {
+      border: 1px solid #000;
+      padding: 0.9mm 1.1mm;
+      vertical-align: middle;
+      line-height: 1.2;
+    }
+
+    .bold {
+      font-weight: 700;
+    }
+
+    /* === TABEL CLIENT / DEFECȚIUNI RECLAMATE ===
+       Controlează tabelul din antet cu client, telefon, nr. auto, marca auto și reclamații. */
+    .top-table {
+      margin-top: 0;
+    }
+
+    .top-table td {
+      height: 6.5mm;
+      font-size: 8pt;
+    }
+
+    .label-cell {
+      width: 34mm;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .value-cell {
+      font-weight: 700;
+    }
+
+    .complaint-head {
+      font-weight: 700;
+      vertical-align: top;
+    }
+
+    .complaint-body {
+      vertical-align: top;
+      height: 31mm;
+      font-weight: 700;
+      white-space: pre-wrap;
+    }
+
+    .km-half {
+      width: 27.5mm;
+    }
+
+    /* === TITLURI SECȚIUNI ===
+       Controlează etichetele centrate dintre zone, ex. "VERIFICARE TEHNICĂ". */
+    .section-caption {
+      text-align: center;
+      font-size: 8.8pt;
+      font-weight: 700;
+      margin: 2.8mm 0 0.7mm;
+    }
+
+    /* === VERIFICARE TEHNICĂ ===
+       Controlează tabelul mecanicului: coloane, rânduri, status OK/PROBLEMA și observații. */
+    .check-table th,
+    .check-table td {
+      font-size: var(--table-font-size);
+      padding: 0.7mm 0.9mm;
+    }
+
+    .check-table th {
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .check-table .nr {
+      text-align: center;
+      font-weight: 400;
+    }
+
+    .check-table .verificare {
+      font-weight: 700;
+    }
+
+    .check-table .status-col {
+      text-align: center;
+      font-size: var(--status-header-font-size);
+    }
+
+    .check-table .obs {
+      width: auto;
+    }
+
+    .check-table tbody td {
+      height: var(--check-row-height);
+    }
+
+    .check-table .row-tall td {
+      height: var(--check-row-tall-height);
+    }
+
+    /* === DEFECȚIUNI CONSTATATE / RECOMANDĂRI ===
+       Controlează cele două tabele mari goale din mijlocul fișei. */
+    .blank-section {
+      margin-top: 1.8mm;
+    }
+
+    .blank-section td {
+      padding: 0;
+    }
+
+    .side-title {
+      width: 34mm;
+      text-align: center;
+      font-weight: 700;
+      font-size: 9pt;
+      line-height: 1.45;
+      vertical-align: middle;
+    }
+
+    .blank-grid td {
+      height: 7mm;
+    }
+
+    .blank-grid .split {
+      width: 50%;
+    }
+
+    /* === ACCEPT / REFUZ ===
+       Controlează linia cu opțiunile clientului de acceptare/refuz/preluare vehicul. */
+    .options {
+      margin-top: 4.2mm;
+      font-size: 8.2pt;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* === SEMNĂTURI ===
+       Controlează poziția rubricilor de semnătură client și mecanic. */
+    .signature-client {
+      margin-top: var(--signature-client-margin-top);
+      font-size: 9pt;
+      font-weight: 700;
+    }
+
+    .signature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin-top: var(--signature-row-margin-top);
+      font-size: 9pt;
+      font-weight: 700;
+    }
+
+    /* === PRINT ===
+       Ajustări aplicate doar în modul de tipărire. */
+    @media print {
+      body {
+        margin: 0;
+      }
+
+      .page {
+        width: 190mm;
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- WATERMARK -->
+    <!-- Logo-ul de fundal al fișei; poziția și opacitatea sunt controlate din CSS. -->
+    <img src="../../icons/logo.png" class="watermark" alt="">
+
+    <div class="content">
+      <!-- ANTET -->
+      <!-- Date firmă și titlul documentului. -->
+      <header class="company">
+        <div class="company-name">CSN GARAGE S.R.L.</div>
+        <div class="company-line">Pct. de lucru: oras Navodari, Recoltei, nr.45, Jud. Constanta</div>
+        <div class="company-line">RO 47695940&nbsp;&nbsp; J13/645/23.02.2023</div>
+        <div class="company-line">Sediu: oras Navodari, str. T2, nr.109, et. 2, ap. 19 , Jud. Constanta</div>
+      </header>
+
+      <!-- TITLU DOCUMENT -->
+      <div class="title">FIȘĂ DE CONSTATARE ȘI VERIFICARE FINALĂ</div>
+
+      <!-- NR FIȘĂ / DATĂ -->
+      <!-- Valorile sunt completate automat din localStorage în scriptul de jos. -->
+      <div class="doc-number">
+        <span>NR</span>
+        <span class="value" id="print-nr-fisa"></span>
+        <span>/</span>
+        <span class="value" id="print-data"></span>
+      </div>
+
+      <!-- Modificare Tabel Antet -->
+
+      <!-- TABEL CLIENT -->
+      <!-- Date client și autovehicul: client, telefon, nr. auto, marca auto, km intrare. -->
+      <table class="top-table">
+        <colgroup>
+          <col style="width:34mm">
+          <col style="width:23mm">
+          <col style="width:33mm">
+          <col>
+        </colgroup>
+        <tr>
+          <td class="label-cell">CLIENT:</td>
+          <td class="value-cell" colspan="2" id="print-client"></td>
+          <td class="complaint-head">DEFECTIUNI RECLAMATE DE CLIENT</td>
+        </tr>
+        <tr>
+          <td class="label-cell">TEL:</td>
+          <td class="value-cell" colspan="2" id="print-telefon"></td>
+          <!-- DEFECȚIUNI RECLAMATE -->
+          <!-- Zona completată automat cu textul introdus în formularul de constatare. -->
+          <td class="complaint-body" rowspan="4" id="print-defectiuni"></td>
+        </tr>
+        <tr>
+          <td class="label-cell">NR AUTO:</td>
+          <td class="value-cell" colspan="2" id="print-nr-auto"></td>
+        </tr>
+        <tr>
+          <td class="label-cell">MARCA AUTO:</td>
+          <td class="value-cell" colspan="2" id="print-marca-auto"></td>
+        </tr>
+        <tr>
+          <td class="label-cell">KM INTRARE/IESIRE</td>
+          <td class="value-cell km-half" id="print-km-intrare"></td>
+          <td class="km-half"></td>
+        </tr>
+      </table>
+
+      <!-- VERIFICARE TEHNICĂ -->
+      <!-- Tabelul mecanicului rămâne gol pentru completare manuală pe hârtie. -->
+      <div class="section-caption">VERIFICARE TEHNICĂ&nbsp; - COMPLETAT DE MECANIC</div>
+      <table class="check-table">
+        <colgroup>
+          <col style="width:var(--col-nr-width)">
+          <col style="width:var(--col-verificare-width)">
+          <col style="width:var(--col-ok-width)">
+          <col style="width:var(--col-problema-width)">
+          <!-- OBSERVAȚII: fără lățime fixă; primește automat tot spațiul rămas. -->
+          <col>
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="nr" rowspan="2">Nr.</th>
+            <th class="verificare" rowspan="2">VERIFICARE</th>
+            <th colspan="2">STATUS</th>
+            <th class="obs" rowspan="2">OBSERVATII</th>
+          </tr>
+          <tr>
+            <th class="status-col">OK</th>
+            <th class="status-col">PROBLEMA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="nr">1</td><td class="verificare">MARTORI BORD</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">2</td><td class="verificare">NIVEL ULEI MOTOR</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">3</td><td class="verificare">NIVEL LICHID RACIRE (ANTIGEL)</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">4</td><td class="verificare">NIVEL LICHID FRANA</td><td></td><td></td><td></td></tr>
+          <tr class="row-tall"><td class="nr">5</td><td class="verificare">VERIFICARE FRANARE (PEDALA +<br>FRANA DE MANA + DISCURI<br>+PLACUTE)</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">6</td><td class="verificare">PRESIUNE ROTI</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">7</td><td class="verificare">VERIFICARE SCURGERI VIZIBILE</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">8</td><td class="verificare">SISTEM ILUMINARE/SEMNALIZARE</td><td></td><td></td><td></td></tr>
+          <tr><td class="nr">9</td><td class="verificare">TEST PORNIRE LA CALD</td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+
+      <!-- DEFECȚIUNI CONSTATATE -->
+      <!-- Rubrică goală pentru probleme descoperite în timpul reparației. -->
+      <table class="blank-section">
+        <tr>
+          <td class="side-title" rowspan="7">DEFECTIUNI<br>CONSTATATE IN<br>TIMPUL REPARATIEI</td>
+          <td>
+            <table class="blank-grid">
+              <tr><td class="split"></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- RECOMANDĂRI -->
+      <!-- Rubrică goală pentru recomandări către client. -->
+      <table class="blank-section">
+        <tr>
+          <td class="side-title" rowspan="7">RECOMANDARI<br>PENTRU CLIENT</td>
+          <td>
+            <table class="blank-grid">
+              <tr><td class="split"></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+              <tr><td></td><td></td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- ACCEPT / REFUZ -->
+      <!-- Opțiuni goale pentru bifare manuală de către client. -->
+      <div class="options">[&nbsp; ] ACCEPT LUCRĂRI CLIENT&nbsp;&nbsp;&nbsp; [&nbsp; ] REFUZ LUCRĂRI CLIENT&nbsp;&nbsp;&nbsp; [&nbsp; ] PRELUARE VEHICUL IN STARE FUNCTIONALA</div>
+
+      <!-- SEMNĂTURI -->
+      <!-- Zonele de semnătură rămân goale pentru completare pe fișa tipărită. -->
+      <div class="signature-client">SEMNATURA CLIENT:</div>
+      <div class="signature-row">
+        <div>NUME MECANIC :</div>
+        <div>SEMNATURA MECANIC:</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT -->
+  <!-- Citește datele salvate în localStorage, completează doar antetul și pornește printarea. -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const rawData = localStorage.getItem('currentConstatarePrint');
+      if (!rawData) {
+        alert('Nu s-au găsit date pentru printare!');
+        return;
+      }
+
+      const data = JSON.parse(rawData);
+      const setText = (id, value) => {
+        document.getElementById(id).textContent = value || '';
+      };
+      const formatDate = (value) => {
+        if (!value) return '';
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      };
+      const formatNrFisa = (value) => {
+        if (value == null || value === '') return '';
+        return String(value).padStart(4, '0');
+      };
+      const formatKm = (value) => {
+        if (value == null || value === '') return '';
+        return Number(value).toLocaleString('ro-RO');
+      };
+
+      setText('print-nr-fisa', formatNrFisa(data.nrFisa));
+      setText('print-data', formatDate(data.data));
+      setText('print-client', data.client);
+      setText('print-telefon', data.telefon);
+      setText('print-nr-auto', data.nrAuto);
+      setText('print-marca-auto', data.marcaAuto);
+      setText('print-km-intrare', formatKm(data.kmIntrare));
+      setText('print-defectiuni', data.defectiuniClient);
+
+      setTimeout(() => window.print(), 250);
+    });
+  </script>
+</body>
+</html>
