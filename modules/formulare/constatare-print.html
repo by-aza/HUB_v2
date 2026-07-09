@@ -192,7 +192,7 @@
     }
 
     .top-table td {
-      height: 6.5mm;
+      height: 5.5mm;
       font-size: 8pt;
     }
 
@@ -276,6 +276,10 @@
       margin-top: 1.8mm;
     }
 
+    .blank-section > tbody > tr > td:nth-child(2) {
+  border: none;
+}
+
     .blank-section td {
       padding: 0;
     }
@@ -289,8 +293,19 @@
       vertical-align: middle;
     }
 
+    .blank-grid {
+  width: 100%;
+  border-collapse: collapse;
+  border: none; /* evită bordura dublă cu tabelul exterior */
+}
+
+.blank-grid tr td:first-child{
+    border-left:none;
+}
+
     .blank-grid td {
       height: 7mm;
+      border: 1px solid #000;
     }
 
     .blank-grid .split {
@@ -385,7 +400,7 @@
           <td class="value-cell" colspan="2" id="print-telefon"></td>
           <!-- DEFECȚIUNI RECLAMATE -->
           <!-- Zona completată automat cu textul introdus în formularul de constatare. -->
-          <td class="complaint-body" rowspan="4" id="print-defectiuni"></td>
+          <td class="complaint-body" rowspan="5" id="print-defectiuni"></td>
         </tr>
         <tr>
           <td class="label-cell">NR AUTO:</td>
@@ -394,6 +409,10 @@
         <tr>
           <td class="label-cell">MARCA AUTO:</td>
           <td class="value-cell" colspan="2" id="print-marca-auto"></td>
+        </tr>
+        <tr>
+          <td class="label-cell">SERIE VIN:</td>
+          <td class="value-cell" colspan="2" id="print-vin"></td>
         </tr>
         <tr>
           <td class="label-cell">KM INTRARE/IESIRE</td>
@@ -526,6 +545,7 @@
       setText('print-telefon', data.telefon);
       setText('print-nr-auto', data.nrAuto);
       setText('print-marca-auto', data.marcaAuto);
+      setText('print-vin', data.vin);
       setText('print-km-intrare', formatKm(data.kmIntrare));
       setText('print-defectiuni', data.defectiuniClient);
 
