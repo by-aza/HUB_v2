@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/audit.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -294,6 +295,7 @@
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        window.supabaseClient = supabaseClient;
         const successAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/866/866-preview.mp3');
 
         // Stare locală pentru dashboard și modaluri.
@@ -304,6 +306,7 @@
         let currentHistoryRows = [];
         let currentHistoryFilter = 'toate';
         let orderCandidates = [];
+        let auditActorPromise = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadProducts();
@@ -359,6 +362,95 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        async function getAuditActor() {
+            if (!auditActorPromise) {
+                auditActorPromise = (async () => {
+                    const { data: { session } = {} } = await supabaseClient.auth.getSession();
+                    const user = session?.user || null;
+                    if (!user?.id) {
+                        return { user_id: null, user_name: '' };
+                    }
+
+                    let profile = null;
+                    try {
+                        const { data, error } = await supabaseClient
+                            .from('auth_profiles')
+                            .select('porecla, email')
+                            .eq('id', user.id)
+                            .maybeSingle();
+                        if (error) throw error;
+                        profile = data;
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    return {
+                        user_id: user.id,
+                        user_name: profile?.porecla || profile?.email || user.email || ''
+                    };
+                })().catch((error) => {
+                    console.error(error);
+                    return { user_id: null, user_name: '' };
+                });
+            }
+
+            return auditActorPromise;
+        }
+
+        async function logAuditConsumabile(actiune, descriere, entitateId) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getAuditActor();
+                await window.addAuditLog({
+                    modul: 'Consumabile',
+                    actiune,
+                    descriere,
+                    entitate: 'consumabil',
+                    entitate_id: entitateId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function findLatestStockMovementId(produsId, tipMiscare, cantitate) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('stoc_miscari')
+                    .select('id')
+                    .eq('produs_id', produsId)
+                    .eq('tip_miscare', tipMiscare)
+                    .eq('cantitate', cantitate)
+                    .order('data', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw error;
+                return data?.id || null;
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
+        }
+
+        async function findProductIdByCode(codArticol) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('stoc_produse')
+                    .select('id')
+                    .eq('cod_articol', codArticol)
+                    .order('id', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (error) throw error;
+                return data?.id || null;
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
         }
 
         function renderState(message) {
@@ -879,6 +971,16 @@
                 return;
             }
 
+            const product = getProductMetaById(produsId);
+            const productName = product?.denumire || 'produs necunoscut';
+            const movementId = await findLatestStockMovementId(produsId, tipMiscare, cantitate);
+            const movementLabel = tipMiscare === 'intrare' ? 'intrare' : 'ieșire';
+            logAuditConsumabile(
+                'CREATE',
+                `A adăugat ${movementLabel} stoc: ${productName}, ${cantitate} buc`,
+                movementId || produsId
+            );
+
             closeOperationModal();
             await loadProducts();
             showToast('Operațiune salvată cu succes.');
@@ -958,6 +1060,13 @@
                 setProductStatus('Salvarea produsului a eșuat.');
                 return;
             }
+
+            const productId = await findProductIdByCode(codArticol);
+            logAuditConsumabile(
+                'CREATE',
+                `A creat produsul consumabil ${denumire}`,
+                productId || codArticol
+            );
 
             closeProductModal();
             await loadProductOptions();

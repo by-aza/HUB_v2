@@ -6,6 +6,7 @@
     <title>Management Detailing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/audit.js"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -119,10 +120,12 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/ro.js"></script>
     <script>
         const supabaseClient = window.supabase.createClient('https://xyovkxmtbvgcwavuyxxu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74');
+        window.supabaseClient = supabaseClient;
         let editContext = null;
         let currentEditId = null;
         let progFlatpickr = null;
         let editFlatpickr = null;
+        let auditActorPromise = null;
 
         const flatpickrConfig = {
             enableTime: true,
@@ -198,6 +201,64 @@
             '"': '&quot;',
             "'": '&#39;',
         })[ch]);
+
+        async function getAuditActor() {
+            if (!auditActorPromise) {
+                auditActorPromise = (async () => {
+                    try {
+                        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+                        if (sessionError) throw sessionError;
+
+                        const user = sessionData?.session?.user;
+                        if (!user?.id) return { user_id: null, user_name: '' };
+
+                        const { data: profile, error: profileError } = await supabaseClient
+                            .from('auth_profiles')
+                            .select('porecla')
+                            .eq('id', user.id)
+                            .maybeSingle();
+
+                        if (profileError) throw profileError;
+
+                        return {
+                            user_id: user.id,
+                            user_name: profile?.porecla || user.email || '',
+                        };
+                    } catch (error) {
+                        console.error(error);
+                        return { user_id: null, user_name: '' };
+                    }
+                })();
+            }
+
+            return auditActorPromise;
+        }
+
+        async function logDetailingAudit(actiune, descriere, entitateId) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+
+                const cleanEntityId = String(entitateId || '').trim();
+                if (!cleanEntityId) return;
+
+                const actor = await getAuditActor();
+                await window.addAuditLog({
+                    modul: 'Detailing',
+                    actiune,
+                    descriere,
+                    entitate: 'detailing',
+                    entitate_id: cleanEntityId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name,
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        const detailingEntityId = (row, fallback = '') => String(row?.id || row?.nr_inmatriculare || fallback || '').trim();
+
+        const detailingPlate = (row, fallback = '') => String(row?.nr_inmatriculare || fallback || '').trim().toUpperCase();
 
         const isConfigured = () => {
             return !!supabaseClient && typeof supabaseClient.from === 'function';
@@ -379,7 +440,14 @@
                                 .from('detailing')
                                 .update({ status: 'In lucru', data_inceperii: new Date().toISOString() })
                                 .eq('id', row.id);
-                            if (!error) await fetchDetailing();
+                            if (!error) {
+                                logDetailingAudit(
+                                    'STATUS_CHANGE',
+                                    `A schimbat statusul fișei de detailing ${detailingPlate(row)} în În lucru`,
+                                    detailingEntityId(row)
+                                );
+                                await fetchDetailing();
+                            }
                             btnStart.disabled = false;
                         });
 
@@ -413,7 +481,14 @@
                                 .from('detailing')
                                 .update({ status: 'Finalizate', data_finalizarii: new Date().toISOString() })
                                 .eq('id', row.id);
-                            if (!error) await fetchDetailing();
+                            if (!error) {
+                                logDetailingAudit(
+                                    'STATUS_CHANGE',
+                                    `A schimbat statusul fișei de detailing ${detailingPlate(row)} în Finalizat`,
+                                    detailingEntityId(row)
+                                );
+                                await fetchDetailing();
+                            }
                             btnFinish.disabled = false;
                         });
                         actions.appendChild(btnFinish);
@@ -529,6 +604,11 @@
             }
 
             closeModal('modalEdit');
+            logDetailingAudit(
+                'UPDATE',
+                `A modificat fișa de detailing pentru ${nr_inmatriculare}`,
+                currentEditId || nr_inmatriculare
+            );
             currentEditId = null;
             await fetchDetailing();
 
@@ -584,6 +664,19 @@
             }
 
             closeModal('modalProgramare');
+            if (idRaw) {
+                logDetailingAudit(
+                    'UPDATE',
+                    `A modificat fișa de detailing pentru ${nr_inmatriculare}`,
+                    payload.id || nr_inmatriculare
+                );
+            } else {
+                logDetailingAudit(
+                    'CREATE',
+                    `A creat fișa de detailing pentru ${nr_inmatriculare}`,
+                    nr_inmatriculare
+                );
+            }
             form.reset();
             if (progFlatpickr) progFlatpickr.clear();
             await fetchDetailing();

@@ -6,6 +6,7 @@
     <title>HUB Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/audit.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -478,6 +479,58 @@
                             <h2 class="text-2xl font-bold text-slate-100">Audit Log</h2>
                             <p class="mt-1 text-sm text-slate-400">Istoric acțiuni importante din HUB AUTO.</p>
                         </div>
+                        <div class="mt-4 grid gap-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_repeat(2,minmax(0,0.8fr))_minmax(0,1.4fr)_auto]">
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Modul</span>
+                                <select id="audit-filter-module" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toate</option>
+                                    <option value="Autentificare">Autentificare</option>
+                                    <option value="Deviz Estimativ">Deviz Estimativ</option>
+                                    <option value="Deviz Final">Deviz Final</option>
+                                    <option value="Consumabile">Consumabile</option>
+                                    <option value="AWB">AWB</option>
+                                    <option value="Avansuri">Avansuri</option>
+                                    <option value="Flotă">Flotă</option>
+                                    <option value="Detailing">Detailing</option>
+                                    <option value="Constatări">Constatări</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Acțiune</span>
+                                <select id="audit-filter-action" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toate</option>
+                                    <option value="CREATE">CREATE</option>
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="LOGOUT">LOGOUT</option>
+                                    <option value="PRINT">PRINT</option>
+                                    <option value="EXPORT">EXPORT</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Utilizator</span>
+                                <select id="audit-filter-user" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toți</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">De la</span>
+                                <input id="audit-filter-from" type="date" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Până la</span>
+                                <input id="audit-filter-to" type="date" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Căutare text</span>
+                                <input id="audit-filter-search" type="search" placeholder="Caută în loguri..." class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <div class="flex items-end gap-2">
+                                <button id="audit-apply-filters" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
+                                <button id="audit-reset-filters" type="button" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors">Reset</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="glass-panel admin-table-panel overflow-hidden">
                         <div class="admin-table-scroll">
@@ -763,7 +816,7 @@
                         <td class="px-4 py-3 text-slate-300">${escapeHtml(row._creator_name || '—')}</td>
                         <td class="px-4 py-3 text-slate-400">${dataValue}</td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                            <button type="button" data-delete-deviz-estimativ="${idDeviz}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
                         </td>
                     </tr>
                 `;
@@ -792,11 +845,131 @@
                         <td class="px-4 py-3 text-slate-300">${escapeHtml(row._creator_name || '—')}</td>
                         <td class="px-4 py-3 text-slate-400">${dataValue}</td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                            <button type="button" data-delete-deviz-final="${idDeviz}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
                         </td>
                     </tr>
                 `;
             }).join('');
+        }
+
+        async function getDevizeAuditActor() {
+            try {
+                const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
+                if (sessionError) throw sessionError;
+
+                const user = session?.user || null;
+                if (!user?.id) return { user_id: null, user_name: '' };
+
+                let profile = null;
+                try {
+                    const { data, error } = await sb
+                        .from('auth_profiles')
+                        .select('porecla, email')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    if (error) throw error;
+                    profile = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
+                return {
+                    user_id: user.id,
+                    user_name: profile?.porecla || profile?.email || user.email || ''
+                };
+            } catch (error) {
+                console.error(error);
+                return { user_id: null, user_name: '' };
+            }
+        }
+
+        async function logDevizDeleteAudit({ modul, entitate, entitateId, descriere }) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getDevizeAuditActor();
+                await window.addAuditLog({
+                    modul,
+                    actiune: 'DELETE',
+                    entitate,
+                    entitate_id: entitateId,
+                    descriere,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function deleteDevizEstimativ(idDeviz, button) {
+            const cleanId = String(idDeviz || '').trim();
+            if (!cleanId || cleanId === '-') return;
+            if (!window.confirm(`Sigur vrei să ștergi devizul ${cleanId}?`)) return;
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+
+            try {
+                const { error } = await sb
+                    .from('devize')
+                    .delete()
+                    .eq('id_deviz', cleanId);
+
+                if (error) throw error;
+
+                await logDevizDeleteAudit({
+                    modul: 'Deviz Estimativ',
+                    entitate: 'deviz_estimativ',
+                    entitateId: cleanId,
+                    descriere: `A șters devizul estimativ ${cleanId}`
+                });
+                await loadDevizeEstimativeRows();
+                alert(`Devizul ${cleanId} a fost șters cu succes.`);
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la ștergerea devizului estimativ.');
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        async function deleteDevizFinal(idDeviz, button) {
+            const cleanId = String(idDeviz || '').trim();
+            if (!cleanId || cleanId === '-') return;
+            if (!window.confirm(`Sigur vrei să ștergi devizul final ${cleanId}?`)) return;
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+
+            try {
+                const { error: linesError } = await sb
+                    .from('deviz_final_linii')
+                    .delete()
+                    .eq('id_deviz_final', cleanId);
+
+                if (linesError) throw linesError;
+
+                const { error } = await sb
+                    .from('deviz_final_header')
+                    .delete()
+                    .eq('id_deviz_final', cleanId);
+
+                if (error) throw error;
+
+                await logDevizDeleteAudit({
+                    modul: 'Deviz Final',
+                    entitate: 'deviz_final',
+                    entitateId: cleanId,
+                    descriere: `A șters devizul final ${cleanId}`
+                });
+                await loadDevizeFinaleRows();
+                alert(`Devizul final ${cleanId} a fost șters cu succes.`);
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la ștergerea devizului final.');
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
         }
 
         async function loadDevizeEstimativeRows() {
@@ -1012,6 +1185,18 @@
         });
 
         document.addEventListener('click', async (event) => {
+            const deleteDevizEstimativBtn = event.target.closest('[data-delete-deviz-estimativ]');
+            if (deleteDevizEstimativBtn) {
+                await deleteDevizEstimativ(deleteDevizEstimativBtn.getAttribute('data-delete-deviz-estimativ'), deleteDevizEstimativBtn);
+                return;
+            }
+
+            const deleteDevizFinalBtn = event.target.closest('[data-delete-deviz-final]');
+            if (deleteDevizFinalBtn) {
+                await deleteDevizFinal(deleteDevizFinalBtn.getAttribute('data-delete-deviz-final'), deleteDevizFinalBtn);
+                return;
+            }
+
             const subtabButton = event.target.closest('[data-consumabile-subtab]');
             if (subtabButton) {
                 switchConsumabileSubtab(subtabButton.getAttribute('data-consumabile-subtab'));
@@ -1031,6 +1216,22 @@
                 if (startInput) startInput.value = '';
                 if (endInput) endInput.value = '';
                 await loadStockMovementsAdmin();
+                return;
+            }
+
+            const applyAuditFiltersButton = event.target.closest('#audit-apply-filters');
+            if (applyAuditFiltersButton) {
+                await loadAuditLogs();
+                return;
+            }
+
+            const resetAuditFiltersButton = event.target.closest('#audit-reset-filters');
+            if (resetAuditFiltersButton) {
+                ['audit-filter-module', 'audit-filter-action', 'audit-filter-user', 'audit-filter-from', 'audit-filter-to', 'audit-filter-search'].forEach((id) => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = '';
+                });
+                await loadAuditLogs();
                 return;
             }
 
@@ -1063,6 +1264,7 @@
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
         const sb = supabase.createClient(supabaseUrl, supabaseKey);
+        window.supabaseClient = sb;
 
         const pageTitle = document.getElementById('page-title');
         const adminMessageInput = document.getElementById('admin-message-input');
@@ -1078,6 +1280,10 @@
         let devizePage = null;
         let stockProductsManagementFilter = 'active';
         let stockSearchReloadTimer = null;
+        let auditProfiles = [];
+        let auditProfilesById = new Map();
+        let auditProfilesLoaded = false;
+        let auditActorPromise = null;
 
         document.getElementById('stock-search-input')?.addEventListener('input', () => {
             clearTimeout(stockSearchReloadTimer);
@@ -1420,7 +1626,8 @@
             if (!value) return '-';
             const date = new Date(value);
             if (Number.isNaN(date.getTime())) return String(value);
-            return date.toLocaleString('ro-RO');
+            const pad = (part) => String(part).padStart(2, '0');
+            return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
         }
 
         function formatDevizMoney(value) {
@@ -1562,6 +1769,171 @@
             }).join('');
         }
 
+        function getAuditUserDisplayName(profile) {
+            if (!profile) return '';
+            const fullName = [profile.nume, profile.prenume].filter(Boolean).join(' ').trim();
+            return profile.porecla || profile.prenume || fullName || profile.email || profile.id || '';
+        }
+
+        function getAuditRowUserFallback(row) {
+            return row.utilizator ?? row.user_name ?? row.user_email ?? row.email ?? row.created_by_name ?? row.created_by ?? row.user_id ?? '—';
+        }
+
+        function getAuditRowUserName(row) {
+            const profile = auditProfilesById.get(String(row.user_id || ''));
+            return getAuditUserDisplayName(profile) || getAuditRowUserFallback(row);
+        }
+
+        function normalizeAuditText(value) {
+            return String(value ?? '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function auditModuleMatches(rowModule, selectedModule) {
+            if (!selectedModule) return true;
+            const normalizedModule = normalizeAuditText(rowModule);
+            const normalizedSelected = normalizeAuditText(selectedModule);
+            const aliases = {
+                autentificare: ['autentificare', 'auth', 'login'],
+                'deviz estimativ': ['deviz estimativ', 'devize estimative', 'estimativ'],
+                'deviz final': ['deviz final', 'devize finale', 'final'],
+                consumabile: ['consumabile', 'stoc', 'magazie'],
+                awb: ['awb'],
+                avansuri: ['avansuri', 'avans'],
+                flota: ['flota', 'fleet'],
+                detailing: ['detailing'],
+                constatari: ['constatari', 'constatare']
+            };
+            return (aliases[normalizedSelected] || [normalizedSelected]).some((alias) => normalizedModule.includes(alias));
+        }
+
+        function getAuditFilters() {
+            return {
+                module: document.getElementById('audit-filter-module')?.value || '',
+                action: document.getElementById('audit-filter-action')?.value || '',
+                userId: document.getElementById('audit-filter-user')?.value || '',
+                from: document.getElementById('audit-filter-from')?.value || '',
+                to: document.getElementById('audit-filter-to')?.value || '',
+                search: normalizeAuditText(document.getElementById('audit-filter-search')?.value || '')
+            };
+        }
+
+        async function loadAuditProfiles() {
+            const { data, error } = await sb
+                .from('auth_profiles')
+                .select('id, porecla, nume, prenume, email')
+                .order('porecla', { ascending: true });
+
+            if (error) throw error;
+
+            auditProfiles = data || [];
+            auditProfilesById = new Map(auditProfiles.map((profile) => [String(profile.id), profile]));
+            auditProfilesLoaded = true;
+            populateAuditUserFilter();
+        }
+
+        function populateAuditUserFilter() {
+            const select = document.getElementById('audit-filter-user');
+            if (!select) return;
+            const selectedValue = select.value;
+            const options = ['<option value="">Toți</option>'].concat(
+                auditProfiles.map((profile) => {
+                    const label = getAuditUserDisplayName(profile);
+                    return `<option value="${escapeHtml(profile.id)}">${escapeHtml(label || profile.id)}</option>`;
+                })
+            );
+            select.innerHTML = options.join('');
+            if (selectedValue && auditProfilesById.has(String(selectedValue))) {
+                select.value = selectedValue;
+            }
+        }
+
+        function auditUserMatches(row, selectedUserId) {
+            if (!selectedUserId) return true;
+            const profile = auditProfilesById.get(String(selectedUserId));
+            if (String(row.user_id || '') === String(selectedUserId)) return true;
+            if (!profile) return false;
+
+            const rowUser = normalizeAuditText(getAuditRowUserFallback(row));
+            const profileValues = [
+                getAuditUserDisplayName(profile),
+                profile.porecla,
+                profile.prenume,
+                [profile.nume, profile.prenume].filter(Boolean).join(' '),
+                profile.email,
+                profile.id
+            ].map(normalizeAuditText).filter(Boolean);
+
+            return profileValues.some((value) => rowUser === value || rowUser.includes(value));
+        }
+
+        function filterAuditRows(rows) {
+            const filters = getAuditFilters();
+            const fromTime = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : null;
+            const toTime = filters.to ? new Date(`${filters.to}T23:59:59.999`).getTime() : null;
+
+            return rows.filter((row) => {
+                const modul = row.modul ?? row.module ?? '—';
+                const actiune = row.actiune ?? row.action ?? '—';
+                const descriere = row.descriere ?? row.description ?? '—';
+                const rowTime = row.created_at ? new Date(row.created_at).getTime() : null;
+
+                if (!auditModuleMatches(modul, filters.module)) return false;
+                if (filters.action && String(actiune || '').toUpperCase() !== filters.action) return false;
+                if (!auditUserMatches(row, filters.userId)) return false;
+                if (fromTime && (!rowTime || rowTime < fromTime)) return false;
+                if (toTime && (!rowTime || rowTime > toTime)) return false;
+
+                if (filters.search) {
+                    const haystack = normalizeAuditText([
+                        formatAuditLogDate(row.created_at),
+                        getAuditRowUserName(row),
+                        modul,
+                        actiune,
+                        descriere
+                    ].join(' '));
+                    if (!haystack.includes(filters.search)) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function renderAuditRows(rows) {
+            const tbody = document.getElementById('audit-log-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există activitate pentru filtrele selectate.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const utilizator = getAuditRowUserName(row);
+                const modul = row.modul ?? row.module ?? '—';
+                const actiune = row.actiune ?? row.action ?? '—';
+                const descriere = row.descriere ?? row.description ?? '—';
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(formatAuditLogDate(row.created_at))}</td>
+                        <td class="px-4 py-3 text-slate-100">${escapeHtml(utilizator)}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(modul)}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(actiune)}</td>
+                        <td class="px-4 py-3 text-slate-400">${escapeHtml(descriere)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function loadAuditLogs() {
             const tbody = document.getElementById('audit-log-body');
             if (!tbody) return;
@@ -1573,11 +1945,15 @@
             `;
 
             try {
+                if (!auditProfilesLoaded) {
+                    await loadAuditProfiles();
+                }
+
                 const { data, error } = await sb
                     .from('audit_logs')
                     .select('*')
                     .order('created_at', { ascending: false })
-                    .limit(100);
+                    .limit(500);
 
                 if (error) throw error;
 
@@ -1590,21 +1966,7 @@
                     return;
                 }
 
-                tbody.innerHTML = data.map((row) => {
-                    const utilizator = row.utilizator ?? row.user_name ?? row.user_email ?? row.created_by_name ?? row.created_by ?? '—';
-                    const modul = row.modul ?? row.module ?? '—';
-                    const actiune = row.actiune ?? row.action ?? '—';
-                    const descriere = row.descriere ?? row.description ?? '—';
-                    return `
-                        <tr class="hover:bg-slate-800/40 transition-colors">
-                            <td class="px-4 py-3 text-slate-300">${escapeHtml(formatAuditLogDate(row.created_at))}</td>
-                            <td class="px-4 py-3 text-slate-100">${escapeHtml(utilizator)}</td>
-                            <td class="px-4 py-3 text-slate-300">${escapeHtml(modul)}</td>
-                            <td class="px-4 py-3 text-slate-300">${escapeHtml(actiune)}</td>
-                            <td class="px-4 py-3 text-slate-400">${escapeHtml(descriere)}</td>
-                        </tr>
-                    `;
-                }).join('');
+                renderAuditRows(filterAuditRows(data || []));
             } catch (error) {
                 console.error(error);
                 tbody.innerHTML = `
@@ -1763,6 +2125,11 @@
                 if (error) throw error;
                 setStockProductsStatus('Produsul a fost actualizat.', 'success');
                 setStockAdminStatus('Nomenclatorul a fost actualizat.', 'success');
+                logAuditConsumabile(
+                    'UPDATE',
+                    `A modificat produsul consumabil ${denumire}`,
+                    productId
+                );
                 await loadStockProductsAdmin();
                 await loadStockProductsManagement();
             } catch (error) {
@@ -1817,6 +2184,19 @@
             setStockProductsManagementStatus(`Se ${actionLabel} produsul ${productId}...`);
 
             try {
+                let productBeforeUpdate = null;
+                try {
+                    const { data, error } = await sb
+                        .from('stoc_produse')
+                        .select('denumire')
+                        .eq('id', productId)
+                        .maybeSingle();
+                    if (error) throw error;
+                    productBeforeUpdate = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
                 const { error } = await sb
                     .from('stoc_produse')
                     .update({ activ: isActive })
@@ -1825,6 +2205,14 @@
                 if (error) throw error;
                 setStockProductsManagementStatus(isActive ? 'Produsul a fost reactivat.' : 'Produsul a fost arhivat.', 'success');
                 setStockAdminStatus(isActive ? 'Produs reactivat.' : 'Produs arhivat.', 'success');
+                const productName = productBeforeUpdate?.denumire || `ID ${productId}`;
+                logAuditConsumabile(
+                    'UPDATE',
+                    isActive
+                        ? `A reactivat produsul consumabil ${productName}`
+                        : `A arhivat produsul consumabil ${productName}`,
+                    productId
+                );
                 await loadStockProductsManagement();
                 await loadStockProductsAdmin();
             } catch (error) {
@@ -1879,6 +2267,19 @@
 
             setStockMovementsStatus(`Se șterge tranzacția ${movementId}...`);
             try {
+                let movementBeforeDelete = null;
+                try {
+                    const { data, error } = await sb
+                        .from('stoc_miscari')
+                        .select('id, stoc_produse(denumire)')
+                        .eq('id', movementId)
+                        .maybeSingle();
+                    if (error) throw error;
+                    movementBeforeDelete = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
                 const { error } = await sb
                     .from('stoc_miscari')
                     .delete()
@@ -1887,6 +2288,12 @@
                 if (error) throw error;
                 setStockMovementsStatus('Tranzacția a fost ștearsă.', 'success');
                 setStockAdminStatus('A fost efectuată o corecție de tranzacție.', 'success');
+                const productName = movementBeforeDelete?.stoc_produse?.denumire || `tranzacția ${movementId}`;
+                logAuditConsumabile(
+                    'DELETE',
+                    `A șters/corectat tranzacția pentru ${productName}`,
+                    movementId
+                );
                 await loadStockMovementsAdmin();
             } catch (error) {
                 console.error(error);
@@ -2058,6 +2465,59 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        async function getConsumabileAuditActor() {
+            if (!auditActorPromise) {
+                auditActorPromise = (async () => {
+                    const { data: { session } = {} } = await sb.auth.getSession();
+                    const user = session?.user || null;
+                    if (!user?.id) {
+                        return { user_id: null, user_name: '' };
+                    }
+
+                    let profile = null;
+                    try {
+                        const { data, error } = await sb
+                            .from('auth_profiles')
+                            .select('porecla, email')
+                            .eq('id', user.id)
+                            .maybeSingle();
+                        if (error) throw error;
+                        profile = data;
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    return {
+                        user_id: user.id,
+                        user_name: profile?.porecla || profile?.email || user.email || ''
+                    };
+                })().catch((error) => {
+                    console.error(error);
+                    return { user_id: null, user_name: '' };
+                });
+            }
+
+            return auditActorPromise;
+        }
+
+        async function logAuditConsumabile(actiune, descriere, entitateId) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getConsumabileAuditActor();
+                await window.addAuditLog({
+                    modul: 'Consumabile',
+                    actiune,
+                    descriere,
+                    entitate: 'consumabil',
+                    entitate_id: entitateId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
 
         function renderAnnouncementHistory(rows) {

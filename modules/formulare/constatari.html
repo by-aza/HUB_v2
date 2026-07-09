@@ -6,6 +6,7 @@
 <title>Constatări — Service Auto</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/audit.js"></script>
 <style>
   :root {
     --bg:        #0D0F14;
@@ -686,6 +687,7 @@
 const dbUrl = "https://xyovkxmtbvgcwavuyxxu.supabase.co";
 const dbKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74";
 const sb = supabase.createClient(dbUrl, dbKey);
+window.supabaseClient = sb;
 const TABLE = 'constatari';
 
 // ═══════════════════════════════════════════════════════
@@ -758,6 +760,150 @@ let filterStatus = 'all';
 let statusTargetId = null;
 let selectedStatus = null;
 let photoTargetId = null;
+let auditActorPromise = null;
+
+async function getAuditActor() {
+  if (!auditActorPromise) {
+    auditActorPromise = (async () => {
+      try {
+        const { data: sessionData, error: sessionError } = await sb.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const user = sessionData?.session?.user;
+        if (!user?.id) return { user_id: null, user_name: '' };
+
+        const { data: profile, error: profileError } = await sb
+          .from('auth_profiles')
+          .select('porecla')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+
+        return {
+          user_id: user.id,
+          user_name: profile?.porecla || user.email || '',
+        };
+      } catch (error) {
+        console.error(error);
+        return { user_id: null, user_name: '' };
+      }
+    })();
+  }
+
+  return auditActorPromise;
+}
+
+async function logConstatareAudit(actiune, descriere, constatare) {
+  try {
+    if (typeof window.addAuditLog !== 'function') return;
+
+    const entitateId = getConstatareEntityId(constatare);
+    if (!entitateId) return;
+
+    const actor = await getAuditActor();
+    await window.addAuditLog({
+      modul: 'Constatări',
+      actiune,
+      descriere,
+      entitate: 'constatare',
+      entitate_id: entitateId,
+      user_id: actor.user_id,
+      user_name: actor.user_name,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function getConstatareEntityId(c) {
+  return String(c?.nr_fisa || c?.plate || c?.id || '').trim();
+}
+
+function getConstatareLabel(c) {
+  const plate = String(c?.plate || '').trim();
+  if (plate) return plate;
+
+  const model = String(c?.model || '').trim();
+  if (model) return model;
+
+  const nrFisa = String(c?.nr_fisa || '').trim();
+  if (nrFisa) {
+    const clean = nrFisa.replace(/^0+/, '') || nrFisa;
+    return `Fișa #${clean}`;
+  }
+  return String(c?.id || '').trim();
+}
+
+const normAuditText = (value) => String(value || '').trim();
+
+function sameAuditParts(a = [], b = []) {
+  return a.length === b.length && a.every((part, index) => normAuditText(part) === normAuditText(b[index]));
+}
+
+function hasConstatareChanges(before, after) {
+  if (!before || !after) return true;
+  const fields = [
+    'nr_fisa', 'client', 'telefon', 'plate', 'model', 'vin', 'km', 'km_iesire',
+    'client_desc', 'mechanic_desc', 'obs', 'status', 'urgent',
+  ];
+  const fieldsChanged = fields.some((field) => normAuditText(before?.[field]) !== normAuditText(after?.[field]));
+  return fieldsChanged || !sameAuditParts(before?.parts || [], after?.parts || []);
+}
+
+function statusLabel(status) {
+  return STATUS_VALUES[status]?.label || status || '';
+}
+
+function logStatusAudit(c, status) {
+  const label = getConstatareLabel(c);
+  if (!label || !status) return;
+
+  if (status === 'Finalizat') {
+    logConstatareAudit('STATUS_CHANGE', `A finalizat constatarea pentru ${label}`, c);
+    return;
+  }
+
+  if (status === 'Arhivat') {
+    logConstatareAudit('STATUS_CHANGE', `A arhivat constatarea pentru ${label}`, c);
+    return;
+  }
+
+  logConstatareAudit('STATUS_CHANGE', `A schimbat constatarea pentru ${label} în ${statusLabel(status)}`, c);
+}
+
+function logConstatareUpdateDetails(before, after) {
+  const label = getConstatareLabel(after);
+  if (!label) return;
+
+  logConstatareAudit('UPDATE', `A modificat constatarea pentru ${label}`, after);
+
+  const clientChanged = ['client', 'telefon', 'plate', 'vin', 'km'].some((field) =>
+    normAuditText(before?.[field]) !== normAuditText(after?.[field])
+  );
+  if (clientChanged) {
+    logConstatareAudit('UPDATE', `A actualizat datele clientului pentru ${label}`, after);
+  }
+
+  if (normAuditText(before?.obs) !== normAuditText(after?.obs)) {
+    const oldObs = normAuditText(before?.obs);
+    const newObs = normAuditText(after?.obs);
+    const actionText = !oldObs && newObs ? 'A adăugat observație la' : oldObs && !newObs ? 'A șters observația de la' : 'A modificat observația la';
+    logConstatareAudit('UPDATE', `${actionText} ${label}`, after);
+  }
+
+  [
+    ['client_desc', 'defect solicitat de client'],
+    ['mechanic_desc', 'defect găsit de mecanic'],
+  ].forEach(([field, name]) => {
+    if (normAuditText(before?.[field]) === normAuditText(after?.[field])) return;
+    const oldValue = normAuditText(before?.[field]);
+    const newValue = normAuditText(after?.[field]);
+    const actionText = !oldValue && newValue ? `A adăugat ${name} la` : oldValue && !newValue ? `A șters ${name} de la` : `A modificat ${name} la`;
+    logConstatareAudit('UPDATE', `${actionText} ${label}`, after);
+  });
+
+}
 
 // ═══════════════════════════════════════════════════════
 // LOAD CARDS DIN SUPABASE
@@ -1033,16 +1179,27 @@ async function saveCard() {
 
   try {
     if (editId) {
+      const oldCard = cards.find(c => c.id === editId);
       const { error } = await sb.from(TABLE).update(toSB(payload)).eq('id', editId);
       if (error) throw error;
       const idx = cards.findIndex(c => c.id === editId);
       if (idx >= 0) cards[idx] = { ...cards[idx], ...payload };
+      const updatedCard = idx >= 0 ? cards[idx] : { ...payload, id: editId };
+      if (oldCard && hasConstatareChanges(oldCard, updatedCard)) {
+        logConstatareUpdateDetails(oldCard, updatedCard);
+        if (normAuditText(oldCard.status) !== normAuditText(updatedCard.status)) {
+          logStatusAudit(updatedCard, updatedCard.status);
+        }
+      } else if (!oldCard) {
+        logConstatareAudit('UPDATE', `A modificat constatarea pentru ${getConstatareLabel(updatedCard)}`, updatedCard);
+      }
       toast('Constatare actualizată ✓', 'success');
     } else {
       const { data, error } = await sb.from(TABLE).insert(toSB(payload)).select();
       if (error) throw error;
       const newCard = data && data[0] ? fromSB(data[0]) : { ...payload, id: Date.now(), created_at: new Date().toISOString(), date: new Date().toISOString().substring(0,10), photos: [] };
       cards.unshift(newCard);
+      logConstatareAudit('CREATE', `A creat constatarea pentru ${getConstatareLabel(newCard)}`, newCard);
       toast('Constatare adăugată ✓', 'success');
     }
     renderCards();
@@ -1107,10 +1264,15 @@ function selectStatus(s) {
 async function applyStatus() {
   if (!selectedStatus || statusTargetId == null) return;
   try {
+    const c = cards.find(x => x.id === statusTargetId);
+    const previousStatus = c?.status || '';
     const { error } = await sb.from(TABLE).update({ status: selectedStatus }).eq('id', statusTargetId);
     if (error) throw error;
-    const c = cards.find(x => x.id === statusTargetId);
-    if (c) { c.status = selectedStatus; renderCards(); }
+    if (c) {
+      c.status = selectedStatus;
+      if (previousStatus !== selectedStatus) logStatusAudit(c, selectedStatus);
+      renderCards();
+    }
     toast('Status actualizat: ' + (STATUS_VALUES[selectedStatus]?.label || selectedStatus), 'success');
   } catch(e) {
     toast('Eroare: ' + (e.message || e), 'error');
@@ -1146,6 +1308,7 @@ function handlePhotoUpload(e) {
   if (!c) return;
   if (!c.photos) c.photos = [];
   const files = Array.from(e.target.files);
+  if (!files.length) return;
   let done = 0;
   files.forEach(f => {
     const r = new FileReader();
@@ -1153,6 +1316,7 @@ function handlePhotoUpload(e) {
       c.photos.push(ev.target.result);
       if (++done === files.length) {
         renderPhotoGrid(c.photos);
+        logConstatareAudit('UPDATE', `A adăugat fotografie la ${getConstatareLabel(c)}`, c);
         toast(files.length + ' poze adăugate local', 'success');
       }
     };

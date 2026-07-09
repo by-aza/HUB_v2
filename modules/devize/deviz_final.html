@@ -6,6 +6,7 @@
     <title>Deviz Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/audit.js"></script>
     <link rel="stylesheet" href="/css/style.css">
     <style>
         input[type='number']::-webkit-inner-spin-button,
@@ -404,6 +405,7 @@
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
         const sb = supabase.createClient(supabaseUrl, supabaseKey);
+        window.supabaseClient = sb;
 
         const todayYyyyMmDd = () => {
             const azi = new Date();
@@ -443,6 +445,7 @@
             totalDePlata: 0
         };
         let currentDevizId = null;
+        let auditActorPromise = null;
 
         const saveStatus = document.getElementById('save-status');
         const btnDevizNou = document.getElementById('btn-deviz-nou');
@@ -1172,6 +1175,69 @@
             return Number.isFinite(parsed) ? parsed : null;
         };
 
+        async function getAuditActor() {
+            if (!auditActorPromise) {
+                auditActorPromise = (async () => {
+                    const { data: { session } = {} } = await sb.auth.getSession();
+                    const user = session?.user || null;
+                    if (!user?.id) {
+                        return { user_id: null, user_name: '' };
+                    }
+
+                    let profile = null;
+                    try {
+                        const { data, error } = await sb
+                            .from('auth_profiles')
+                            .select('porecla, email')
+                            .eq('id', user.id)
+                            .maybeSingle();
+                        if (error) throw error;
+                        profile = data;
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    return {
+                        user_id: user.id,
+                        user_name: profile?.porecla || profile?.email || user.email || ''
+                    };
+                })().catch((error) => {
+                    console.error(error);
+                    return { user_id: null, user_name: '' };
+                });
+            }
+
+            return auditActorPromise;
+        }
+
+        async function logAuditDevizFinal(actiune, devizNr) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const cleanId = normalizeDevizFinalNr(devizNr || devizData.devizNr);
+                if (!cleanId) return;
+
+                const actor = await getAuditActor();
+                const descrieri = {
+                    CREATE: `A creat devizul final ${cleanId}`,
+                    UPDATE: `A modificat devizul final ${cleanId}`,
+                    PRINT: `A printat devizul final ${cleanId}`,
+                    EXPORT: `A exportat PDF devizul final ${cleanId}`
+                };
+
+                await window.addAuditLog({
+                    modul: 'Deviz Final',
+                    actiune,
+                    descriere: descrieri[actiune],
+                    entitate: 'deviz_final',
+                    entitate_id: cleanId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
         const buildHeaderPayload = () => ({
             id_deviz_estimativ: cleanDbId(devizData.idDevizEstimativ),
             data_deviz: nullableText(devizData.data),
@@ -1400,6 +1466,7 @@
 
                 syncFieldsFromState();
                 setSaveStatus('Deviz Salvat!', 'success');
+                logAuditDevizFinal(isUpdate ? 'UPDATE' : 'CREATE', devizData.devizNr);
                 alert('Deviz Salvat!');
             } catch (error) {
                 setSaveStatus(error?.message || 'Eroare la salvare.', 'error');
@@ -1597,6 +1664,7 @@
 
             // Salvăm obiectul complet în memoria browserului pentru pagina de print
             localStorage.setItem("currentDevizPrint", JSON.stringify(devizData));
+            logAuditDevizFinal('PRINT', devizNrInput);
 
             // Deschidem pagina de printare într-un tab nou
             const printWindow = window.open("deviz-print.html", "_blank");
