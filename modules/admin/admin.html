@@ -12,8 +12,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        /* ===== CULORI PRINCIPALE ȘI DESIGN GENERAL ===== */
         :root {
             color-scheme: dark;
+            /* Aici se schimbă culorile principale ale interfeței */
             --bg: #14161c;
             --bg-alt: #181b22;
             --panel: rgba(27, 30, 38, 0.72);
@@ -22,18 +24,21 @@
             --border-strong: rgba(255, 255, 255, 0.12);
             --text: #f1f2f4;
             --muted: #98a0ad;
+            /* Aici se schimbă accentul cyan folosit în Admin */
             --accent: #2dd4cf;
             --accent-2: #22d3ee;
             --shadow: rgba(0, 0, 0, 0.35);
         }
         .hidden { display: none !important; }
+        /* Aici se modifică fundalul general și textul normal al paginii */
         body {
             display: flex;
-            min-height: 100vh;
+            min-height: 70vh;
             font-family: "Inter", sans-serif;
             background: var(--bg);
             color: var(--text);
         }
+        /* Aici se modifică lățimea și spațiul interior al meniului lateral */
         .admin-sidebar {
             width: 250px;
             padding: 1rem 0.8rem;
@@ -42,6 +47,7 @@
             box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 12px 0 36px rgba(0,0,0,0.35);
             backdrop-filter: blur(18px);
         }
+        /* Aici se modifică dimensiunea, paddingul și rotunjirea butoanelor din meniu */
         .sidebar-btn {
             width: 100%;
             display: flex;
@@ -59,6 +65,7 @@
             position: relative;
             overflow: hidden;
         }
+        /* Aici se modifică efectul de trecere peste butoanele meniului */
         .sidebar-btn:hover {
             background: rgba(38, 42, 52, 0.72);
             color: var(--text);
@@ -89,17 +96,41 @@
             min-height: 100vh;
             background: linear-gradient(180deg, #14161c 0%, #1a1d25 100%);
         }
+        /* Aici se modifică înălțimea barei principale */
         .glass-header {
+            flex: 0 0 44px;
+            height: 44px;
+            min-height: 44px;
+            max-height: 44px;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
             border-bottom: 1px solid var(--border);
             background: rgba(20, 22, 28, 0.82);
             backdrop-filter: blur(18px);
         }
+        .glass-header #page-title {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .glass-header > div {
+            margin-left: auto;
+        }
+        /* Aici se modifică paddingul și scrollul zonei de conținut */
         .content-area {
             flex: 1;
             overflow-y: auto;
             padding: 2rem;
             background: radial-gradient(circle at top left, rgba(45, 212, 207, 0.08), transparent 28%), linear-gradient(180deg, rgba(20, 22, 28, 0.97), rgba(17, 19, 25, 0.98));
         }
+        /* Aici se modifică stilul și efectele subtaburilor Devize */
         .devize-subtab-btn {
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(24, 27, 34, 0.75);
@@ -118,6 +149,7 @@
             border-color: rgba(45, 212, 207, 0.35);
             box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
         }
+        /* Aici se modifică stilul și efectele subtaburilor Consumabile */
         .consumabile-subtab-btn {
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(24, 27, 34, 0.75);
@@ -136,6 +168,7 @@
             border-color: rgba(45, 212, 207, 0.35);
             box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
         }
+        /* Aici se modifică dimensiunea vizuală și rotunjirea cardurilor principale */
         body .glass-panel {
             background: linear-gradient(135deg, rgba(27, 30, 38, 0.8), rgba(26, 29, 36, 0.62));
             border: 1px solid rgba(255, 255, 255, 0.09);
@@ -143,6 +176,7 @@
             box-shadow: 0 14px 38px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(18px);
         }
+        /* Aici se modifică aspectul cardurilor secundare */
         body .glass-panel-soft {
             background: linear-gradient(135deg, rgba(27, 30, 38, 0.7), rgba(24, 27, 34, 0.56));
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -172,26 +206,69 @@
             display: flex;
             flex-direction: column;
         }
+        /* Aici se modifică spațiul disponibil pentru tabele */
         .admin-table-panel {
             flex: 1;
             min-height: 0;
             display: flex;
             flex-direction: column;
         }
+        /* Aici se controlează scrollul intern al tabelelor */
         .admin-table-scroll {
             flex: 1;
             min-height: 0;
             overflow-y: auto;
             overflow-x: auto;
         }
+        /* Aici se modifică spațiul dintre cardurile secțiunii Audit */
+        #sectiune-audit-log .admin-fixed-shell {
+            gap: 0.75rem;
+        }
+        #sectiune-audit-log .audit-filters-panel {
+            padding: 0.75rem 1rem;
+        }
+        #sectiune-audit-log .audit-filter-grid {
+            margin-top: 0.625rem;
+            gap: 0.5rem 0.75rem;
+        }
+        #sectiune-audit-log .audit-filter-grid label > span {
+            margin-bottom: 0.2rem;
+            font-size: 0.65rem;
+            line-height: 0.9rem;
+            letter-spacing: 0.14em;
+        }
+        #sectiune-audit-log .audit-filter-grid select,
+        #sectiune-audit-log .audit-filter-grid input,
+        #sectiune-audit-log .audit-filter-actions button {
+            height: 37px;
+            padding-top: 0.35rem;
+            padding-bottom: 0.35rem;
+        }
+        @media (min-width: 700px) and (max-width: 1279px) {
+            #sectiune-audit-log .audit-filter-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(1) { grid-column: 1; grid-row: 1; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(2) { grid-column: 2; grid-row: 1; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(3) { grid-column: 1; grid-row: 2; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(6) { grid-column: 2; grid-row: 2; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(4) { grid-column: 1; grid-row: 3; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(5) { grid-column: 2; grid-row: 3; }
+            #sectiune-audit-log .audit-filter-actions {
+                grid-column: 1 / -1;
+                grid-row: 4;
+                justify-content: flex-start;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
 
+    <!-- ===== MENIU LATERAL ADMIN ===== -->
     <!-- MENIU LATERAL (SIDEBAR) -->
     <aside class="admin-sidebar sticky top-0 h-screen flex-shrink-0 flex flex-col backdrop-blur-md">
         <div class="h-16 flex items-center px-6 border-b border-slate-800/60">
-            <h1 class="text-lg font-extrabold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
+            <h1 class="text-lg font-bold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
@@ -226,28 +303,35 @@
     <!-- ZONA DE CONȚINUT PRINCIPALĂ -->
     <main class="admin-main flex-1 flex flex-col h-screen overflow-hidden">
         
+        <!-- ===== HEADER PRINCIPAL ===== -->
         <!-- Header Conținut -->
-        <header class="glass-header h-16 flex items-center justify-between px-8">
-            <h2 id="page-title" class="text-xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h2>
+        <header class="glass-header flex items-center justify-between px-8">
+            <h2 id="page-title" class="text-xl font-semibold text-slate-100">Megafon (Anunțuri Interne)</h2>
             <div class="flex items-center gap-3">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Conexiune Securizată</span>
             </div>
         </header>
 
+        <!-- ===== ZONA DE CONȚINUT A TABURILOR ===== -->
         <!-- Conținut Tab -->
         <div id="content-area" class="content-area flex-1 overflow-y-auto p-8">
+            <!-- ===== MEGAFON ===== -->
             <div id="sectiune-megafon" class="admin-page">
+                <!-- Aici se modifică lățimea maximă a containerului Megafon -->
                 <div class="max-w-4xl mx-auto">
+                    <!-- Paddingul casetelor se modifică prin clasele p ale cardurilor -->
                     <div class="glass-panel p-5">
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600/15 border border-rose-500/30 text-3xl">📢</div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Aici se modifică dimensiunea fontului titlului -->
                                     <h3 class="text-2xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h3>
                                     <span id="badge-activ" class="hidden ml-4 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">● Mesaj Activ pe Ecrane</span>
                                 </div>
-                                <p class="text-slate-400 mt-0.5">Trimite un mesaj global în bannerul din HUB sau oprește anunțul activ.</p>
+                                <!-- Aici se modifică dimensiunea textului normal -->
+                                <p class="text-slate-200 mt-0.5">Trimite un mesaj global în bannerul din HUB sau oprește anunțul activ.</p>
                             </div>
                         </div>
 
@@ -255,6 +339,7 @@
                         <textarea id="admin-message-input" rows="3" class="w-full rounded-2xl bg-slate-950/70 border border-slate-800/70 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60 resize-y" placeholder="Scrie aici mesajul care va apărea pe toate ecranele..."></textarea>
 
                         <div class="flex items-center justify-between mt-4 gap-3">
+                            <!-- Aici se schimbă culoarea rose a acțiunilor importante sau periculoase -->
                             <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
                                 Trimite
                             </button>
@@ -294,10 +379,11 @@
                 </div>
             </div>
 
+            <!-- ===== ALERTE EMAIL ===== -->
             <div id="sectiune-alerte" class="admin-page hidden admin-fixed-section">
                 <div class="mx-auto flex h-full max-w-7xl min-h-0 flex-col gap-6">
                     <div class="flex-shrink-0">
-                        <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
+                        <h2 class="text-xl font-semibold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
                         <div class="glass-panel p-5">
                             <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
                             <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
@@ -324,11 +410,14 @@
                 </div>
             </div>
 
+            <!-- ===== GESTIUNE DEVIZE ===== -->
             <div id="sectiune-devize" class="admin-page hidden admin-fixed-section">
+                <!-- Aici se modifică lățimea maximă și spațiul dintre cardurile Devize -->
                 <div class="max-w-7xl mx-auto admin-fixed-shell gap-4">
                     <div class="glass-panel p-4 flex-shrink-0">
-                        <h2 class="text-2xl font-bold text-slate-100">Gestiune Devize</h2>
+                        <h2 class="text-2 font-bold text-slate-100">Gestiune Devize</h2>
                         <p class="mt-1 text-sm text-slate-400">Comută rapid între devize estimative și devize finale, cu un flux clar și modern.</p>
+                        <!-- ===== SUBTABURI DEVIZE PENTRU MODIFICĂRI VIITOARE ===== -->
                         <div class="mt-4 flex flex-wrap gap-2">
                             <button id="devize-estimative-tab" type="button" onclick="switchDevizeSubtab('devize-estimative-tab')" class="devize-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Devize Estimative</button>
                             <button id="devize-finale-tab" type="button" onclick="switchDevizeSubtab('devize-finale-tab')" class="devize-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Devize Finale</button>
@@ -373,6 +462,7 @@
                 </div>
             </div>
 
+            <!-- ===== CONSUMABILE ===== -->
             <div id="sectiune-consumabile" class="admin-page hidden admin-fixed-section">
                 <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
                     <div class="glass-panel p-4 flex-shrink-0">
@@ -420,8 +510,9 @@
                                         <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Până la</span>
                                         <input id="stock-movements-end-date" type="date" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
                                     </label>
-                                </div>
-                                <div class="flex flex-wrap gap-2">
+                            </div>
+                            <!-- ===== SUBTABURI CONSUMABILE PENTRU MODIFICĂRI VIITOARE ===== -->
+                            <div class="flex flex-wrap gap-2">
                                     <button id="apply-stock-movements-filter" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
                                     <button id="reset-stock-movements-filter" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 border border-slate-700 transition-colors">Resetează</button>
                                 </div>
@@ -472,14 +563,15 @@
                 </div>
             </div>
 
+            <!-- ===== AUDIT LOG ===== -->
             <div id="sectiune-audit-log" class="admin-page hidden admin-fixed-section">
                 <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
-                    <div class="glass-panel p-4 flex-shrink-0">
+                    <div class="glass-panel p-4 flex-shrink-0 audit-filters-panel">
                         <div>
                             <h2 class="text-2xl font-bold text-slate-100">Audit Log</h2>
                             <p class="mt-1 text-sm text-slate-400">Istoric acțiuni importante din HUB AUTO.</p>
                         </div>
-                        <div class="mt-4 grid gap-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_repeat(2,minmax(0,0.8fr))_minmax(0,1.4fr)_auto]">
+                        <div class="mt-4 grid gap-3 audit-filter-grid xl:grid-cols-[repeat(3,minmax(0,1fr))_repeat(2,minmax(0,0.8fr))_minmax(0,1.4fr)_auto]">
                             <label class="text-sm text-slate-300">
                                 <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Modul</span>
                                 <select id="audit-filter-module" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
@@ -526,7 +618,7 @@
                                 <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Căutare text</span>
                                 <input id="audit-filter-search" type="search" placeholder="Caută în loguri..." class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none">
                             </label>
-                            <div class="flex items-end gap-2">
+                            <div class="flex items-end gap-2 audit-filter-actions">
                                 <button id="audit-apply-filters" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
                                 <button id="audit-reset-filters" type="button" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors">Reset</button>
                             </div>
@@ -555,6 +647,7 @@
                 </div>
             </div>
 
+            <!-- ===== GESTIONARE UTILIZATORI ===== -->
             <div id="sectiune-useri" class="admin-page hidden">
                 <div class="max-w-7xl mx-auto space-y-6">
                     <div class="glass-panel p-6">
@@ -570,11 +663,13 @@
                     </div>
 
                     <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                        <!-- ===== TABEL UTILIZATORI PENTRU MODIFICĂRI VIITOARE ===== -->
                         <div class="glass-panel p-5">
                             <h3 class="text-lg font-semibold text-slate-100 mb-4">Lista utilizatori</h3>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full text-sm text-slate-200">
                                     <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                        <!-- Aici se modifică înălțimea și paddingul antetului tabelului -->
                                         <tr>
                                             <th class="py-3 pr-4 text-left">Nume complet</th>
                                             <th class="py-3 pr-4 text-left">Poreclă</th>
@@ -583,11 +678,13 @@
                                             <th class="py-3 text-right">Acțiuni</th>
                                         </tr>
                                     </thead>
+                                    <!-- Aici se modifică stilul rândurilor din tabelul utilizatorilor -->
                                     <tbody id="usersTableBody" class="divide-y divide-slate-800/70"></tbody>
                                 </table>
                             </div>
                         </div>
 
+                        <!-- ===== FORMULAR UTILIZATORI PENTRU MODIFICĂRI VIITOARE ===== -->
                         <div id="actionPanel" class="glass-panel p-5">
                             <h3 id="panelTitle" class="text-lg font-semibold text-slate-100 mb-4">Crează utilizator nou</h3>
                             <form id="userForm" class="space-y-4">
@@ -644,8 +741,11 @@
                                         <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_flota" class="rounded border-slate-600 bg-slate-900"> Flotă Auto</label>
                                     </div>
                                 </div>
+                                <!-- ===== BUTOANE GESTIONARE UTILIZATORI ===== -->
                                 <div class="flex flex-wrap gap-3">
+                                    <!-- Dimensiunea și paddingul butoanelor se modifică prin clasele px, py și text -->
                                     <button type="submit" id="submitBtn" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Crează Utilizator</button>
+                                    <button type="button" id="resetPasswordBtn" class="hidden rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60">Schimbă parola</button>
                                     <button type="button" id="deleteUserBtn" class="hidden rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Șterge Utilizator</button>
                                 </div>
                             </form>
@@ -657,6 +757,8 @@
     </main>
 
     <script>
+        // ===== NAVIGARE ÎNTRE TABURILE ADMIN =====
+        // Schimbă secțiunea vizibilă din Admin
         function schimbaTab(sectiuneId, butonId) {
             // Schimbare dinamică tab-uri
             document.querySelectorAll('.admin-page').forEach((page) => {
@@ -712,6 +814,7 @@
             }
         }
 
+        // Schimbă lista vizibilă între devize estimative și finale
         function switchDevizeSubtab(tabId) {
             document.querySelectorAll('.devize-subtab-btn').forEach((btn) => {
                 btn.classList.toggle('active', btn.id === tabId);
@@ -722,6 +825,7 @@
             });
         }
 
+        // Schimbă zona vizibilă din administrarea consumabilelor
         function switchConsumabileSubtab(tabId) {
             document.querySelectorAll('.consumabile-subtab-btn').forEach((btn) => {
                 btn.classList.toggle('active', btn.id === tabId);
@@ -901,6 +1005,7 @@
             }
         }
 
+        // Șterge un deviz estimativ și reîncarcă lista
         async function deleteDevizEstimativ(idDeviz, button) {
             const cleanId = String(idDeviz || '').trim();
             if (!cleanId || cleanId === '-') return;
@@ -933,6 +1038,7 @@
             }
         }
 
+        // Șterge un deviz final și liniile asociate
         async function deleteDevizFinal(idDeviz, button) {
             const cleanId = String(idDeviz || '').trim();
             if (!cleanId || cleanId === '-') return;
@@ -972,6 +1078,8 @@
             }
         }
 
+        // ===== ÎNCĂRCARE DEVIZE DIN SUPABASE =====
+        // Încarcă devizele estimative în ordinea stabilită de interogare
         async function loadDevizeEstimativeRows() {
             const tbody = document.getElementById('tbody-devize-estimative');
             if (!tbody) return;
@@ -982,7 +1090,7 @@
                 const { data, error } = await sb
                     .from('devize')
                     .select('*')
-                    .order('data_deviz', { ascending: false });
+                    .order('id_deviz', { ascending: false });
 
                 if (error) throw error;
 
@@ -994,6 +1102,7 @@
             }
         }
 
+        // Încarcă devizele finale în ordinea stabilită de interogare
         async function loadDevizeFinaleRows() {
             const tbody = document.getElementById('tbody-devize-finale');
             if (!tbody) return;
@@ -1004,7 +1113,7 @@
                 const { data, error } = await sb
                     .from('deviz_final_header')
                     .select('*')
-                    .order('data_deviz', { ascending: false });
+                    .order('id_deviz_final', { ascending: false });
 
                 if (error) throw error;
 
@@ -1016,6 +1125,7 @@
             }
         }
 
+        // Reîncarcă simultan ambele liste de devize
         async function loadDevizeSections() {
             await Promise.all([loadDevizeEstimativeRows(), loadDevizeFinaleRows()]);
         }
@@ -1023,15 +1133,22 @@
         let currentEditUserId = null;
         let isEditMode = false;
 
+        // Revine la modul Creare utilizator
         function resetUserForm() {
             isEditMode = false;
             currentEditUserId = null;
             const form = document.getElementById('userForm');
             const deleteBtn = document.getElementById('deleteUserBtn');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
             const passwordField = document.getElementById('passwordField');
             const emailInput = document.getElementById('email');
             if (form) form.reset();
             if (deleteBtn) deleteBtn.classList.add('hidden');
+            if (resetPasswordBtn) {
+                resetPasswordBtn.classList.add('hidden');
+                resetPasswordBtn.disabled = false;
+                resetPasswordBtn.textContent = 'Schimbă parola';
+            }
             if (passwordField) passwordField.style.display = 'block';
             if (emailInput) emailInput.readOnly = false;
             document.getElementById('panelTitle').textContent = 'Crează utilizator nou';
@@ -1043,15 +1160,18 @@
             });
         }
 
+        // Completează formularul cu utilizatorul selectat
         function populateUserForm(user) {
             isEditMode = true;
             currentEditUserId = user.id;
             const deleteBtn = document.getElementById('deleteUserBtn');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
             const passwordField = document.getElementById('passwordField');
             const emailInput = document.getElementById('email');
             document.getElementById('panelTitle').textContent = 'Editează Utilizator';
             document.getElementById('submitBtn').textContent = 'Actualizează Utilizator';
             if (deleteBtn) deleteBtn.classList.remove('hidden');
+            if (resetPasswordBtn) resetPasswordBtn.classList.remove('hidden');
             if (passwordField) passwordField.style.display = 'none';
             if (emailInput) emailInput.readOnly = true;
             document.getElementById('email').value = user.email || '';
@@ -1068,6 +1188,8 @@
             document.getElementById('perm_flota').checked = Boolean(permissions.flota);
         }
 
+        // ===== ÎNCĂRCARE UTILIZATORI DIN SUPABASE =====
+        // Încarcă utilizatorii și verifică dreptul de administrare
         async function initUserManagement() {
             const tbody = document.getElementById('usersTableBody');
             if (!tbody) return;
@@ -1103,6 +1225,7 @@
                 users.forEach((user) => {
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-800/40 transition-colors';
+                    // Înălțimea rândurilor se modifică prin clasele py din celule
                     row.innerHTML = `
                         <td class="py-3 pr-4 text-slate-100">${user.nume || ''} ${user.prenume || ''}</td>
                         <td class="py-3 pr-4 text-slate-300">${user.porecla || '-'}</td>
@@ -1130,6 +1253,7 @@
             resetUserForm();
             loadDevizeSections();
             document.getElementById('btn-refresh-users')?.addEventListener('click', initUserManagement);
+            // Salvează modificările utilizatorului selectat
             document.getElementById('userForm')?.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 if (isEditMode) {
@@ -1167,12 +1291,43 @@
                 initUserManagement();
             });
 
+            // Gestionează confirmarea pentru ștergerea utilizatorului
             document.getElementById('deleteUserBtn')?.addEventListener('click', async () => {
                 if (!currentEditUserId) return;
                 if (!window.confirm('Sigur doriți să ștergeți acest utilizator?')) return;
                 alert('Ștergere: funcționalitate viitoare');
                 resetUserForm();
                 initUserManagement();
+            });
+
+            // Trimite emailul de resetare a parolei către adresa din formular
+            document.getElementById('resetPasswordBtn')?.addEventListener('click', async (event) => {
+                if (!currentEditUserId) return;
+
+                const button = event.currentTarget;
+                const email = document.getElementById('email')?.value.trim() || '';
+                if (!email) {
+                    alert('Utilizatorul selectat nu are o adresă de email validă.');
+                    return;
+                }
+                if (!window.confirm(`Trimitem emailul de resetare a parolei către ${email}?`)) return;
+
+                button.disabled = true;
+                button.textContent = 'Se trimite...';
+
+                try {
+                    const { error } = await sb.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/modules/admin/resetare-parola.html`
+                    });
+                    if (error) throw error;
+                    alert('Emailul pentru resetarea parolei a fost trimis cu succes.');
+                } catch (error) {
+                    console.error(error);
+                    alert(error.message || String(error));
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Schimbă parola';
+                }
             });
 
             document.addEventListener('click', (event) => {
@@ -1184,6 +1339,7 @@
             });
         });
 
+        // Aplică filtrele și acțiunile principale prin butoanele paginii
         document.addEventListener('click', async (event) => {
             const deleteDevizEstimativBtn = event.target.closest('[data-delete-deviz-estimativ]');
             if (deleteDevizEstimativBtn) {
@@ -1201,6 +1357,39 @@
             if (subtabButton) {
                 switchConsumabileSubtab(subtabButton.getAttribute('data-consumabile-subtab'));
                 return;
+            }
+
+            const consumabileSection = event.target.closest('#sectiune-consumabile');
+            if (consumabileSection) {
+                const editStockBtn = event.target.closest('[data-edit-stock-product]');
+                if (editStockBtn) {
+                    try {
+                        activateStockProductEditor(editStockBtn.getAttribute('data-edit-stock-product'));
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
+
+                const saveStockBtn = event.target.closest('[data-save-stock-product]');
+                if (saveStockBtn) {
+                    try {
+                        await saveStockProductEditor(saveStockBtn.getAttribute('data-save-stock-product'));
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
+
+                const cancelStockBtn = event.target.closest('[data-cancel-stock-product]');
+                if (cancelStockBtn) {
+                    try {
+                        await loadStockProductsAdmin();
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
             }
 
             const applyFilterButton = event.target.closest('#apply-stock-movements-filter');
@@ -1303,6 +1492,7 @@
             }
         }
 
+        // Construiește zona administrativă pentru devize și consumabile
         function createDevizePage() {
             const page = document.createElement('div');
             page.id = 'page-devize';
@@ -1357,6 +1547,7 @@
                             </table>
                         </div>
                     </div>
+                    <!-- ===== MODAL NOMENCLATOR PENTRU MODIFICĂRI VIITOARE ===== -->
                     <div id="stock-products-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
                         <div class="w-full max-w-5xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
                             <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
@@ -1386,6 +1577,7 @@
                             </div>
                         </div>
                     </div>
+                    <!-- ===== MODAL TRANZACȚII PENTRU MODIFICĂRI VIITOARE ===== -->
                     <div id="stock-movements-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
                         <div class="w-full max-w-6xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
                             <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
@@ -1521,6 +1713,7 @@
             contentArea.replaceChildren(devizePage);
         }
 
+        // Afișează mesaje de succes sau eroare pentru devize
         function setDevizeStatus(message, type = 'info') {
             const el = document.getElementById('devize-status');
             if (!el) return;
@@ -1596,6 +1789,7 @@
             el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
         }
 
+        // Citește textul folosit pentru filtrarea consumabilelor
         function getStockSearchTerm() {
             return document.getElementById('stock-search-input')?.value?.trim().toLowerCase() || '';
         }
@@ -1872,6 +2066,7 @@
             return profileValues.some((value) => rowUser === value || rowUser.includes(value));
         }
 
+        // Filtrează înregistrările Audit după criteriile selectate
         function filterAuditRows(rows) {
             const filters = getAuditFilters();
             const fromTime = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : null;
@@ -1934,6 +2129,7 @@
             }).join('');
         }
 
+        // Încarcă istoricul Audit direct din Supabase
         async function loadAuditLogs() {
             const tbody = document.getElementById('audit-log-body');
             if (!tbody) return;
@@ -1977,6 +2173,7 @@
             }
         }
 
+        // Încarcă tabelul administrativ al devizelor din Supabase
         async function loadDevizeTable() {
             const tbody = document.getElementById('devize-table-body');
             if (!tbody) return;
@@ -2007,6 +2204,8 @@
             }
         }
 
+        // ===== MODALURI ȘI DIALOGURI CONSUMABILE =====
+        // Deschide dialogul cu nomenclatorul de produse
         function openStockProductsModal() {
             const modal = document.getElementById('stock-products-modal');
             if (!modal) return;
@@ -2039,6 +2238,8 @@
             modal.classList.remove('flex');
         }
 
+        // ===== ÎNCĂRCARE CONSUMABILE DIN SUPABASE =====
+        // Încarcă și filtrează nomenclatorul de consumabile
         async function loadStockProductsAdmin() {
             const tbody = document.getElementById('stock-products-body');
             if (!tbody) return;
@@ -2133,10 +2334,12 @@
                 await loadStockProductsAdmin();
                 await loadStockProductsManagement();
             } catch (error) {
+                console.error(error);
                 setStockProductsStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
             }
         }
 
+        // Încarcă produsele active, arhivate sau toate produsele
         async function loadStockProductsManagement() {
             const tbody = document.getElementById('stock-products-admin-body');
             if (!tbody) return;
@@ -2221,6 +2424,7 @@
             }
         }
 
+        // Încarcă tranzacțiile de stoc și aplică filtrele de dată
         async function loadStockMovementsAdmin() {
             const tbody = document.getElementById('stock-movements-body');
             if (!tbody) return;
@@ -2261,6 +2465,7 @@
             }
         }
 
+        // Șterge o tranzacție de stoc după confirmare
         async function deleteStockMovement(movementId) {
             if (!movementId) return;
             if (!confirm('Ești sigur?')) return;

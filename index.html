@@ -338,7 +338,7 @@
         <!-- Brand -->
 <div class="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
   <div class="grid size-12 shrink-0 place-items-center rounded-xl">
-    <a href="#" onclick="event.preventDefault(); cereParolaAdmin();" class="hover:opacity-80 transition-opacity">
+    <a href="#" class="hover:opacity-80 transition-opacity">
        <img src="icons/128x128.png" alt="Admin" class="h-10 w-10 object-contain">
     </a>
   </div>
@@ -682,9 +682,7 @@
         {
           title: "Admin",
           items: [
-            { id: "panou", label: "Gestionare Useri", icon: "layout-dashboard", url: "modules/admin/panou_control.html", adminOnly: true, permission: "admin_panel" },
-            { id: "arhiva", label: "Arhivă", icon: "archive", url: "#", adminOnly: true, permission: "admin_panel" },
-            { id: "setari", label: "Setări", icon: "settings", url: "#", adminOnly: true, permission: "admin_panel" },
+            { id: "panou", label: "Panou Admin", icon: "layout-dashboard", url: "modules/admin/admin.html", adminOnly: true, permission: "panou_control" },
           ],
         },
       ];
