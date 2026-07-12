@@ -83,21 +83,57 @@
         }
     }
 
-    function applyPermissions() {
-        // Permission-gated elements
-        const permissionElements = document.querySelectorAll('.permission-gated');
-        permissionElements.forEach(el => {
-            const requiredPermission = el.dataset.permission;
-            if (requiredPermission) {
-                // Check if user is admin OR has the permission enabled
-                const isAllowed = Number(window.USER_DATA.rol_id) === 1 || window.USER_DATA.permissions?.[requiredPermission] === true;
-                if (!isAllowed) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.display = ''; // Show if allowed
-                }
+    function hasPermission(newKey, oldKey = permissionFallbackMap?.[newKey]) {
+        try {
+            if (Number(window.USER_DATA?.rol_id) === 1) return true;
+            if (!newKey) return true;
+            const permissions = window.USER_DATA?.permissions || {};
+            if (Object.prototype.hasOwnProperty.call(permissions, newKey)) {
+                return permissions[newKey] === true;
             }
-        });
+            return oldKey ? permissions[oldKey] === true : false;
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
+    function hasAnyAdminPermission() {
+        try {
+            if (Number(window.USER_DATA?.rol_id) === 1) return true;
+
+            const permissions = window.USER_DATA?.permissions || {};
+
+            return [
+                'admin_megafon',
+                'admin_alerte',
+                'admin_devize',
+                'admin_consumabile',
+                'admin_audit',
+                'admin_useri'
+            ].some((key) => permissions[key] === true);
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
+    function applyPermissions() {
+        try {
+            const permissionElements = document.querySelectorAll('.permission-gated');
+            permissionElements.forEach((el) => {
+                try {
+                    const requiredPermission = el.dataset.permission;
+                    const fallbackPermission = el.dataset.permissionFallback;
+                    if (!requiredPermission) return;
+                    el.style.display = hasPermission(requiredPermission, fallbackPermission) ? '' : 'none';
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     function updateUserUI(profile, email) {
@@ -522,7 +558,7 @@
           </section>
 
           <!-- Detailing & Constatări — hero -->
-          <div class="mb-8">
+          <div id="detailingSection" class="mb-8">
             <div class="mb-4 flex items-center gap-2.5">
               <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                 <i data-lucide="sparkles" class="size-[18px]"></i>
@@ -535,85 +571,13 @@
               </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
-              <!-- Detailing -->
-              <a
-                href="modules/formulare/detailing.html"
-                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
-              >
-                <div class="bg-grid absolute inset-0 opacity-60"></div>
-                <div
-                  class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"
-                ></div>
-                <div class="relative flex items-start justify-between">
-                  <span
-                    class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110"
-                  >
-                    <i data-lucide="sparkles" class="size-6 animate-float"></i>
-                  </span>
-                  <span
-                    id="badge-detailing"
-                    class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"
-                  >
-                    <i data-lucide="droplets" class="size-3.5"></i>
-                    —
-                  </span>
-                </div>
-                <div class="relative mt-6">
-                  <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
-                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
-                  </p>
-                  <span
-                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
-                  >
-                    <i data-lucide="play" class="size-4 fill-current"></i>
-                    Începe sesiunea
-                  </span>
-                </div>
-              </a>
-
-              <!-- Constatări -->
-              <a
-                href="modules/formulare/constatari.html"
-                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
-              >
-                <div class="bg-grid absolute inset-0 opacity-60"></div>
-                <div
-                  class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"
-                ></div>
-                <div class="relative flex items-start justify-between">
-                  <span
-                    class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110"
-                  >
-                    <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
-                  </span>
-                  <span
-                    class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success"
-                  >
-                    Recomandat
-                  </span>
-                </div>
-                <div class="relative mt-6">
-                  <h3 class="text-xl font-bold text-foreground">Constatări (old version)</h3>
-                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
-                    intervenție.
-                  </p>
-                  <span
-                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success"
-                  >
-                    <i data-lucide="play" class="size-4 fill-current"></i>
-                    Constatare nouă
-                  </span>
-                </div>
-              </a>
+            <div id="heroGrid" class="grid gap-4 lg:grid-cols-2">
             </div>
           </div>
 
           <!-- Bento grid: Birou + Service -->
           <div class="grid gap-8 xl:grid-cols-2">
-            <section>
+            <section id="birouSection">
               <div class="mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="receipt-text" class="size-[18px]"></i>
@@ -628,7 +592,7 @@
               <div id="birouGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
             </section>
 
-            <section>
+            <section id="serviceSection">
               <div class="mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="wrench" class="size-[18px]"></i>
@@ -653,36 +617,36 @@
         {
           title: "Birou",
           items: [
-            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html", permission: "devize" },
-            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "devize" },
-            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "devize" },
-            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "devize" },
-            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "devize" },
-            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "devize" },
+            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
+            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "avansuri" },
+            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
+            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
+            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
           ],
         },
         {
           title: "Service",
           items: [
-            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "flota" },
-            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "flota" },
-            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "magazie" },
-            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "magazie" },
-            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "magazie" },
-            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "magazie" },
+            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
+            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
+            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
+            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
+            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
+            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "generator" },
           ],
         },
         {
           title: "Detailing",
           items: [
-            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "constatari" },
+            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "detailing" },
             { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html", permission: "constatari" },
           ],
         },
         {
           title: "Admin",
           items: [
-            { id: "panou", label: "Panou Admin", icon: "layout-dashboard", url: "modules/admin/admin.html", adminOnly: true, permission: "panou_control" },
+            { id: "panou", label: "Administrare", icon: "layout-dashboard", url: "modules/admin/admin.html", adminOnly: true },
           ],
         },
       ];
@@ -708,22 +672,45 @@
       };
 
       const birouCards = [
-        { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html" },
-        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html" },
-        { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html" },
-        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html" },
-        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html" },
-        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html" },
+        { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
+        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
+        { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
+        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
+        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
       ];
 
       const serviceCards = [
-        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html" },
-        { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html" },
-        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html" },
-        { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html" },
-        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html" },
-        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html" },
+        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
+        { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
+        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
+        { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
+        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
+        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
       ];
+
+      const heroCards = [
+        { id: "detailing-hero", permission: "detailing", url: "modules/formulare/detailing.html", variant: "detailing" },
+        { id: "constatari-hero", permission: "constatari", url: "modules/formulare/constatari.html", variant: "constatari" },
+      ];
+
+      const permissionFallbackMap = {
+        deviz_estimativ: "devize",
+        avansuri: "devize",
+        telefoane: "devize",
+        contracte: "devize",
+        cautare_deviz: "devize",
+        deviz_final: "devize",
+        lista_masini: "flota",
+        baza_vin: "flota",
+        awb: "magazie",
+        piese_stoc: "magazie",
+        consumabile: "magazie",
+        generator: "magazie",
+        detailing: "constatari",
+        constatari: "constatari",
+        panou_admin: "panou_control",
+      };
 
       const alerts = [];
       let adminAnnouncementText = null;
@@ -757,6 +744,22 @@
       function patchCard(arr, id, patch) {
         const card = arr.find((c) => c.id === id);
         if (card) Object.assign(card, patch);
+      }
+
+      function getPermittedItems(items) {
+        try {
+          if (Number(window.USER_DATA?.rol_id) === 1) return items;
+          return items.filter((item) => !item.permission || hasPermission(item.permission));
+        } catch (error) {
+          console.error(error);
+          return [];
+        }
+      }
+
+      function toggleSectionVisibility(sectionId, isVisible) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        section.classList.toggle("hidden", !isVisible);
       }
 
       function initMarquee() {
@@ -868,16 +871,22 @@
 
       function renderNav() {
         const nav = document.getElementById("nav");
-        nav.innerHTML = navSections
-          .map(
-            (section) => {
-              // Filter items: user is admin OR has the permission OR item has no permission requirement
-              const filteredItems = section.items.filter(item => {
-                if (!item.permission) return true;
-                return Number(window.USER_DATA.rol_id) === 1 || window.USER_DATA.permissions?.[item.permission] === true;
-              });
-              if (filteredItems.length === 0) return '';
-              return `
+        try {
+          nav.innerHTML = navSections
+            .map(
+              (section) => {
+                const filteredItems = section.items.filter((item) => {
+                  try {
+                    if (item.adminOnly) return hasAnyAdminPermission();
+                    if (!item.permission) return true;
+                    return hasPermission(item.permission);
+                  } catch (error) {
+                    console.error(error);
+                    return false;
+                  }
+                });
+                if (filteredItems.length === 0) return '';
+                return `
             <div class="mb-5">
               <p class="sidebar-section-title mb-2 px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">${section.title}</p>
               <ul class="flex flex-col gap-1">
@@ -886,8 +895,11 @@
                     const isActive = item.id === activeId;
                     const permissionClass = item.permission ? 'permission-gated' : '';
                     const permissionAttr = item.permission ? `data-permission="${item.permission}"` : '';
+                    const permissionFallbackAttr = item.permission && permissionFallbackMap[item.permission]
+                      ? `data-permission-fallback="${permissionFallbackMap[item.permission]}"`
+                      : '';
                     return `
-                    <li ${permissionAttr} ${permissionClass}>
+                    <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
                       <a href="${item.url}" data-id="${item.id}" title="${item.label}"
                         class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                           isActive
@@ -903,11 +915,15 @@
                   .join("")}
               </ul>
             </div>`;
-            }
-          )
-          .join("");
+              }
+            )
+            .join("");
 
-        lucide.createIcons();
+          lucide.createIcons();
+        } catch (error) {
+          console.error(error);
+          nav.innerHTML = "";
+        }
       }
 
       function cardHTML(card) {
@@ -958,18 +974,91 @@
           </a>`;
       }
 
-      function renderAll() {
-        document.getElementById("birouGrid").innerHTML = birouCards.map(cardHTML).join("");
-        document.getElementById("serviceGrid").innerHTML = serviceCards.map(cardHTML).join("");
-        document.getElementById("alertGrid").innerHTML = alerts.map(alertHTML).join("");
-
-        const detailingBadge = document.getElementById("badge-detailing");
-        if (detailingBadge) {
-          detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+      function heroCardHTML(card) {
+        if (card.variant === "detailing") {
+          return `
+            <a
+              href="${card.url}"
+              class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
+            >
+              <div class="bg-grid absolute inset-0 opacity-60"></div>
+              <div class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"></div>
+              <div class="relative flex items-start justify-between">
+                <span class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110">
+                  <i data-lucide="sparkles" class="size-6 animate-float"></i>
+                </span>
+                <span id="badge-detailing" class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                  <i data-lucide="droplets" class="size-3.5"></i>
+                  —
+                </span>
+              </div>
+              <div class="relative mt-6">
+                <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                  Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
+                </p>
+                <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <i data-lucide="play" class="size-4 fill-current"></i>
+                  Începe sesiunea
+                </span>
+              </div>
+            </a>`;
         }
 
-        renderNav();
-        lucide.createIcons();
+        return `
+          <a
+            href="${card.url}"
+            class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
+          >
+            <div class="bg-grid absolute inset-0 opacity-60"></div>
+            <div class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"></div>
+            <div class="relative flex items-start justify-between">
+              <span class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110">
+                <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
+              </span>
+              <span class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
+                Recomandat
+              </span>
+            </div>
+            <div class="relative mt-6">
+              <h3 class="text-xl font-bold text-foreground">Constatări (old version)</h3>
+              <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
+                intervenție.
+              </p>
+              <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success">
+                <i data-lucide="play" class="size-4 fill-current"></i>
+                Constatare nouă
+              </span>
+            </div>
+          </a>`;
+      }
+
+      function renderAll() {
+        try {
+          const filteredHeroCards = getPermittedItems(heroCards);
+          const filteredBirouCards = getPermittedItems(birouCards);
+          const filteredServiceCards = getPermittedItems(serviceCards);
+
+          document.getElementById("heroGrid").innerHTML = filteredHeroCards.map(heroCardHTML).join("");
+          document.getElementById("birouGrid").innerHTML = filteredBirouCards.map(cardHTML).join("");
+          document.getElementById("serviceGrid").innerHTML = filteredServiceCards.map(cardHTML).join("");
+          document.getElementById("alertGrid").innerHTML = alerts.map(alertHTML).join("");
+
+          toggleSectionVisibility("detailingSection", filteredHeroCards.length > 0);
+          toggleSectionVisibility("birouSection", filteredBirouCards.length > 0);
+          toggleSectionVisibility("serviceSection", filteredServiceCards.length > 0);
+
+          const detailingBadge = document.getElementById("badge-detailing");
+          if (detailingBadge) {
+            detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+          }
+
+          renderNav();
+          lucide.createIcons();
+        } catch (error) {
+          console.error(error);
+        }
       }
 
       /* ---------------- SIDEBAR TOGGLE ---------------- */
@@ -1648,5 +1737,7 @@ if (notifModal) {
 checkNotifications();
 </script>
 
+  <!-- Autodeconectare după inactivitate -->
+  <script src="/js/session-timeout.js?v=2"></script>
   </body>
 </html>

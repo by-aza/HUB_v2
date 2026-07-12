@@ -1346,6 +1346,20 @@
                     : null;
                 if (isNaN(cleanCurrentDevizId)) cleanCurrentDevizId = null;
 
+                const isUpdate = Boolean(cleanCurrentDevizId);
+                let creatorId = null;
+                if (!isUpdate) {
+                    // Identifică utilizatorul autentificat
+                    const { data: { session } = {}, error: sessionError } =
+                        await sb.auth.getSession();
+
+                    if (sessionError) {
+                        console.error(sessionError);
+                    }
+
+                    creatorId = session?.user?.id || null;
+                }
+
                 const headerPayload = {
                     id_deviz_estimativ: cleanEstimativId,
                     data_deviz: data_deviz || '',
@@ -1362,8 +1376,12 @@
                     total_general: parseFloat(total_general) || 0
                 };
 
+                if (!isUpdate) {
+                    // Salvează creatorul devizului
+                    headerPayload.created_by = creatorId;
+                }
+
                 let savedHeaderId = null;
-                const isUpdate = Boolean(cleanCurrentDevizId);
 
                 if (isUpdate) {
                     const { data, error } = await sb
@@ -1469,6 +1487,7 @@
                 logAuditDevizFinal(isUpdate ? 'UPDATE' : 'CREATE', devizData.devizNr);
                 alert('Deviz Salvat!');
             } catch (error) {
+                console.error(error);
                 setSaveStatus(error?.message || 'Eroare la salvare.', 'error');
             } finally {
                 btnSalveazaDeviz.disabled = false;
@@ -1830,5 +1849,7 @@
         window.addPiesaRow = addPiesaRow;
         window.removePiesaRow = removePiesaRow;
     </script>
+    <!-- Autodeconectare după inactivitate -->
+    <script src="/js/session-timeout.js?v=2"></script>
 </body>
 </html>

@@ -28,8 +28,8 @@
     
     <form id="loginForm">
         <div class="input-group">
-            <label for="email">Email birou</label>
-            <input type="email" id="email" required placeholder="nume@csngarage.ro">
+            <label for="email">User sau Email</label>
+            <input type="text" id="email" required placeholder="marian sau email@firma.ro">
         </div>
         <div class="input-group">
             <label for="password">Parolă</label>
@@ -42,31 +42,89 @@
 </div>
 
 <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    const loginForm = document.getElementById('loginForm');
+    const loginButton = loginForm?.querySelector('button[type="submit"]');
+    let isAuthenticating = false;
+
+    loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value;
+        if (isAuthenticating) return;
+
+        const loginValue = document.getElementById('email').value.trim();
+        const normalizedUser = loginValue.toLowerCase();
         const password = document.getElementById('password').value;
         const errorBox = document.getElementById('errorBox');
-        
+        const originalButtonText = loginButton?.textContent || 'Intră în cont';
+
         errorBox.style.display = 'none';
 
-        // Verificăm noul obiect schimbat
-        if (typeof supabaseClient === 'undefined') {
-            errorBox.textContent = "Eroare CORE: Conexiunea Supabase nu a putut fi încărcată.";
-            errorBox.style.display = 'block';
+        if (!loginValue) {
+            alert('Completează User-ul sau emailul.');
             return;
         }
 
-        // Modificat aici din 'supabase' în 'supabaseClient'
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
+        if (!password) {
+            alert('Completează parola.');
+            return;
+        }
 
-        if (error) {
-            errorBox.textContent = "Eroare: " + error.message;
-            errorBox.style.display = 'block';
-        } else {
+        if (typeof supabaseClient === 'undefined') {
+            const error = new Error('Conexiunea Supabase nu a putut fi încărcată.');
+            console.error(error);
+            alert('A apărut o eroare la autentificare.');
+            return;
+        }
+
+        isAuthenticating = true;
+        if (loginButton) {
+            loginButton.disabled = true;
+            loginButton.textContent = 'Se conectează...';
+        }
+
+        try {
+            let email = loginValue;
+
+            if (!loginValue.includes('@')) {
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('auth_profiles')
+                    .select('email')
+                    .eq('porecla', normalizedUser)
+                    .maybeSingle();
+
+                if (profileError) {
+                    console.error(profileError);
+                    alert('A apărut o eroare la autentificare.');
+                    return;
+                }
+
+                if (!profile?.email) {
+                    alert('User sau parolă incorectă.');
+                    return;
+                }
+
+                email = profile.email;
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                console.error(error);
+                const authErrorMessages = [
+                    'Invalid login credentials',
+                    'Email not confirmed',
+                    'Invalid email or password'
+                ];
+                if (authErrorMessages.includes(error.message)) {
+                    alert('User sau parolă incorectă.');
+                } else {
+                    alert('A apărut o eroare la autentificare.');
+                }
+                return;
+            }
+
             try {
                 if (typeof addAuditLog === 'function') {
                     await addAuditLog({
@@ -83,7 +141,6 @@
                 console.error(error);
             }
 
-            // Fetch user profile to determine role
             const { data: profile, error: profError } = await supabaseClient
                 .from('auth_profiles')
                 .select('rol_id')
@@ -91,18 +148,26 @@
                 .single();
             
             if (profError || !profile) {
-                // Fallback to main dashboard if profile fetch fails
+                if (profError) console.error(profError);
                 window.location.href = '../../index.html';
                 return;
             }
             
-            // Redirect based on user role
-            if (Number(profile.rol_id) === 8) { // Mecanic
+            if (Number(profile.rol_id) === 8) {
                 window.location.href = '../../modules/formulare/constatari.html';
-            } else if (Number(profile.rol_id) === 6) { // Detailing
+            } else if (Number(profile.rol_id) === 6) {
                 window.location.href = '../../modules/formulare/detailing.html';
-            } else { // All other roles (Admin, Manager, Birou, etc.)
+            } else {
                 window.location.href = '../../index.html';
+            }
+        } catch (error) {
+            console.error(error);
+            alert('A apărut o eroare la autentificare.');
+        } finally {
+            isAuthenticating = false;
+            if (loginButton) {
+                loginButton.disabled = false;
+                loginButton.textContent = originalButtonText;
             }
         }
     });

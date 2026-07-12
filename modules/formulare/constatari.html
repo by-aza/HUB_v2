@@ -87,11 +87,15 @@
     padding: 0 28px; height: 60px;
   }
   .topbar-left { display: flex; align-items: center; gap: 14px; }
-  .logo-icon {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--cyan), var(--purple));
-    border-radius: 8px; display: grid; place-items: center; font-size: 18px;
+  /* Buton Înapoi din header */
+  .back-btn {
+    display: inline-flex; align-items: center;
+    height: 30px; padding: 0 11px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-size: 12px; font-weight: 500;
+    text-decoration: none; transition: all .18s;
   }
+  .back-btn:hover { color: var(--text); border-color: var(--cyan); }
   .topbar-title { font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: .04em; }
   .topbar-title span { color: var(--cyan); }
   .topbar-right { display: flex; align-items: center; gap: 10px; }
@@ -445,8 +449,9 @@
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-left">
-    <div class="logo-icon">🔧</div>
-    <span class="topbar-title">AUTO<span>.HUB</span> &nbsp;<span style="color:var(--border)">|</span>&nbsp; <span style="color:var(--muted);font-weight:400">Constatări</span></span>
+    <!-- Buton Înapoi -->
+    <a class="back-btn" href="../../index.html">← Înapoi</a>
+    <span class="topbar-title" style="color:var(--muted);font-weight:400">Constatări</span>
   </div>
   <div class="topbar-right">
     <div class="legend">
@@ -1364,5 +1369,7 @@ function toast(msg, type = '') {
 // ═══════════════════════════════════════════════════════
 loadCards();
 </script>
+<!-- Autodeconectare după inactivitate -->
+<script src="/js/session-timeout.js?v=2"></script>
 </body>
 </html>

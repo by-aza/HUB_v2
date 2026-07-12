@@ -1017,6 +1017,20 @@ td:nth-child(3) input {
             numar_inmatriculare = 'FaraNumar';
         }
 
+        const existsBeforeSave = await devizExists(idDeviz);
+        let creatorId = null;
+        if (existsBeforeSave === false) {
+            // Identifică utilizatorul autentificat
+            const { data: { session } = {}, error: sessionError } =
+                await supabaseClient.auth.getSession();
+
+            if (sessionError) {
+                console.error(sessionError);
+            }
+
+            creatorId = session?.user?.id || null;
+        }
+
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
@@ -1036,13 +1050,18 @@ td:nth-child(3) input {
             total_general: grandTotal,
         };
 
-        const existsBeforeSave = await devizExists(idDeviz);
+        if (existsBeforeSave === false) {
+            // Salvează creatorul devizului
+            payload.created_by = creatorId;
+        }
+
         const { error } = await supabaseClient
             .from('devize')
             .upsert(payload, { onConflict: 'id_deviz' });
 
         setBusy(false);
         if (error) {
+            console.error(error);
             setStatus('Eroare la salvare.');
             return false;
         }
@@ -1168,5 +1187,7 @@ td:nth-child(3) input {
 
 </script>
 
+<!-- Autodeconectare după inactivitate -->
+<script src="/js/session-timeout.js?v=2"></script>
 </body>
 </html>
