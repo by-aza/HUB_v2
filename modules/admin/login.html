@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUB CSN GARAGE — Autentificare</title>
+    <style>
+        body { background-color: #121214; color: #e1e1e6; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-container { background-color: #1d1d22; padding: 40px; border-radius: 8px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        h2 { color: #ffffff; margin-bottom: 24px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #a8a8b3; font-size: 14px; }
+        input { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #29292e; background-color: #121214; color: #ffffff; box-sizing: border-box; }
+        input:focus { border-color: #4cf3a8; outline: none; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 4px; background-color: #00b37e; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #00875f; }
+        .error-msg { color: #f75a68; font-size: 14px; margin-top: 15px; display: none; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../js/config.js"></script>
+    <script src="../../js/audit.js"></script>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>CSN GARAGE HUB</h2>
+    <p style="color: #a8a8b3; font-size: 14px; margin-bottom: 24px;">Introduceți datele pentru conectare</p>
+    
+    <form id="loginForm">
+        <div class="input-group">
+            <label for="email">User sau Email</label>
+            <input type="text" id="email" required placeholder="marian sau email@firma.ro">
+        </div>
+        <div class="input-group">
+            <label for="password">Parolă</label>
+            <input type="password" id="password" required placeholder="••••••••">
+        </div>
+        <button type="submit">Intră în cont</button>
+    </form>
+
+    <div id="errorBox" class="error-msg"></div>
+</div>
+
+<script>
+    const loginForm = document.getElementById('loginForm');
+    const loginButton = loginForm?.querySelector('button[type="submit"]');
+    let isAuthenticating = false;
+
+    loginForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isAuthenticating) return;
+
+        const loginValue = document.getElementById('email').value.trim();
+        const normalizedUser = loginValue.toLowerCase();
+        const password = document.getElementById('password').value;
+        const errorBox = document.getElementById('errorBox');
+        const originalButtonText = loginButton?.textContent || 'Intră în cont';
+
+        errorBox.style.display = 'none';
+
+        if (!loginValue) {
+            alert('Completează User-ul sau emailul.');
+            return;
+        }
+
+        if (!password) {
+            alert('Completează parola.');
+            return;
+        }
+
+        if (typeof supabaseClient === 'undefined') {
+            const error = new Error('Conexiunea Supabase nu a putut fi încărcată.');
+            console.error(error);
+            alert('A apărut o eroare la autentificare.');
+            return;
+        }
+
+        isAuthenticating = true;
+        if (loginButton) {
+            loginButton.disabled = true;
+            loginButton.textContent = 'Se conectează...';
+        }
+
+        try {
+            let email = loginValue;
+
+            if (!loginValue.includes('@')) {
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('auth_profiles')
+                    .select('email')
+                    .eq('porecla', normalizedUser)
+                    .maybeSingle();
+
+                if (profileError) {
+                    console.error(profileError);
+                    alert('A apărut o eroare la autentificare.');
+                    return;
+                }
+
+                if (!profile?.email) {
+                    alert('User sau parolă incorectă.');
+                    return;
+                }
+
+                email = profile.email;
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                console.error(error);
+                const authErrorMessages = [
+                    'Invalid login credentials',
+                    'Email not confirmed',
+                    'Invalid email or password'
+                ];
+                if (authErrorMessages.includes(error.message)) {
+                    alert('User sau parolă incorectă.');
+                } else {
+                    alert('A apărut o eroare la autentificare.');
+                }
+                return;
+            }
+
+            try {
+                if (typeof addAuditLog === 'function') {
+                    await addAuditLog({
+                        user_id: data.user.id,
+                        user_name: data.user.email || email,
+                        modul: 'Autentificare',
+                        actiune: 'login',
+                        entitate: 'user',
+                        entitate_id: data.user.id,
+                        descriere: 'Utilizator autentificat'
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+            }
+
+            const { data: profile, error: profError } = await supabaseClient
+                .from('auth_profiles')
+                .select('rol_id')
+                .eq('id', data.user.id)
+                .single();
+            
+            if (profError || !profile) {
+                if (profError) console.error(profError);
+                window.location.href = '../../index.html';
+                return;
+            }
+            
+            if (Number(profile.rol_id) === 8) {
+                window.location.href = '../../modules/formulare/constatari.html';
+            } else if (Number(profile.rol_id) === 6) {
+                window.location.href = '../../modules/formulare/detailing.html';
+            } else {
+                window.location.href = '../../index.html';
+            }
+        } catch (error) {
+            console.error(error);
+            alert('A apărut o eroare la autentificare.');
+        } finally {
+            isAuthenticating = false;
+            if (loginButton) {
+                loginButton.disabled = false;
+                loginButton.textContent = originalButtonText;
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

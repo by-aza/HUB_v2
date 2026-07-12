@@ -6,6 +6,7 @@
 <title>Deviz Reparație</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/audit.js"></script>
 <link rel="stylesheet" href="/css/style.css">
 <link rel="manifest" href="/manifest.json">
 
@@ -553,6 +554,7 @@ td:nth-child(3) input {
     const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    window.supabaseClient = supabaseClient;
 
     const screenIdDeviz = document.getElementById('screen-id-deviz');
     const screenDataDeviz = document.getElementById('screen-data-deviz');
@@ -632,6 +634,7 @@ td:nth-child(3) input {
     const acquisitionDetailsStorageKey = 'deviz.detaliereAchizitie';
 
     let ultimulDevizId = null;
+    let auditActorPromise = null;
 
     const todayYyyyMmDd = () => {
         const azi = new Date();
@@ -649,6 +652,83 @@ td:nth-child(3) input {
     };
 
     const formatDevizId = (n, pad) => `D-${String(n).padStart(pad, '0')}`;
+
+    async function getAuditActor() {
+        if (!auditActorPromise) {
+            auditActorPromise = (async () => {
+                const { data: { session } = {} } = await supabaseClient.auth.getSession();
+                const user = session?.user || null;
+                if (!user?.id) {
+                    return { user_id: null, user_name: '' };
+                }
+
+                let profile = null;
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('auth_profiles')
+                        .select('porecla, email')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    if (error) throw error;
+                    profile = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
+                return {
+                    user_id: user.id,
+                    user_name: profile?.porecla || profile?.email || user.email || ''
+                };
+            })().catch((error) => {
+                console.error(error);
+                return { user_id: null, user_name: '' };
+            });
+        }
+
+        return auditActorPromise;
+    }
+
+    async function logAuditDevizEstimativ(actiune, idDeviz) {
+        try {
+            if (typeof window.addAuditLog !== 'function') return;
+            const cleanId = String(idDeviz || '').trim();
+            if (!cleanId) return;
+
+            const actor = await getAuditActor();
+            const descrieri = {
+                CREATE: `A creat devizul estimativ ${cleanId}`,
+                UPDATE: `A modificat devizul estimativ ${cleanId}`,
+                PRINT: `A printat devizul estimativ ${cleanId}`
+            };
+
+            await window.addAuditLog({
+                modul: 'Deviz Estimativ',
+                actiune,
+                descriere: descrieri[actiune],
+                entitate: 'deviz_estimativ',
+                entitate_id: cleanId,
+                user_id: actor.user_id,
+                user_name: actor.user_name
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function devizExists(idDeviz) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('devize')
+                .select('id_deviz')
+                .eq('id_deviz', idDeviz)
+                .maybeSingle();
+            if (error) throw error;
+            return Boolean(data);
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
+    }
 
     const setAcquisitionDetailsVisible = (visible) => {
         if (screenItemsTable) {
@@ -937,6 +1017,20 @@ td:nth-child(3) input {
             numar_inmatriculare = 'FaraNumar';
         }
 
+        const existsBeforeSave = await devizExists(idDeviz);
+        let creatorId = null;
+        if (existsBeforeSave === false) {
+            // Identifică utilizatorul autentificat
+            const { data: { session } = {}, error: sessionError } =
+                await supabaseClient.auth.getSession();
+
+            if (sessionError) {
+                console.error(sessionError);
+            }
+
+            creatorId = session?.user?.id || null;
+        }
+
         const payload = {
             id_deviz: idDeviz,
             data_deviz: screenDataDeviz.value || null,
@@ -956,12 +1050,18 @@ td:nth-child(3) input {
             total_general: grandTotal,
         };
 
+        if (existsBeforeSave === false) {
+            // Salvează creatorul devizului
+            payload.created_by = creatorId;
+        }
+
         const { error } = await supabaseClient
             .from('devize')
             .upsert(payload, { onConflict: 'id_deviz' });
 
         setBusy(false);
         if (error) {
+            console.error(error);
             setStatus('Eroare la salvare.');
             return false;
         }
@@ -969,6 +1069,7 @@ td:nth-child(3) input {
         setStatus('Salvat.');
         isDirty = false;
         calculateTotals();
+        logAuditDevizEstimativ(existsBeforeSave === false ? 'CREATE' : 'UPDATE', idDeviz);
         return true;
     }
 
@@ -1049,6 +1150,7 @@ td:nth-child(3) input {
         };
         document.title = fileName;
         window.addEventListener('afterprint', restoreTitle);
+        logAuditDevizEstimativ('PRINT', nrDeviz);
         window.print();
     });
     btnNew.addEventListener('click', creeazaDevizNou);
@@ -1085,5 +1187,7 @@ td:nth-child(3) input {
 
 </script>
 
+<!-- Autodeconectare după inactivitate -->
+<script src="/js/session-timeout.js?v=2"></script>
 </body>
 </html>

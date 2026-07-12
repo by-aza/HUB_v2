@@ -13,6 +13,186 @@
     <!-- Tailwind CSS (Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+
+<script>
+    // Global user data storage
+    window.USER_DATA = {
+        nume: null,
+        prenume: null,
+        rol_id: null,
+        permissions: {}
+    };
+    let isAdmin = false;
+
+    async function loadDashboard() {
+        // 1. Get Supabase session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session) {
+            window.location.href = 'modules/admin/login.html';
+            return;
+        }
+
+        try {
+            // 2. Single query for user profile + permissions
+            const { data, error } = await supabaseClient
+                .from('auth_profiles')
+                .select('nume, prenume, porecla, rol_id, permissions, auth_roles(numire_rol)')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (error) throw error;
+            
+            // 3. Store in global window.USER_DATA
+            window.USER_DATA = {
+                nume: data.nume,
+                prenume: data.prenume,
+                rol_id: data.rol_id,
+                permissions: data.permissions || {},
+                porecla: data.porecla,
+                auth_roles: data.auth_roles
+            };
+
+            isAdmin = Number(data.rol_id) === 1;
+
+            // 4. Adjust activeId if needed
+            if (!isAdmin && activeId === 'panou') {
+                activeId = 'devize';
+            }
+
+            // 5. Update user-specific UI
+            updateUserUI(data, session.user.email);
+            
+            // 6. Render UI
+            try {
+                renderAll();
+            } catch (err) {
+                console.error("Error rendering UI:", err);
+            }
+            
+            // 7. Load all widgets with individual try/catch
+            try { await loadAdminAnnouncement(); } catch (e) { console.warn("Admin announcement widget failed:", e); }
+            try { await loadAllBadges(); } catch (e) { console.warn("All badges failed:", e); }
+            
+            // 8. Apply permissions LAST (doesn't block data fetching)
+            applyPermissions();
+            
+        } catch (e) {
+            console.error("Error: User data not loaded:", e);
+        }
+    }
+
+    function hasPermission(newKey, oldKey = permissionFallbackMap?.[newKey]) {
+        try {
+            if (Number(window.USER_DATA?.rol_id) === 1) return true;
+            if (!newKey) return true;
+            const permissions = window.USER_DATA?.permissions || {};
+            if (Object.prototype.hasOwnProperty.call(permissions, newKey)) {
+                return permissions[newKey] === true;
+            }
+            return oldKey ? permissions[oldKey] === true : false;
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
+    function hasAnyAdminPermission() {
+        try {
+            if (Number(window.USER_DATA?.rol_id) === 1) return true;
+
+            const permissions = window.USER_DATA?.permissions || {};
+
+            return [
+                'admin_megafon',
+                'admin_alerte',
+                'admin_devize',
+                'admin_consumabile',
+                'admin_audit',
+                'admin_useri'
+            ].some((key) => permissions[key] === true);
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
+    function applyPermissions() {
+        try {
+            const permissionElements = document.querySelectorAll('.permission-gated');
+            permissionElements.forEach((el) => {
+                try {
+                    const requiredPermission = el.dataset.permission;
+                    const fallbackPermission = el.dataset.permissionFallback;
+                    if (!requiredPermission) return;
+                    el.style.display = hasPermission(requiredPermission, fallbackPermission) ? '' : 'none';
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function updateUserUI(profile, email) {
+        // Display name (porecla → prenume → email)
+        const displayName = profile?.porecla || profile?.prenume || email;
+        const userDisplayName = document.getElementById('userDisplayName');
+        if (userDisplayName) {
+            userDisplayName.textContent = displayName;
+        }
+
+        // Dropdown
+        const userFullName = document.getElementById('userFullName');
+        if (userFullName) {
+            if (profile) {
+                userFullName.textContent = `${profile.nume} ${profile.prenume}`;
+            } else {
+                userFullName.textContent = email;
+            }
+        }
+
+        const userEmailSpan = document.getElementById('userEmail');
+        if (userEmailSpan) {
+            userEmailSpan.textContent = email;
+        }
+
+        const userRole = document.getElementById('userRole');
+        if (userRole) {
+            if (profile?.auth_roles?.numire_rol) {
+                userRole.textContent = profile.auth_roles.numire_rol;
+            } else {
+                userRole.textContent = "N/A";
+            }
+        }
+    }
+
+    function toggleUserDropdown() {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('userDropdown');
+        const userTrigger = document.getElementById('userTrigger');
+        if (dropdown && userTrigger && !userTrigger.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    async function IesiDinCont() {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'modules/admin/login.html';
+    }
+    
+    // Run initialization on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -194,7 +374,7 @@
         <!-- Brand -->
 <div class="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
   <div class="grid size-12 shrink-0 place-items-center rounded-xl">
-    <a href="#" onclick="event.preventDefault(); cereParolaAdmin();" class="hover:opacity-80 transition-opacity">
+    <a href="#" class="hover:opacity-80 transition-opacity">
        <img src="icons/128x128.png" alt="Admin" class="h-10 w-10 object-contain">
     </a>
   </div>
@@ -290,23 +470,48 @@
             </button>
 
             <!-- User -->
-            <button
-              type="button"
-              class="flex items-center gap-2.5 rounded-xl border border-border bg-card py-1 pl-1 pr-3 transition-colors hover:border-primary/40 "
-            >
-              <span
-                class="grid size-8 place-items-center rounded-lg bg-secondary font-mono text-xs font-bold text-foreground opacity-50 cursor-not-allowed"
+            <div class="relative">
+              <div
+                id="userTrigger"
+                class="flex flex-col items-end cursor-pointer"
+                onclick="toggleUserDropdown()"
               >
-                B
-              </span>
-              <span class="hidden leading-tight md:block">
-                <span class="block text-sm font-semibold text-foreground opacity-50 cursor-not-allowed">User CSN</span>
+                <span
+                  id="userDisplayName"
+                  class="text-sm font-semibold text-foreground transition-colors hover:text-white"
+                >
+                  User
+                </span>
                 <span class="flex items-center gap-1.5">
                   <span id="statusDot" class="size-2 rounded-full bg-success"></span>
                   <span id="statusText" class="text-[11px] text-success">Sistem Online</span>
                 </span>
-              </span>
-            </button>
+              </div>
+
+              <!-- Dropdown -->
+              <div
+                id="userDropdown"
+                class="absolute right-0 top-full z-[100] mt-2 hidden w-64 overflow-hidden rounded-xl border border-[#29292e] bg-[#1d1d22] shadow-lg"
+              >
+                <div class="flex flex-col gap-4 p-5">
+                  <!-- User info -->
+                  <div class="flex flex-col gap-2">
+                    <span id="userFullName" class="text-base font-bold text-foreground"></span>
+                    <span id="userEmail" class="text-sm" style="color: #a8a8b3;"></span>
+                    <span id="userRole" class="text-sm" style="color: #a8a8b3;"></span>
+                  </div>
+
+                  <!-- Logout button -->
+                  <button
+                    type="button"
+                    onclick="IesiDinCont()"
+                    class="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Ieși din cont
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -353,7 +558,7 @@
           </section>
 
           <!-- Detailing & Constatări — hero -->
-          <div class="mb-8">
+          <div id="detailingSection" class="mb-8">
             <div class="mb-4 flex items-center gap-2.5">
               <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                 <i data-lucide="sparkles" class="size-[18px]"></i>
@@ -366,85 +571,13 @@
               </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
-              <!-- Detailing -->
-              <a
-                href="modules/formulare/detailing.html"
-                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
-              >
-                <div class="bg-grid absolute inset-0 opacity-60"></div>
-                <div
-                  class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"
-                ></div>
-                <div class="relative flex items-start justify-between">
-                  <span
-                    class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110"
-                  >
-                    <i data-lucide="sparkles" class="size-6 animate-float"></i>
-                  </span>
-                  <span
-                    id="badge-detailing"
-                    class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary"
-                  >
-                    <i data-lucide="droplets" class="size-3.5"></i>
-                    —
-                  </span>
-                </div>
-                <div class="relative mt-6">
-                  <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
-                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
-                  </p>
-                  <span
-                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
-                  >
-                    <i data-lucide="play" class="size-4 fill-current"></i>
-                    Începe sesiunea
-                  </span>
-                </div>
-              </a>
-
-              <!-- Constatări -->
-              <a
-                href="modules/formulare/constatari.html"
-                class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
-              >
-                <div class="bg-grid absolute inset-0 opacity-60"></div>
-                <div
-                  class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"
-                ></div>
-                <div class="relative flex items-start justify-between">
-                  <span
-                    class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110"
-                  >
-                    <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
-                  </span>
-                  <span
-                    class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success"
-                  >
-                    Recomandat
-                  </span>
-                </div>
-                <div class="relative mt-6">
-                  <h3 class="text-xl font-bold text-foreground">Constatări (old version)</h3>
-                  <p class="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
-                    intervenție.
-                  </p>
-                  <span
-                    class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success"
-                  >
-                    <i data-lucide="play" class="size-4 fill-current"></i>
-                    Constatare nouă
-                  </span>
-                </div>
-              </a>
+            <div id="heroGrid" class="grid gap-4 lg:grid-cols-2">
             </div>
           </div>
 
           <!-- Bento grid: Birou + Service -->
           <div class="grid gap-8 xl:grid-cols-2">
-            <section>
+            <section id="birouSection">
               <div class="mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="receipt-text" class="size-[18px]"></i>
@@ -459,7 +592,7 @@
               <div id="birouGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
             </section>
 
-            <section>
+            <section id="serviceSection">
               <div class="mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="wrench" class="size-[18px]"></i>
@@ -484,38 +617,36 @@
         {
           title: "Birou",
           items: [
-            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html" },
-            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html" },
-            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html" },
-            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html" },
-            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html" },
-            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html" },
+            { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
+            { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "avansuri" },
+            { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
+            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
+            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+            { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
           ],
         },
         {
           title: "Service",
           items: [
-            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html" },
-            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html" },
-            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html" },
-            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html" },
-            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html" },
-            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html" },
+            { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
+            { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
+            { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
+            { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
+            { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
+            { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "generator" },
           ],
         },
         {
           title: "Detailing",
           items: [
-            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html" },
-            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html" },
+            { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "detailing" },
+            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html", permission: "constatari" },
           ],
         },
         {
           title: "Admin",
           items: [
-            { id: "panou", label: "Panou Control", icon: "layout-dashboard", url: "index.html" },
-            { id: "arhiva", label: "Arhivă", icon: "archive", url: "#" },
-            { id: "setari", label: "Setări", icon: "settings", url: "#" },
+            { id: "panou", label: "Administrare", icon: "layout-dashboard", url: "modules/admin/admin.html", adminOnly: true },
           ],
         },
       ];
@@ -541,22 +672,45 @@
       };
 
       const birouCards = [
-        { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html" },
-        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html" },
-        { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html" },
-        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html" },
-        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html" },
-        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html" },
+        { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
+        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
+        { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
+        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
+        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
       ];
 
       const serviceCards = [
-        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html" },
-        { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html" },
-        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html" },
-        { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html" },
-        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html" },
-        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html" },
+        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
+        { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
+        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
+        { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
+        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
+        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
       ];
+
+      const heroCards = [
+        { id: "detailing-hero", permission: "detailing", url: "modules/formulare/detailing.html", variant: "detailing" },
+        { id: "constatari-hero", permission: "constatari", url: "modules/formulare/constatari.html", variant: "constatari" },
+      ];
+
+      const permissionFallbackMap = {
+        deviz_estimativ: "devize",
+        avansuri: "devize",
+        telefoane: "devize",
+        contracte: "devize",
+        cautare_deviz: "devize",
+        deviz_final: "devize",
+        lista_masini: "flota",
+        baza_vin: "flota",
+        awb: "magazie",
+        piese_stoc: "magazie",
+        consumabile: "magazie",
+        generator: "magazie",
+        detailing: "constatari",
+        constatari: "constatari",
+        panou_admin: "panou_control",
+      };
 
       const alerts = [];
       let adminAnnouncementText = null;
@@ -590,6 +744,22 @@
       function patchCard(arr, id, patch) {
         const card = arr.find((c) => c.id === id);
         if (card) Object.assign(card, patch);
+      }
+
+      function getPermittedItems(items) {
+        try {
+          if (Number(window.USER_DATA?.rol_id) === 1) return items;
+          return items.filter((item) => !item.permission || hasPermission(item.permission));
+        } catch (error) {
+          console.error(error);
+          return [];
+        }
+      }
+
+      function toggleSectionVisibility(sectionId, isVisible) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        section.classList.toggle("hidden", !isVisible);
       }
 
       function initMarquee() {
@@ -701,17 +871,35 @@
 
       function renderNav() {
         const nav = document.getElementById("nav");
-        nav.innerHTML = navSections
-          .map(
-            (section) => `
+        try {
+          nav.innerHTML = navSections
+            .map(
+              (section) => {
+                const filteredItems = section.items.filter((item) => {
+                  try {
+                    if (item.adminOnly) return hasAnyAdminPermission();
+                    if (!item.permission) return true;
+                    return hasPermission(item.permission);
+                  } catch (error) {
+                    console.error(error);
+                    return false;
+                  }
+                });
+                if (filteredItems.length === 0) return '';
+                return `
             <div class="mb-5">
               <p class="sidebar-section-title mb-2 px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">${section.title}</p>
               <ul class="flex flex-col gap-1">
-                ${section.items
+                ${filteredItems
                   .map((item) => {
                     const isActive = item.id === activeId;
+                    const permissionClass = item.permission ? 'permission-gated' : '';
+                    const permissionAttr = item.permission ? `data-permission="${item.permission}"` : '';
+                    const permissionFallbackAttr = item.permission && permissionFallbackMap[item.permission]
+                      ? `data-permission-fallback="${permissionFallbackMap[item.permission]}"`
+                      : '';
                     return `
-                    <li>
+                    <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
                       <a href="${item.url}" data-id="${item.id}" title="${item.label}"
                         class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                           isActive
@@ -726,11 +914,16 @@
                   })
                   .join("")}
               </ul>
-            </div>`
-          )
-          .join("");
+            </div>`;
+              }
+            )
+            .join("");
 
-        lucide.createIcons();
+          lucide.createIcons();
+        } catch (error) {
+          console.error(error);
+          nav.innerHTML = "";
+        }
       }
 
       function cardHTML(card) {
@@ -781,18 +974,91 @@
           </a>`;
       }
 
-      function renderAll() {
-        document.getElementById("birouGrid").innerHTML = birouCards.map(cardHTML).join("");
-        document.getElementById("serviceGrid").innerHTML = serviceCards.map(cardHTML).join("");
-        document.getElementById("alertGrid").innerHTML = alerts.map(alertHTML).join("");
-
-        const detailingBadge = document.getElementById("badge-detailing");
-        if (detailingBadge) {
-          detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+      function heroCardHTML(card) {
+        if (card.variant === "detailing") {
+          return `
+            <a
+              href="${card.url}"
+              class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
+            >
+              <div class="bg-grid absolute inset-0 opacity-60"></div>
+              <div class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"></div>
+              <div class="relative flex items-start justify-between">
+                <span class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110">
+                  <i data-lucide="sparkles" class="size-6 animate-float"></i>
+                </span>
+                <span id="badge-detailing" class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                  <i data-lucide="droplets" class="size-3.5"></i>
+                  —
+                </span>
+              </div>
+              <div class="relative mt-6">
+                <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                  Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
+                </p>
+                <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <i data-lucide="play" class="size-4 fill-current"></i>
+                  Începe sesiunea
+                </span>
+              </div>
+            </a>`;
         }
 
-        renderNav();
-        lucide.createIcons();
+        return `
+          <a
+            href="${card.url}"
+            class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
+          >
+            <div class="bg-grid absolute inset-0 opacity-60"></div>
+            <div class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"></div>
+            <div class="relative flex items-start justify-between">
+              <span class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110">
+                <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
+              </span>
+              <span class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
+                Recomandat
+              </span>
+            </div>
+            <div class="relative mt-6">
+              <h3 class="text-xl font-bold text-foreground">Constatări (old version)</h3>
+              <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
+                intervenție.
+              </p>
+              <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success">
+                <i data-lucide="play" class="size-4 fill-current"></i>
+                Constatare nouă
+              </span>
+            </div>
+          </a>`;
+      }
+
+      function renderAll() {
+        try {
+          const filteredHeroCards = getPermittedItems(heroCards);
+          const filteredBirouCards = getPermittedItems(birouCards);
+          const filteredServiceCards = getPermittedItems(serviceCards);
+
+          document.getElementById("heroGrid").innerHTML = filteredHeroCards.map(heroCardHTML).join("");
+          document.getElementById("birouGrid").innerHTML = filteredBirouCards.map(cardHTML).join("");
+          document.getElementById("serviceGrid").innerHTML = filteredServiceCards.map(cardHTML).join("");
+          document.getElementById("alertGrid").innerHTML = alerts.map(alertHTML).join("");
+
+          toggleSectionVisibility("detailingSection", filteredHeroCards.length > 0);
+          toggleSectionVisibility("birouSection", filteredBirouCards.length > 0);
+          toggleSectionVisibility("serviceSection", filteredServiceCards.length > 0);
+
+          const detailingBadge = document.getElementById("badge-detailing");
+          if (detailingBadge) {
+            detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+          }
+
+          renderNav();
+          lucide.createIcons();
+        } catch (error) {
+          console.error(error);
+        }
       }
 
       /* ---------------- SIDEBAR TOGGLE ---------------- */
@@ -1095,20 +1361,20 @@
 
       async function loadAllBadges() {
         await Promise.all([
-          loadAdminAnnouncement(),
-          loadGeneratorBadge(),
-          loadConsumabileBadge(),
-          loadAvansBadge(),
-          loadAwbBadge(),
-          loadUltimulDeviz(),
-          loadContracteBadge(),
-          loadTotalDevize(),
-          loadMasiniBadge(),
-          loadDetailingBadge(),
-          loadUltimulDevizFinal(),
+          loadAdminAnnouncement().catch(e => console.warn("loadAdminAnnouncement failed:", e)),
+          loadGeneratorBadge().catch(e => console.warn("loadGeneratorBadge failed:", e)),
+          loadConsumabileBadge().catch(e => console.warn("loadConsumabileBadge failed:", e)),
+          loadAvansBadge().catch(e => console.warn("loadAvansBadge failed:", e)),
+          loadAwbBadge().catch(e => console.warn("loadAwbBadge failed:", e)),
+          loadUltimulDeviz().catch(e => console.warn("loadUltimulDeviz failed:", e)),
+          loadContracteBadge().catch(e => console.warn("loadContracteBadge failed:", e)),
+          loadTotalDevize().catch(e => console.warn("loadTotalDevize failed:", e)),
+          loadMasiniBadge().catch(e => console.warn("loadMasiniBadge failed:", e)),
+          loadDetailingBadge().catch(e => console.warn("loadDetailingBadge failed:", e)),
+          loadUltimulDevizFinal().catch(e => console.warn("loadUltimulDevizFinal failed:", e)),
         ]);
-        rebuildAlerts();
-        renderAll();
+        try { rebuildAlerts(); } catch (e) { console.warn("rebuildAlerts failed:", e); }
+        try { renderAll(); } catch (e) { console.warn("renderAll failed:", e); }
       }
 
       async function refreshDashboard() {
@@ -1380,14 +1646,17 @@ function cereParolaAdmin() {
 */
 const SYSTEM_UPDATES = [
   {
-    id: 2, // <-- Schimbi ID-ul (ex: de la 1 la 2) ca să reapară bulina roșie la toată lumea
-    date: "2026-06-29",
+    id: 3, // <-- Schimbi ID-ul (ex: de la 1 la 2) ca să reapară bulina roșie la toată lumea
+    date: "2026-07-12",
     title: "Versiune Nouă HUB v2.1",
     // Folosim o listă de mesaje în loc de un singur text lung:
     description: [
-      "De acum, numerele se salvează automat în formatul CT12ABC, chiar dacă sunt scrise cu spații sau cratime.",
-      "Am actualizat designul paginii de index pentru o navigare mai rapidă și un aspect mai curat.",
-      "Am adăugat modulul de notificări și am optimizat încărcarea devizelor finale."
+       "⚠️ Atenție: La prima autentificare folosiți User-ul primit și parola asociată. Pentru resetarea parolei, contactați administratorul.","
+      "Sistem nou de autentificare cu User și parolă pentru acces securizat în HUB.",
+      "Au fost introduse roluri și permisiuni individuale pentru fiecare utilizator și modul.",
+      "Activitatea utilizatorilor este înregistrată în Audit Log pentru o mai bună trasabilitate.",
+      "Sesiunea se închide automat după 30 de minute de inactivitate pentru un plus de securitate.",
+      "Au fost aduse numeroase optimizări și corecții pentru stabilitate și performanță."
     ]
   }
 ];
@@ -1471,5 +1740,7 @@ if (notifModal) {
 checkNotifications();
 </script>
 
+  <!-- Autodeconectare după inactivitate -->
+  <script src="/js/session-timeout.js?v=2"></script>
   </body>
 </html>

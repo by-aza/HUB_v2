@@ -6,68 +6,332 @@
     <title>HUB Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/audit.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* ===== CULORI PRINCIPALE ȘI DESIGN GENERAL ===== */
+        :root {
+            color-scheme: dark;
+            /* Aici se schimbă culorile principale ale interfeței */
+            --bg: #14161c;
+            --bg-alt: #181b22;
+            --panel: rgba(27, 30, 38, 0.72);
+            --panel-strong: rgba(27, 30, 38, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.12);
+            --text: #f1f2f4;
+            --muted: #98a0ad;
+            /* Aici se schimbă accentul cyan folosit în Admin */
+            --accent: #2dd4cf;
+            --accent-2: #22d3ee;
+            --shadow: rgba(0, 0, 0, 0.35);
+        }
+        .hidden { display: none !important; }
+        /* Aici se modifică fundalul general și textul normal al paginii */
+        body {
+            display: flex;
+            min-height: 70vh;
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        /* Aici se modifică lățimea și spațiul interior al meniului lateral */
+        .admin-sidebar {
+            width: 250px;
+            padding: 1rem 0.8rem;
+            background: linear-gradient(180deg, rgba(24, 27, 34, 0.96), rgba(19, 21, 28, 0.98));
+            border-right: 1px solid var(--border);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 12px 0 36px rgba(0,0,0,0.35);
+            backdrop-filter: blur(18px);
+        }
+        /* Aici se modifică dimensiunea, paddingul și rotunjirea butoanelor din meniu */
+        .sidebar-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.82rem 0.95rem;
+            margin-bottom: 0.45rem;
+            border-radius: 0.95rem;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--muted);
+            font-weight: 600;
+            text-align: left;
+            transition: all 180ms ease;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Aici se modifică efectul de trecere peste butoanele meniului */
+        .sidebar-btn:hover {
+            background: rgba(38, 42, 52, 0.72);
+            color: var(--text);
+            transform: translateX(2px);
+        }
+        .sidebar-btn.active {
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.16), rgba(34, 211, 238, 0.12));
+            color: #ffffff;
+            border-color: rgba(45, 212, 207, 0.32);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.08), 0 0 0 1px rgba(45, 212, 207, 0.08);
+        }
+        .sidebar-btn.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 1.15rem;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 10px rgba(45, 212, 207, 0.6);
+        }
+        .admin-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #14161c 0%, #1a1d25 100%);
+        }
+        /* Aici se modifică înălțimea barei principale */
+        .glass-header {
+            flex: 0 0 44px;
+            height: 44px;
+            min-height: 44px;
+            max-height: 44px;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-bottom: 1px solid var(--border);
+            background: rgba(20, 22, 28, 0.82);
+            backdrop-filter: blur(18px);
+        }
+        .glass-header #page-title {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .glass-header > div {
+            margin-left: auto;
+        }
+        /* Aici se modifică paddingul și scrollul zonei de conținut */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            background: radial-gradient(circle at top left, rgba(45, 212, 207, 0.08), transparent 28%), linear-gradient(180deg, rgba(20, 22, 28, 0.97), rgba(17, 19, 25, 0.98));
+        }
+        /* Aici se modifică stilul și efectele subtaburilor Devize */
+        .devize-subtab-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(24, 27, 34, 0.75);
+            color: #9aa4b2;
+            transition: all 180ms ease;
+        }
+        .devize-subtab-btn:hover {
+            color: #f8fafc;
+            background: rgba(35, 40, 50, 0.9);
+            border-color: rgba(45, 212, 207, 0.24);
+            transform: translateY(-1px);
+        }
+        .devize-subtab-btn.active {
+            color: #fff;
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.18), rgba(34, 211, 238, 0.12));
+            border-color: rgba(45, 212, 207, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
+        }
+        /* Aici se modifică stilul și efectele subtaburilor Consumabile */
+        .consumabile-subtab-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(24, 27, 34, 0.75);
+            color: #9aa4b2;
+            transition: all 180ms ease;
+        }
+        .consumabile-subtab-btn:hover {
+            color: #f8fafc;
+            background: rgba(35, 40, 50, 0.9);
+            border-color: rgba(45, 212, 207, 0.24);
+            transform: translateY(-1px);
+        }
+        .consumabile-subtab-btn.active {
+            color: #fff;
+            background: linear-gradient(90deg, rgba(45, 212, 207, 0.18), rgba(34, 211, 238, 0.12));
+            border-color: rgba(45, 212, 207, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
+        }
+        /* Aici se modifică dimensiunea vizuală și rotunjirea cardurilor principale */
+        body .glass-panel {
+            background: linear-gradient(135deg, rgba(27, 30, 38, 0.8), rgba(26, 29, 36, 0.62));
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 1.25rem;
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(18px);
+        }
+        /* Aici se modifică aspectul cardurilor secundare */
+        body .glass-panel-soft {
+            background: linear-gradient(135deg, rgba(27, 30, 38, 0.7), rgba(24, 27, 34, 0.56));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(16px);
+        }
+        .sidebar-back {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(27, 30, 38, 0.62);
+            color: #e9eaee;
+            transition: all 180ms ease;
+        }
+        .sidebar-back:hover {
+            background: rgba(38, 42, 52, 0.8);
+            border-color: rgba(45, 212, 207, 0.24);
+            color: var(--text);
+        }
+        .admin-fixed-section {
+            height: 100%;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .admin-fixed-shell {
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Aici se modifică spațiul disponibil pentru tabele */
+        .admin-table-panel {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Aici se controlează scrollul intern al tabelelor */
+        .admin-table-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+        /* Aici se modifică spațiul dintre cardurile secțiunii Audit */
+        #sectiune-audit-log .admin-fixed-shell {
+            gap: 0.75rem;
+        }
+        #sectiune-audit-log .audit-filters-panel {
+            padding: 0.75rem 1rem;
+        }
+        #sectiune-audit-log .audit-filter-grid {
+            margin-top: 0.625rem;
+            gap: 0.5rem 0.75rem;
+        }
+        #sectiune-audit-log .audit-filter-grid label > span {
+            margin-bottom: 0.2rem;
+            font-size: 0.65rem;
+            line-height: 0.9rem;
+            letter-spacing: 0.14em;
+        }
+        #sectiune-audit-log .audit-filter-grid select,
+        #sectiune-audit-log .audit-filter-grid input,
+        #sectiune-audit-log .audit-filter-actions button {
+            height: 37px;
+            padding-top: 0.35rem;
+            padding-bottom: 0.35rem;
+        }
+        @media (min-width: 700px) and (max-width: 1279px) {
+            #sectiune-audit-log .audit-filter-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(1) { grid-column: 1; grid-row: 1; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(2) { grid-column: 2; grid-row: 1; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(3) { grid-column: 1; grid-row: 2; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(6) { grid-column: 2; grid-row: 2; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(4) { grid-column: 1; grid-row: 3; }
+            #sectiune-audit-log .audit-filter-grid label:nth-child(5) { grid-column: 2; grid-row: 3; }
+            #sectiune-audit-log .audit-filter-actions {
+                grid-column: 1 / -1;
+                grid-row: 4;
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
 
+    <!-- ===== MENIU LATERAL ADMIN ===== -->
     <!-- MENIU LATERAL (SIDEBAR) -->
-    <aside class="w-64 flex-shrink-0 bg-slate-900/80 border-r border-slate-800/60 flex flex-col backdrop-blur-md">
+    <aside class="admin-sidebar sticky top-0 h-screen flex-shrink-0 flex flex-col backdrop-blur-md">
         <div class="h-16 flex items-center px-6 border-b border-slate-800/60">
-            <h1 class="text-lg font-extrabold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
+            <h1 class="text-lg font-bold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-            <!-- Tab Activ -->
-            <button id="tab-megafon" onclick="schimbaTab('page-megafon', 'tab-megafon')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer">
-                <span>📢</span> Megafon Anunțuri
+            <!-- Meniu lateral admin -->
+            <button id="tab-megafon" onclick="schimbaTab('sectiune-megafon', 'tab-megafon')" class="sidebar-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold cursor-pointer">
+                <span>📢</span> Megafon
             </button>
-            
-            <!-- Tab Inactiv -->
-            <button id="tab-alerte" onclick="schimbaTab('page-alerte', 'tab-alerte')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
-                <span>🔔</span> Alerte Email (ITP)
+            <button id="tab-alerte" onclick="schimbaTab('sectiune-alerte', 'tab-alerte')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>🔔</span> Alerte Email
             </button>
-            
-            <button id="tab-jurnal" onclick="schimbaTab('page-jurnal', 'tab-jurnal')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
-                <span>🕵️</span> Jurnal Activitate
-            </button>
-
-            <button id="tab-devize" onclick="schimbaTab('page-devize', 'tab-devize')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer">
+            <button id="tab-devize" onclick="schimbaTab('sectiune-devize', 'tab-devize')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>🧾</span> Gestiune Devize
+            </button>
+            <button id="tab-consumabile" onclick="schimbaTab('sectiune-consumabile', 'tab-consumabile')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>📦</span> Consumabile
+            </button>
+            <button id="tab-audit-log" onclick="schimbaTab('sectiune-audit-log', 'tab-audit-log')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>📋</span> Audit Log
+            </button>
+            <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>👤</span> Gestionare Useri
             </button>
         </nav>
 
         <div class="p-4 border-t border-slate-800/60">
-            <a href="../../index.html" class="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300 transition-colors">
+            <a href="../../index.html" class="sidebar-back flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl text-sm font-bold transition-colors">
                 <- Înapoi la HUB
             </a>
         </div>
     </aside>
 
     <!-- ZONA DE CONȚINUT PRINCIPALĂ -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="admin-main flex-1 flex flex-col h-screen overflow-hidden">
         
+        <!-- ===== HEADER PRINCIPAL ===== -->
         <!-- Header Conținut -->
-        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/60 bg-slate-900/40">
-            <h2 id="page-title" class="text-xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h2>
+        <header class="glass-header flex items-center justify-between px-8">
+            <h2 id="page-title" class="text-xl font-semibold text-slate-100">Megafon (Anunțuri Interne)</h2>
             <div class="flex items-center gap-3">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                 <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Conexiune Securizată</span>
             </div>
         </header>
 
-        <!-- Conținut Tab (Aici vom injecta panourile) -->
-        <div id="content-area" class="flex-1 overflow-y-auto p-8">
-            <div id="page-megafon" class="admin-page">
+        <!-- ===== ZONA DE CONȚINUT A TABURILOR ===== -->
+        <!-- Conținut Tab -->
+        <div id="content-area" class="content-area flex-1 overflow-y-auto p-8">
+            <!-- ===== MEGAFON ===== -->
+            <div id="sectiune-megafon" class="admin-page">
+                <!-- Aici se modifică lățimea maximă a containerului Megafon -->
                 <div class="max-w-4xl mx-auto">
-                    <div class="rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                    <!-- Paddingul casetelor se modifică prin clasele p ale cardurilor -->
+                    <div class="glass-panel p-5">
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600/15 border border-rose-500/30 text-3xl">📢</div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Aici se modifică dimensiunea fontului titlului -->
                                     <h3 class="text-2xl font-bold text-slate-100">Megafon (Anunțuri Interne)</h3>
                                     <span id="badge-activ" class="hidden ml-4 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">● Mesaj Activ pe Ecrane</span>
                                 </div>
-                                <p class="text-slate-400 mt-0.5">Trimite un mesaj global în bannerul din HUB sau oprește anunțul activ.</p>
+                                <!-- Aici se modifică dimensiunea textului normal -->
+                                <p class="text-slate-200 mt-0.5">Trimite un mesaj global în bannerul din HUB sau oprește anunțul activ.</p>
                             </div>
                         </div>
 
@@ -75,19 +339,19 @@
                         <textarea id="admin-message-input" rows="3" class="w-full rounded-2xl bg-slate-950/70 border border-slate-800/70 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/60 focus:border-rose-500/60 resize-y" placeholder="Scrie aici mesajul care va apărea pe toate ecranele..."></textarea>
 
                         <div class="flex items-center justify-between mt-4 gap-3">
-    <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
-        Trimite
-    </button>
-    
-    <button id="stop-announcement-btn" onclick="opresteAnunt()" type="button" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-3 text-sm font-bold text-slate-100 transition-colors">
-        Oprește
-    </button>
-</div>
+                            <!-- Aici se schimbă culoarea rose a acțiunilor importante sau periculoase -->
+                            <button id="send-announcement-btn" onclick="trimiteAnunt()" type="button" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors">
+                                Trimite
+                            </button>
+                            <button id="stop-announcement-btn" onclick="opresteAnunt()" type="button" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-3 text-sm font-bold text-slate-100 transition-colors">
+                                Oprește
+                            </button>
+                        </div>
 
                         <div id="admin-status" class="mt-3 min-h-6 text-sm text-slate-400"></div>
                     </div>
 
-                    <div class="mt-6 rounded-2xl bg-slate-900/40 border border-slate-800/60 shadow-2xl p-5">
+                    <div class="mt-6 glass-panel p-5">
                         <div class="flex items-start justify-between gap-4 mb-4">
                             <div>
                                 <h4 class="text-xl font-bold text-slate-100">Istoric Anunțuri</h4>
@@ -115,96 +379,1478 @@
                 </div>
             </div>
 
-            <div id="page-alerte" class="admin-page hidden">
-                <h2 class="text-xl font-bold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
-                <!-- Section 1: General Email Settings -->
-                <div class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-5 mb-6">
-                    <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
-                    <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
-                    <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
-                        Salvează Adrese Generale
-                    </button>
+            <!-- ===== ALERTE EMAIL ===== -->
+            <div id="sectiune-alerte" class="admin-page hidden admin-fixed-section">
+                <div class="mx-auto flex h-full max-w-7xl min-h-0 flex-col gap-6">
+                    <div class="flex-shrink-0">
+                        <h2 class="text-xl font-semibold text-slate-100 mb-6">Configurare Alerte & Email Flotă</h2>
+                        <div class="glass-panel p-5">
+                            <label for="input-email-general" class="block text-sm font-semibold text-slate-300">Email-uri Generale (primesc toate alertele, separate prin virgulă)</label>
+                            <input type="text" id="input-email-general" class="w-full bg-slate-800 border-slate-700 text-slate-200 rounded-lg p-2 mt-2">
+                            <button onclick="salveazaEmailGeneral(this)" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-5 py-3 text-sm font-extrabold text-white transition-colors mt-3">
+                                Salvează Adrese Generale
+                            </button>
+                        </div>
+                    </div>
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 z-10 border-b border-slate-800/80 bg-[rgba(20,22,28,0.96)] text-xs uppercase tracking-wider text-slate-400 backdrop-blur">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left">Nr. Auto</th>
+                                        <th class="py-3 pr-4 text-left">Expiră În</th>
+                                        <th class="py-3 pr-4 text-left">Email Șofer (Notificare individuală)</th>
+                                        <th class="py-3 px-4 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Section 2: Fleet Table -->
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800/80">
-                            <th class="py-3 pr-4">Nr. Auto</th>
-                            <th class="py-3 pr-4">Expiră În</th>
-                            <th class="py-3 pr-4">Email Șofer (Notificare individuală)</th>
-                            <th class="py-3 text-right">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-flota-alerte" class="divide-y divide-slate-800/60">
-                        <!-- Rows will be dynamically populated here -->
-                    </tbody>
-                </table>
             </div>
 
-            <div id="page-jurnal" class="admin-page hidden"><h2 class="text-xl font-bold text-slate-100 mb-6">Jurnal Activitate</h2><p class="text-slate-400">În curând...</p></div>
+            <!-- ===== GESTIUNE DEVIZE ===== -->
+            <div id="sectiune-devize" class="admin-page hidden admin-fixed-section">
+                <!-- Aici se modifică lățimea maximă și spațiul dintre cardurile Devize -->
+                <div class="max-w-7xl mx-auto admin-fixed-shell gap-4">
+                    <div class="glass-panel p-4 flex-shrink-0">
+                        <h2 class="text-2 font-bold text-slate-100">Gestiune Devize</h2>
+                        <p class="mt-1 text-sm text-slate-400">Comută rapid între devize estimative și devize finale, cu un flux clar și modern.</p>
+                        <!-- ===== SUBTABURI DEVIZE PENTRU MODIFICĂRI VIITOARE ===== -->
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button id="devize-estimative-tab" type="button" onclick="switchDevizeSubtab('devize-estimative-tab')" class="devize-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Devize Estimative</button>
+                            <button id="devize-finale-tab" type="button" onclick="switchDevizeSubtab('devize-finale-tab')" class="devize-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Devize Finale</button>
+                        </div>
+                    </div>
 
+                    <div id="devize-estimative-tab-panel" class="devize-subtab-panel glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Nr. Deviz</th>
+                                        <th class="px-4 py-3 text-left">Auto/Client</th>
+                                        <th class="px-4 py-3 text-left">Total</th>
+                                        <th class="px-4 py-3 text-left">Creat de (User)</th>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-devize-estimative" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="devize-finale-tab-panel" class="devize-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Nr. Deviz</th>
+                                        <th class="px-4 py-3 text-left">Auto/Client</th>
+                                        <th class="px-4 py-3 text-left">Total</th>
+                                        <th class="px-4 py-3 text-left">Creat de (User)</th>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-devize-finale" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== CONSUMABILE ===== -->
+            <div id="sectiune-consumabile" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <div class="glass-panel p-4 flex-shrink-0">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-100">Consumabile</h2>
+                            <p class="mt-1 text-sm text-slate-400">Gestionează nomenclatorul de produse și istoricul mișcărilor de stoc dintr-o singură interfață.</p>
+                        </div>
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                            <input id="stock-search-input" type="search" placeholder="Caută produs..." class="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none sm:w-64">
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <button id="consumabile-nomenclator-tab" type="button" data-consumabile-subtab="consumabile-nomenclator-tab" class="consumabile-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Nomenclator</button>
+                                <button id="consumabile-miscari-tab" type="button" data-consumabile-subtab="consumabile-miscari-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Corecții Tranzacții</button>
+                                <button id="consumabile-produse-tab" type="button" data-consumabile-subtab="consumabile-produse-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Administrare Produse</button>
+                            </div>
+                        </div>
+                        <div id="stock-admin-status" class="mt-3 text-sm text-slate-400"></div>
+                    </div>
+
+                    <div id="consumabile-nomenclator-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel overflow-hidden">
+                        <div id="stock-products-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Cod</th>
+                                        <th class="px-4 py-3 text-left">Denumire</th>
+                                        <th class="px-4 py-3 text-left">Prag minim</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-products-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="consumabile-miscari-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                                <div class="flex flex-wrap gap-3">
+                                    <label class="text-sm text-slate-300">
+                                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">De la</span>
+                                        <input id="stock-movements-start-date" type="date" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    </label>
+                                    <label class="text-sm text-slate-300">
+                                        <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Până la</span>
+                                        <input id="stock-movements-end-date" type="date" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    </label>
+                            </div>
+                            <!-- ===== SUBTABURI CONSUMABILE PENTRU MODIFICĂRI VIITOARE ===== -->
+                            <div class="flex flex-wrap gap-2">
+                                    <button id="apply-stock-movements-filter" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
+                                    <button id="reset-stock-movements-filter" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 border border-slate-700 transition-colors">Resetează</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="stock-movements-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-left">Produs</th>
+                                        <th class="px-4 py-3 text-left">Tip</th>
+                                        <th class="px-4 py-3 text-left">Cantitate</th>
+                                        <th class="px-4 py-3 text-left">Detalii</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-movements-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="consumabile-produse-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" data-stock-products-filter="active" class="stock-products-filter-btn rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors">Active</button>
+                                <button type="button" data-stock-products-filter="archived" class="stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700">Arhivate</button>
+                                <button type="button" data-stock-products-filter="all" class="stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700">Toate</button>
+                            </div>
+                        </div>
+                        <div id="stock-products-admin-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Cod</th>
+                                        <th class="px-4 py-3 text-left">Denumire</th>
+                                        <th class="px-4 py-3 text-left">Prag minim</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stock-products-admin-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== AUDIT LOG ===== -->
+            <div id="sectiune-audit-log" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <div class="glass-panel p-4 flex-shrink-0 audit-filters-panel">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-100">Audit Log</h2>
+                            <p class="mt-1 text-sm text-slate-400">Istoric acțiuni importante din HUB AUTO.</p>
+                        </div>
+                        <div class="mt-4 grid gap-3 audit-filter-grid xl:grid-cols-[repeat(3,minmax(0,1fr))_repeat(2,minmax(0,0.8fr))_minmax(0,1.4fr)_auto]">
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Modul</span>
+                                <select id="audit-filter-module" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toate</option>
+                                    <option value="Autentificare">Autentificare</option>
+                                    <option value="Deviz Estimativ">Deviz Estimativ</option>
+                                    <option value="Deviz Final">Deviz Final</option>
+                                    <option value="Consumabile">Consumabile</option>
+                                    <option value="AWB">AWB</option>
+                                    <option value="Avansuri">Avansuri</option>
+                                    <option value="Flotă">Flotă</option>
+                                    <option value="Detailing">Detailing</option>
+                                    <option value="Constatări">Constatări</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Acțiune</span>
+                                <select id="audit-filter-action" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toate</option>
+                                    <option value="CREATE">CREATE</option>
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="LOGOUT">LOGOUT</option>
+                                    <option value="PRINT">PRINT</option>
+                                    <option value="EXPORT">EXPORT</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Utilizator</span>
+                                <select id="audit-filter-user" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                    <option value="">Toți</option>
+                                </select>
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">De la</span>
+                                <input id="audit-filter-from" type="date" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Până la</span>
+                                <input id="audit-filter-to" type="date" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <label class="text-sm text-slate-300">
+                                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Căutare text</span>
+                                <input id="audit-filter-search" type="search" placeholder="Caută în loguri..." class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none">
+                            </label>
+                            <div class="flex items-end gap-2 audit-filter-actions">
+                                <button id="audit-apply-filters" type="button" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Aplică</button>
+                                <button id="audit-reset-filters" type="button" class="rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Data</th>
+                                        <th class="px-4 py-3 text-left">Utilizator</th>
+                                        <th class="px-4 py-3 text-left">Modul</th>
+                                        <th class="px-4 py-3 text-left">Acțiune</th>
+                                        <th class="px-4 py-3 text-left">Descriere</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-log-body" class="divide-y divide-slate-800/70">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă logurile...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== GESTIONARE UTILIZATORI ===== -->
+            <div id="sectiune-useri" class="admin-page hidden">
+                <div class="max-w-7xl mx-auto space-y-6">
+                    <div class="glass-panel p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Gestionare Utilizatori</h2>
+                                <p class="mt-1 text-sm text-slate-400">Editează profiluri și permisiuni direct din interfața admin.</p>
+                            </div>
+                            <button id="btn-refresh-users" type="button" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 border border-slate-700 transition-colors">
+                                Reîmprospătează
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                        <!-- ===== TABEL UTILIZATORI PENTRU MODIFICĂRI VIITOARE ===== -->
+                        <div class="glass-panel p-5">
+                            <h3 class="text-lg font-semibold text-slate-100 mb-4">Lista utilizatori</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm text-slate-200">
+                                    <thead class="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                                        <!-- Aici se modifică înălțimea și paddingul antetului tabelului -->
+                                        <tr>
+                                            <th class="py-3 pr-4 text-left">Nume complet</th>
+                                            <th class="py-3 pr-4 text-left">User</th>
+                                            <th class="py-3 pr-4 text-left">Telefon</th>
+                                            <th class="py-3 pr-4 text-left">Rol</th>
+                                            <th class="py-3 text-right">Acțiuni</th>
+                                        </tr>
+                                    </thead>
+                                    <!-- Aici se modifică stilul rândurilor din tabelul utilizatorilor -->
+                                    <tbody id="usersTableBody" class="divide-y divide-slate-800/70"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- ===== FORMULAR UTILIZATORI PENTRU MODIFICĂRI VIITOARE ===== -->
+                        <div id="actionPanel" class="glass-panel p-5">
+                            <h3 id="panelTitle" class="text-lg font-semibold text-slate-100 mb-4">Crează utilizator nou</h3>
+                            <form id="userForm" class="space-y-4">
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="email" class="text-sm font-medium text-slate-300">Email</label>
+                                        <input type="email" id="email" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="email@exemplu.com">
+                                    </div>
+                                    <div id="passwordField" class="space-y-2">
+                                        <label for="parola" class="text-sm font-medium text-slate-300">Parolă</label>
+                                        <input type="password" id="parola" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Parolă">
+                                    </div>
+                                </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="nume" class="text-sm font-medium text-slate-300">Nume</label>
+                                        <input type="text" id="nume" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Nume">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="prenume" class="text-sm font-medium text-slate-300">Prenume</label>
+                                        <input type="text" id="prenume" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Prenume">
+                                    </div>
+                                </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <label for="porecla" class="text-sm font-medium text-slate-300">User</label>
+                                        <input type="text" id="porecla" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="ex: marian">
+                                        <p class="text-xs text-slate-500">Folosit pentru autentificare. Recomandat: litere mici, fără spații.</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label for="telefon" class="text-sm font-medium text-slate-300">Telefon</label>
+                                        <input type="text" id="telefon" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none" placeholder="Telefon">
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label for="rol" class="text-sm font-medium text-slate-300">Rol</label>
+                                    <select id="rol" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                        <option value="1">Admin</option>
+                                        <option value="2">Manager</option>
+                                        <option value="3">Birou</option>
+                                        <option value="4">Magazioner</option>
+                                        <option value="5">Electrician</option>
+                                        <option value="6">Vopsitor</option>
+                                        <option value="7">Tinichigiu</option>
+                                        <option value="8">Mecanic</option>
+                                    </select>
+                                </div>
+                                <div class="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                                    <h4 class="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Permisiuni acces</h4>
+                                    <div class="grid gap-3 xl:grid-cols-2">
+                                        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                            <h5 class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Birou &amp; Financiar</h5>
+                                            <div class="grid gap-2 sm:grid-cols-2">
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_deviz_estimativ" class="rounded border-slate-600 bg-slate-900"> Deviz Estimativ</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_avansuri" class="rounded border-slate-600 bg-slate-900"> Avansuri</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_telefoane" class="rounded border-slate-600 bg-slate-900"> Telefoane</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_contracte" class="rounded border-slate-600 bg-slate-900"> Contracte</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_cautare_deviz" class="rounded border-slate-600 bg-slate-900"> Căutare Deviz</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_deviz_final" class="rounded border-slate-600 bg-slate-900"> Deviz Final</label>
+                                            </div>
+                                        </div>
+                                        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                            <h5 class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Service &amp; Logistică</h5>
+                                            <div class="grid gap-2 sm:grid-cols-2">
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_lista_masini" class="rounded border-slate-600 bg-slate-900"> Lista Mașini</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_baza_vin" class="rounded border-slate-600 bg-slate-900"> Bază VIN</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_awb" class="rounded border-slate-600 bg-slate-900"> AWB</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_piese_stoc" class="rounded border-slate-600 bg-slate-900"> Piese Stoc</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_consumabile" class="rounded border-slate-600 bg-slate-900"> Consumabile</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_generator" class="rounded border-slate-600 bg-slate-900"> Generator</label>
+                                            </div>
+                                        </div>
+                                        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                            <h5 class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Detailing &amp; Constatări</h5>
+                                            <div class="grid gap-2 sm:grid-cols-2">
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_detailing" class="rounded border-slate-600 bg-slate-900"> Detailing</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_constatari" class="rounded border-slate-600 bg-slate-900"> Constatări</label>
+                                            </div>
+                                        </div>
+                                        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+                                            <h5 class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Administrare</h5>
+                                            <div class="grid gap-2 sm:grid-cols-2">
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_megafon" class="rounded border-slate-600 bg-slate-900"> Megafon</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_alerte" class="rounded border-slate-600 bg-slate-900"> Alerte Email</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_devize" class="rounded border-slate-600 bg-slate-900"> Gestiune Devize</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_consumabile" class="rounded border-slate-600 bg-slate-900"> Administrare Consumabile</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_audit" class="rounded border-slate-600 bg-slate-900"> Audit Log</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_useri" class="rounded border-slate-600 bg-slate-900"> Gestionare Utilizatori</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- ===== BUTOANE GESTIONARE UTILIZATORI ===== -->
+                                <div class="flex flex-wrap gap-3">
+                                    <!-- Dimensiunea și paddingul butoanelor se modifică prin clasele px, py și text -->
+                                    <button type="submit" id="submitBtn" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Crează Utilizator</button>
+                                    <button type="button" id="resetPasswordBtn" class="hidden rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60">Schimbă parola</button>
+                                    <button type="button" id="deleteUserBtn" class="hidden rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition-colors">Șterge Utilizator</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
     <script>
-        function schimbaTab(paginaId, butonId) {
-            if (paginaId === 'page-devize') {
-                renderDevizePage();
-            } else {
-                restoreStaticAdminPages();
+        // Schimbă lista vizibilă între devize estimative și finale
+        function switchDevizeSubtab(tabId) {
+            document.querySelectorAll('.devize-subtab-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.id === tabId);
+            });
+
+            document.querySelectorAll('.devize-subtab-panel').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
+            });
+        }
+
+        // Schimbă zona vizibilă din administrarea consumabilelor
+        function switchConsumabileSubtab(tabId) {
+            document.querySelectorAll('.consumabile-subtab-btn').forEach((btn) => {
+                btn.classList.toggle('active', btn.id === tabId);
+            });
+
+            document.querySelectorAll('.consumabile-subtab-panel').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
+            });
+        }
+
+        function getCreatorLabelFromRow(row, creatorsById = new Map()) {
+            const directValue = [
+                row?.created_by_name,
+                row?.creator_name,
+                row?.user_name,
+                row?.creat_de,
+                row?.created_by_display_name,
+                row?.created_by_email,
+                row?.email,
+                row?.nume,
+                row?.prenume,
+                row?.porecla,
+                row?.created_by,
+                row?.user_id,
+                row?.created_by_id,
+                row?.author_id,
+                row?.id_user,
+                row?.creator_id
+            ].find((value) => value !== null && value !== undefined && String(value).trim() !== '');
+
+            if (directValue) {
+                const directText = String(directValue).trim();
+                if (directText && directText !== 'undefined' && directText !== 'null') return directText;
             }
 
-            // 1. Ascunde toate paginile
-            document.querySelectorAll('.admin-page').forEach(page => {
+            const creatorId = row?.created_by ?? row?.user_id ?? row?.created_by_id ?? row?.author_id ?? row?.id_user ?? row?.creator_id;
+            if (creatorId && creatorsById.has(String(creatorId))) {
+                return creatorsById.get(String(creatorId));
+            }
+
+            return '—';
+        }
+
+        async function resolveCreatorNameMap(rows) {
+            const creatorIds = [...new Set(rows
+                .map((row) => row?.created_by ?? row?.user_id ?? row?.created_by_id ?? row?.author_id ?? row?.id_user ?? row?.creator_id)
+                .filter((value) => value !== null && value !== undefined && String(value).trim() !== ''))];
+
+            if (!creatorIds.length) return new Map();
+
+            try {
+                const { data, error } = await sb
+                    .from('auth_profiles')
+                    .select('id, nume, prenume, porecla, email')
+                    .in('id', creatorIds);
+
+                if (error || !Array.isArray(data)) return new Map();
+
+                const map = new Map();
+                data.forEach((profile) => {
+                    const displayName = [profile.nume, profile.prenume].filter(Boolean).join(' ').trim()
+                        || profile.porecla
+                        || profile.email
+                        || profile.id;
+                    map.set(String(profile.id), displayName);
+                });
+                return map;
+            } catch {
+                return new Map();
+            }
+        }
+
+        function renderDevizeEstimativeRows(rows) {
+            const tbody = document.getElementById('tbody-devize-estimative');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există devize estimative.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const idDeviz = escapeHtml(row.id_deviz || '-');
+                const autoClient = escapeHtml([row.autovehicul, row.client, row.nume_client].filter(Boolean).join(' / ') || '-');
+                const total = escapeHtml(formatDevizMoney(row.total_general));
+                const dataValue = escapeHtml(formatDevizDate(row.data_deviz));
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-100">${idDeviz}</td>
+                        <td class="px-4 py-3 text-slate-300">${autoClient}</td>
+                        <td class="px-4 py-3 text-slate-100 font-semibold">${total}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.creator_profile?.porecla || '—')}</td>
+                        <td class="px-4 py-3 text-slate-400">${dataValue}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" data-delete-deviz-estimativ="${idDeviz}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderDevizeFinaleRows(rows) {
+            const tbody = document.getElementById('tbody-devize-finale');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există devize finale.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const idDeviz = escapeHtml(row.id_deviz_final || '-');
+                const autoClient = escapeHtml([row.auto, row.client, row.nume_client].filter(Boolean).join(' / ') || '-');
+                const total = escapeHtml(formatDevizMoney(row.total_general));
+                const dataValue = escapeHtml(formatDevizDate(row.data_deviz));
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-100">${idDeviz}</td>
+                        <td class="px-4 py-3 text-slate-300">${autoClient}</td>
+                        <td class="px-4 py-3 text-slate-100 font-semibold">${total}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.creator_profile?.porecla || '—')}</td>
+                        <td class="px-4 py-3 text-slate-400">${dataValue}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" data-delete-deviz-final="${idDeviz}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Șterge</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function getDevizeAuditActor() {
+            try {
+                const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
+                if (sessionError) throw sessionError;
+
+                const user = session?.user || null;
+                if (!user?.id) return { user_id: null, user_name: '' };
+
+                let profile = null;
+                try {
+                    const { data, error } = await sb
+                        .from('auth_profiles')
+                        .select('porecla, email')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    if (error) throw error;
+                    profile = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
+                return {
+                    user_id: user.id,
+                    user_name: profile?.porecla || profile?.email || user.email || ''
+                };
+            } catch (error) {
+                console.error(error);
+                return { user_id: null, user_name: '' };
+            }
+        }
+
+        async function logDevizDeleteAudit({ modul, entitate, entitateId, descriere }) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getDevizeAuditActor();
+                await window.addAuditLog({
+                    modul,
+                    actiune: 'DELETE',
+                    entitate,
+                    entitate_id: entitateId,
+                    descriere,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Șterge un deviz estimativ și reîncarcă lista
+        async function deleteDevizEstimativ(idDeviz, button) {
+            const cleanId = String(idDeviz || '').trim();
+            if (!cleanId || cleanId === '-') return;
+            if (!window.confirm(`Sigur vrei să ștergi devizul ${cleanId}?`)) return;
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+
+            try {
+                const { error } = await sb
+                    .from('devize')
+                    .delete()
+                    .eq('id_deviz', cleanId);
+
+                if (error) throw error;
+
+                await logDevizDeleteAudit({
+                    modul: 'Deviz Estimativ',
+                    entitate: 'deviz_estimativ',
+                    entitateId: cleanId,
+                    descriere: `A șters devizul estimativ ${cleanId}`
+                });
+                await loadDevizeEstimativeRows();
+                alert(`Devizul ${cleanId} a fost șters cu succes.`);
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la ștergerea devizului estimativ.');
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        // Șterge un deviz final și liniile asociate
+        async function deleteDevizFinal(idDeviz, button) {
+            const cleanId = String(idDeviz || '').trim();
+            if (!cleanId || cleanId === '-') return;
+            if (!window.confirm(`Sigur vrei să ștergi devizul final ${cleanId}?`)) return;
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+
+            try {
+                const { error: linesError } = await sb
+                    .from('deviz_final_linii')
+                    .delete()
+                    .eq('id_deviz_final', cleanId);
+
+                if (linesError) throw linesError;
+
+                const { error } = await sb
+                    .from('deviz_final_header')
+                    .delete()
+                    .eq('id_deviz_final', cleanId);
+
+                if (error) throw error;
+
+                await logDevizDeleteAudit({
+                    modul: 'Deviz Final',
+                    entitate: 'deviz_final',
+                    entitateId: cleanId,
+                    descriere: `A șters devizul final ${cleanId}`
+                });
+                await loadDevizeFinaleRows();
+                alert(`Devizul final ${cleanId} a fost șters cu succes.`);
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la ștergerea devizului final.');
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        // ===== ÎNCĂRCARE DEVIZE DIN SUPABASE =====
+        // Încarcă devizele estimative în ordinea stabilită de interogare
+        async function loadDevizeEstimativeRows() {
+            const tbody = document.getElementById('tbody-devize-estimative');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Se încarcă devizele estimative...</td></tr>';
+
+            try {
+                const { data, error } = await sb
+                    .from('devize')
+                    .select('*, creator_profile:auth_profiles!created_by(porecla)')
+                    .order('id_deviz', { ascending: false });
+
+                if (error) throw error;
+
+                renderDevizeEstimativeRows(data || []);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca devizele estimative.')}</td></tr>`;
+            }
+        }
+
+        // Încarcă devizele finale în ordinea stabilită de interogare
+        async function loadDevizeFinaleRows() {
+            const tbody = document.getElementById('tbody-devize-finale');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Se încarcă devizele finale...</td></tr>';
+
+            try {
+                const { data, error } = await sb
+                    .from('deviz_final_header')
+                    .select('*, creator_profile:auth_profiles!created_by(porecla)')
+                    .order('id_deviz_final', { ascending: false });
+
+                if (error) throw error;
+
+                renderDevizeFinaleRows(data || []);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca devizele finale.')}</td></tr>`;
+            }
+        }
+
+        // Reîncarcă simultan ambele liste de devize
+        async function loadDevizeSections() {
+            await Promise.all([loadDevizeEstimativeRows(), loadDevizeFinaleRows()]);
+        }
+
+        let currentEditUserId = null;
+        let isEditMode = false;
+        let selectedUserPermissions = null;
+        let selectedUserOriginalData = null;
+        let currentAdminProfile = null;
+        const adminTabPermissionMap = {
+            'tab-megafon': 'admin_megafon',
+            'tab-alerte': 'admin_alerte',
+            'tab-devize': 'admin_devize',
+            'tab-consumabile': 'admin_consumabile',
+            'tab-audit-log': 'admin_audit',
+            'tab-useri': 'admin_useri'
+        };
+        const adminTabSectionMap = {
+            'tab-megafon': 'sectiune-megafon',
+            'tab-alerte': 'sectiune-alerte',
+            'tab-devize': 'sectiune-devize',
+            'tab-consumabile': 'sectiune-consumabile',
+            'tab-audit-log': 'sectiune-audit-log',
+            'tab-useri': 'sectiune-useri'
+        };
+        const adminSectionTitleMap = {
+            'sectiune-megafon': 'Megafon (Anunțuri Interne)',
+            'sectiune-alerte': 'Configurare Alerte & Flotă',
+            'sectiune-devize': 'Gestiune Devize',
+            'sectiune-consumabile': 'Consumabile',
+            'sectiune-audit-log': 'Audit Log',
+            'sectiune-useri': 'Gestionare Useri'
+        };
+        const userPermissionFields = [
+            ['perm_deviz_estimativ', 'deviz_estimativ'],
+            ['perm_avansuri', 'avansuri'],
+            ['perm_telefoane', 'telefoane'],
+            ['perm_contracte', 'contracte'],
+            ['perm_cautare_deviz', 'cautare_deviz'],
+            ['perm_deviz_final', 'deviz_final'],
+            ['perm_lista_masini', 'lista_masini'],
+            ['perm_baza_vin', 'baza_vin'],
+            ['perm_awb', 'awb'],
+            ['perm_piese_stoc', 'piese_stoc'],
+            ['perm_consumabile', 'consumabile'],
+            ['perm_generator', 'generator'],
+            ['perm_detailing', 'detailing'],
+            ['perm_constatari', 'constatari'],
+            ['perm_admin_megafon', 'admin_megafon'],
+            ['perm_admin_alerte', 'admin_alerte'],
+            ['perm_admin_devize', 'admin_devize'],
+            ['perm_admin_consumabile', 'admin_consumabile'],
+            ['perm_admin_audit', 'admin_audit'],
+            ['perm_admin_useri', 'admin_useri']
+        ];
+        const userPermissionLabels = {
+            deviz_estimativ: 'Deviz Estimativ',
+            avansuri: 'Avansuri',
+            telefoane: 'Telefoane',
+            contracte: 'Contracte',
+            cautare_deviz: 'Căutare Deviz',
+            deviz_final: 'Deviz Final',
+            lista_masini: 'Listă Mașini',
+            baza_vin: 'Bază VIN',
+            awb: 'Evidență AWB',
+            piese_stoc: 'Piese Stoc',
+            consumabile: 'Consumabile',
+            generator: 'Generator',
+            detailing: 'Detailing',
+            constatari: 'Constatări',
+            admin_megafon: 'Admin Megafon',
+            admin_alerte: 'Admin Alerte Email',
+            admin_devize: 'Admin Gestiune Devize',
+            admin_consumabile: 'Admin Consumabile',
+            admin_audit: 'Admin Audit Log',
+            admin_useri: 'Admin Gestionare Utilizatori'
+        };
+
+        // Identifică administratorul care face modificarea
+        async function getUserManagementAuditActor() {
+            try {
+                const { data: { session } = {}, error: sessionError } =
+                    await sb.auth.getSession();
+
+                if (sessionError) throw sessionError;
+
+                const user = session?.user;
+
+                if (!user?.id) {
+                    return {
+                        user_id: null,
+                        user_name: ''
+                    };
+                }
+
+                const { data: profile, error: profileError } = await sb
+                    .from('auth_profiles')
+                    .select('porecla, email')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                if (profileError) throw profileError;
+
+                return {
+                    user_id: user.id,
+                    user_name:
+                        profile?.porecla ||
+                        profile?.email ||
+                        user.email ||
+                        ''
+                };
+            } catch (error) {
+                console.error('Eroare identificare autor Audit:', error);
+
+                return {
+                    user_id: null,
+                    user_name: ''
+                };
+            }
+        }
+
+        function isAdminUser(profile = currentAdminProfile) {
+            return Number(profile?.rol_id) === 1;
+        }
+
+        function hasAdminTabPermission(permissionKey, profile = currentAdminProfile) {
+            if (!permissionKey) return true;
+            if (isAdminUser(profile)) return true;
+            return profile?.permissions?.[permissionKey] === true;
+        }
+
+        function getVisibleAdminTabIds(profile = currentAdminProfile) {
+            return Object.keys(adminTabPermissionMap).filter((tabId) => hasAdminTabPermission(adminTabPermissionMap[tabId], profile));
+        }
+
+        function showNoAdminAccessState() {
+            document.querySelectorAll('.admin-page').forEach((page) => {
                 page.classList.add('hidden');
             });
-            // 2. Arată pagina selectată
-            const paginaSelectata = document.getElementById(paginaId);
-            if (paginaSelectata) paginaSelectata.classList.remove('hidden');
+            document.querySelectorAll('.sidebar-btn').forEach((btn) => {
+                btn.classList.remove('active');
+            });
+            const stateId = 'admin-no-access-state';
+            let state = document.getElementById(stateId);
+            if (!state) {
+                state = document.createElement('div');
+                state.id = stateId;
+                state.className = 'glass-panel max-w-3xl mx-auto p-6 text-center';
+                state.innerHTML = '<h3 class="text-xl font-bold text-slate-100">Acces administrativ indisponibil</h3><p class="mt-2 text-sm text-slate-300">Nu ai acces la nicio secțiune de administrare.</p>';
+                contentArea?.appendChild(state);
+            }
+            state.classList.remove('hidden');
+            if (pageTitle) pageTitle.textContent = 'Panou Admin';
+        }
 
-            // 3. Resetează toate butoanele
-            const butoane = ['tab-megafon', 'tab-alerte', 'tab-jurnal', 'tab-devize'];
-            butoane.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 font-medium hover:bg-slate-800/50 hover:text-slate-200 transition-all cursor-pointer';
+        function hideNoAdminAccessState() {
+            const state = document.getElementById('admin-no-access-state');
+            if (state) state.classList.add('hidden');
+        }
+
+        async function applyAdminTabPermissions() {
+            try {
+                const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (!session?.user?.id) {
+                    throw new Error('Sesiunea utilizatorului nu a putut fi identificată.');
+                }
+
+                const { data: profile, error: profileError } = await sb
+                    .from('auth_profiles')
+                    .select('rol_id, permissions')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                currentAdminProfile = {
+                    rol_id: profile?.rol_id ?? null,
+                    permissions: profile?.permissions && typeof profile.permissions === 'object' ? profile.permissions : {}
+                };
+
+                Object.keys(adminTabPermissionMap).forEach((tabId) => {
+                    const button = document.getElementById(tabId);
+                    if (!button) return;
+                    button.classList.toggle('hidden', !hasAdminTabPermission(adminTabPermissionMap[tabId]));
+                    button.classList.remove('active');
+                });
+
+                const visibleTabs = getVisibleAdminTabIds();
+                if (!visibleTabs.length) {
+                    showNoAdminAccessState();
+                    return null;
+                }
+
+                hideNoAdminAccessState();
+                return visibleTabs[0];
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la verificarea permisiunilor administrative.');
+                showNoAdminAccessState();
+                return null;
+            }
+        }
+
+        async function openFirstAvailableAdminTab() {
+            const firstTabId = await applyAdminTabPermissions();
+            if (!firstTabId) return;
+            const sectionId = adminTabSectionMap[firstTabId];
+            if (sectionId) {
+                await schimbaTab(sectionId, firstTabId, { silentDenied: true });
+            }
+        }
+
+        // ===== NAVIGARE ÎNTRE TABURILE ADMIN =====
+        // Schimbă secțiunea vizibilă din Admin
+        async function schimbaTab(sectiuneId, butonId, options = {}) {
+            try {
+                const permissionKey = adminTabPermissionMap[butonId];
+                if (!hasAdminTabPermission(permissionKey)) {
+                    console.warn(`Acces interzis la secțiunea: ${sectiuneId}`);
+                    if (!options.silentDenied) {
+                        alert('Nu ai acces la această secțiune.');
+                    }
+                    return false;
+                }
+
+                hideNoAdminAccessState();
+                document.querySelectorAll('.admin-page').forEach((page) => {
+                    page.classList.add('hidden');
+                });
+
+                const sectiuneSelectata = document.getElementById(sectiuneId);
+                if (sectiuneSelectata) {
+                    sectiuneSelectata.classList.remove('hidden');
+                }
+
+                document.querySelectorAll('.sidebar-btn').forEach((btn) => {
+                    btn.classList.remove('active');
+                });
+
+                const butonActiv = document.getElementById(butonId);
+                if (butonActiv) {
+                    butonActiv.classList.add('active');
+                }
+
+                if (pageTitle && adminSectionTitleMap[sectiuneId]) {
+                    pageTitle.textContent = adminSectionTitleMap[sectiuneId];
+                }
+
+                if (sectiuneId === 'sectiune-alerte') {
+                    loadAlertePage();
+                    incarcaFlotaAlerte();
+                    incarcaEmailGeneral();
+                }
+                if (sectiuneId === 'sectiune-megafon') {
+                    loadAnnouncementHistory();
+                    updateMegafonUI();
+                }
+                if (sectiuneId === 'sectiune-useri') {
+                    initUserManagement();
+                }
+                if (sectiuneId === 'sectiune-devize') {
+                    loadDevizeSections();
+                }
+                if (sectiuneId === 'sectiune-consumabile') {
+                    switchConsumabileSubtab('consumabile-nomenclator-tab');
+                    loadStockProductsAdmin();
+                    loadStockMovementsAdmin();
+                    loadStockProductsManagement();
+                }
+                if (sectiuneId === 'sectiune-audit-log' && typeof loadAuditLogs === 'function') {
+                    loadAuditLogs();
+                }
+                return true;
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la schimbarea secțiunii administrative.');
+                return false;
+            }
+        }
+
+        // Revine la modul Creare utilizator
+        function resetUserForm() {
+            isEditMode = false;
+            currentEditUserId = null;
+            selectedUserPermissions = null;
+            selectedUserOriginalData = null;
+            const form = document.getElementById('userForm');
+            const deleteBtn = document.getElementById('deleteUserBtn');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+            const passwordField = document.getElementById('passwordField');
+            const emailInput = document.getElementById('email');
+            if (form) form.reset();
+            if (deleteBtn) deleteBtn.classList.add('hidden');
+            if (resetPasswordBtn) {
+                resetPasswordBtn.classList.add('hidden');
+                resetPasswordBtn.disabled = false;
+                resetPasswordBtn.textContent = 'Schimbă parola';
+            }
+            if (passwordField) passwordField.style.display = 'block';
+            if (emailInput) emailInput.readOnly = false;
+            document.getElementById('panelTitle').textContent = 'Crează utilizator nou';
+            document.getElementById('submitBtn').textContent = 'Crează Utilizator';
+            userPermissionFields.forEach(([id]) => {
+                const box = document.getElementById(id);
+                if (box) box.checked = false;
+            });
+        }
+
+        function normalizeUserValue(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        async function validateAndPrepareUserValue() {
+            const poreclaInput = document.getElementById('porecla');
+            const normalizedUser = normalizeUserValue(poreclaInput?.value);
+            const userRegex = /^[a-z0-9_-]+$/;
+
+            if (poreclaInput) {
+                poreclaInput.value = normalizedUser;
+            }
+
+            if (!normalizedUser) {
+                alert('Completează câmpul User.');
+                return null;
+            }
+
+            if (!userRegex.test(normalizedUser)) {
+                alert('User-ul poate conține doar litere mici, cifre, _ sau -.');
+                return null;
+            }
+
+            try {
+                let duplicateQuery = sb
+                    .from('auth_profiles')
+                    .select('id')
+                    .eq('porecla', normalizedUser)
+                    .limit(1);
+
+                if (currentEditUserId) {
+                    duplicateQuery = duplicateQuery.neq('id', currentEditUserId);
+                }
+
+                const { data, error } = await duplicateQuery;
+                if (error) throw error;
+
+                if (Array.isArray(data) && data.length > 0) {
+                    alert('Acest User există deja.');
+                    return null;
+                }
+
+                return normalizedUser;
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Eroare la verificarea User-ului.');
+                return null;
+            }
+        }
+
+        // Completează formularul cu utilizatorul selectat
+        function populateUserForm(user) {
+            isEditMode = true;
+            currentEditUserId = user.id;
+            // Păstrează datele inițiale
+            selectedUserOriginalData = {
+                rol_id: Number(user.rol_id),
+                permissions: { ...(user.permissions || {}) },
+                porecla: user.porecla || '',
+                nume: user.nume || '',
+                prenume: user.prenume || '',
+                telefon: user.telefon || ''
+            };
+            selectedUserPermissions = user && typeof user.permissions === 'object' && user.permissions !== null
+                ? { ...user.permissions }
+                : {};
+            const deleteBtn = document.getElementById('deleteUserBtn');
+            const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+            const passwordField = document.getElementById('passwordField');
+            const emailInput = document.getElementById('email');
+            document.getElementById('panelTitle').textContent = 'Editează Utilizator';
+            document.getElementById('submitBtn').textContent = 'Actualizează Utilizator';
+            if (deleteBtn) deleteBtn.classList.remove('hidden');
+            if (resetPasswordBtn) resetPasswordBtn.classList.remove('hidden');
+            if (passwordField) passwordField.style.display = 'none';
+            if (emailInput) emailInput.readOnly = true;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('nume').value = user.nume || '';
+            document.getElementById('prenume').value = user.prenume || '';
+            document.getElementById('porecla').value = user.porecla || '';
+            document.getElementById('telefon').value = user.telefon || '';
+            if (user.rol_id) document.getElementById('rol').value = user.rol_id;
+            userPermissionFields.forEach(([id, key]) => {
+                const box = document.getElementById(id);
+                if (box) box.checked = Boolean(selectedUserPermissions?.[key]);
+            });
+        }
+
+        // ===== ÎNCĂRCARE UTILIZATORI DIN SUPABASE =====
+        // Încarcă utilizatorii și verifică dreptul de administrare
+        async function initUserManagement() {
+            const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500">Se încarcă utilizatorii...</td></tr>';
+            try {
+                const { data: { session } = {} } = await sb.auth.getSession();
+                if (!session) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-amber-400">Autentificare necesară.</td></tr>';
+                    return;
+                }
+
+                const { data: profile, error: profileError } = await sb
+                    .from('auth_profiles')
+                    .select('rol_id, permissions')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const isAllowed = !profileError && profile && (Number(profile.rol_id) === 1 || profile.permissions?.admin_useri === true);
+                if (!isAllowed) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-rose-400">Acces interzis.</td></tr>';
+                    return;
+                }
+
+                const { data: users, error } = await sb
+                    .from('auth_profiles')
+                    .select('id, nume, prenume, porecla, telefon, email, rol_id, permissions, auth_roles(id, numire_rol)')
+                    .order('nume', { ascending: true });
+
+                if (error) throw error;
+
+                tbody.innerHTML = '';
+                users.forEach((user) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-slate-800/40 transition-colors';
+                    // Înălțimea rândurilor se modifică prin clasele py din celule
+                    row.innerHTML = `
+                        <td class="py-3 pr-4 text-slate-100">${user.nume || ''} ${user.prenume || ''}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.porecla || '-'}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.telefon || '-'}</td>
+                        <td class="py-3 pr-4 text-slate-300">${user.auth_roles?.numire_rol || 'N/A'}</td>
+                        <td class="py-3 text-right">
+                            <button type="button" class="edit-user-btn rounded-xl bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-semibold text-white transition-colors" data-user='${JSON.stringify(user)}'>Editează</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                tbody.querySelectorAll('.edit-user-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const user = JSON.parse(btn.getAttribute('data-user') || '{}');
+                        populateUserForm(user);
+                    });
+                });
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-rose-400">Eroare: ${error.message}</td></tr>`;
+                alert(error.message || 'Eroare la încărcarea utilizatorilor.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            resetUserForm();
+            document.getElementById('porecla')?.addEventListener('blur', (event) => {
+                const input = event.currentTarget;
+                input.value = normalizeUserValue(input.value);
+            });
+            document.getElementById('btn-refresh-users')?.addEventListener('click', initUserManagement);
+            // Salvează modificările utilizatorului selectat
+            document.getElementById('userForm')?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!isEditMode) {
+                    alert('Creare: funcționalitate viitoare');
+                    return;
+                }
+
+                try {
+                    const normalizedUser = await validateAndPrepareUserValue();
+                    if (!normalizedUser) return;
+
+                    const currentPermissions = selectedUserPermissions && typeof selectedUserPermissions === 'object'
+                        ? selectedUserPermissions
+                        : {};
+                    const updatedPermissions = { ...currentPermissions };
+
+                    userPermissionFields.forEach(([id, key]) => {
+                        updatedPermissions[key] = Boolean(document.getElementById(id)?.checked);
+                    });
+
+                    const { error } = await sb
+                        .from('auth_profiles')
+                        .update({
+                            nume: document.getElementById('nume').value,
+                            prenume: document.getElementById('prenume').value,
+                            porecla: normalizedUser,
+                            telefon: document.getElementById('telefon').value,
+                            rol_id: Number(document.getElementById('rol').value),
+                            permissions: updatedPermissions
+                        })
+                        .eq('id', currentEditUserId);
+
+                    if (error) throw error;
+
+                    selectedUserPermissions = { ...updatedPermissions };
+                    // Compară modificările utilizatorului
+                    const changes = [];
+                    const updatedUserData = {
+                        rol_id: Number(document.getElementById('rol').value),
+                        permissions: updatedPermissions,
+                        porecla: normalizedUser,
+                        nume: document.getElementById('nume').value,
+                        prenume: document.getElementById('prenume').value,
+                        telefon: document.getElementById('telefon').value
+                    };
+                    const originalData = selectedUserOriginalData;
+
+                    if (originalData && originalData.rol_id !== updatedUserData.rol_id) {
+                        changes.push(`rol: ${originalData.rol_id} → ${updatedUserData.rol_id}`);
+                    }
+                    userPermissionFields.forEach(([, key]) => {
+                        const wasEnabled = Boolean(originalData?.permissions?.[key]);
+                        const isEnabled = Boolean(updatedUserData.permissions[key]);
+                        if (wasEnabled !== isEnabled) {
+                            changes.push(`${isEnabled ? 'activat' : 'dezactivat'}: ${userPermissionLabels[key]}`);
+                        }
+                    });
+                    if (originalData && originalData.porecla !== updatedUserData.porecla) {
+                        changes.push(`User: ${originalData.porecla} → ${updatedUserData.porecla}`);
+                    }
+                    if (originalData && originalData.nume !== updatedUserData.nume) {
+                        changes.push('nume modificat');
+                    }
+                    if (originalData && originalData.prenume !== updatedUserData.prenume) {
+                        changes.push('prenume modificat');
+                    }
+                    if (originalData && originalData.telefon !== updatedUserData.telefon) {
+                        changes.push('telefon modificat');
+                    }
+
+                    let auditFailed = false;
+                    if (changes.length > 0) {
+                        // Salvează acțiunea în Audit Log
+                        try {
+                            const actor = await getUserManagementAuditActor();
+                            await window.addAuditLog({
+                                modul: 'Gestionare Utilizatori',
+                                actiune: 'UPDATE',
+                                entitate: 'utilizator',
+                                entitate_id: currentEditUserId,
+                                descriere: `A modificat utilizatorul ${normalizedUser}: ${changes.join(', ')}`,
+                                user_id: actor.user_id,
+                                user_name: actor.user_name
+                            });
+                        } catch (auditError) {
+                            auditFailed = true;
+                            console.error('Eroare Audit Gestionare Utilizatori:', auditError);
+                            alert('Utilizatorul a fost actualizat, dar acțiunea nu a putut fi salvată în Audit Log.');
+                        }
+                    }
+
+                    if (!auditFailed) alert('Actualizare realizată cu succes!');
+                } catch (error) {
+                    console.error(error);
+                    alert(`Eroare la actualizare: ${error.message || 'Nu s-a putut salva utilizatorul.'}`);
+                    return;
+                }
+
+                resetUserForm();
+                initUserManagement();
+            });
+
+            // Gestionează confirmarea pentru ștergerea utilizatorului
+            document.getElementById('deleteUserBtn')?.addEventListener('click', async () => {
+                if (!currentEditUserId) return;
+                if (!window.confirm('Sigur doriți să ștergeți acest utilizator?')) return;
+                alert('Ștergere: funcționalitate viitoare');
+                resetUserForm();
+                initUserManagement();
+            });
+
+            // Trimite emailul de resetare a parolei către adresa din formular
+            document.getElementById('resetPasswordBtn')?.addEventListener('click', async (event) => {
+                if (!currentEditUserId) return;
+
+                const button = event.currentTarget;
+                const email = document.getElementById('email')?.value.trim() || '';
+                const normalizedUser = normalizeUserValue(document.getElementById('porecla')?.value);
+                if (!email) {
+                    alert('Utilizatorul selectat nu are o adresă de email validă.');
+                    return;
+                }
+                if (!window.confirm(`Trimitem emailul de resetare a parolei către ${email}?`)) return;
+
+                button.disabled = true;
+                button.textContent = 'Se trimite...';
+
+                try {
+                    const { error } = await sb.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/modules/admin/resetare-parola.html`
+                    });
+                    if (error) throw error;
+                    // Resetare parolă reușită
+                    // Salvează acțiunea în Audit Log
+                    try {
+                        const actor = await getUserManagementAuditActor();
+                        await window.addAuditLog({
+                            modul: 'Gestionare Utilizatori',
+                            actiune: 'RESET_PASSWORD',
+                            entitate: 'utilizator',
+                            entitate_id: currentEditUserId,
+                            descriere: `A trimis email de resetare a parolei pentru utilizatorul ${normalizedUser}`,
+                            user_id: actor.user_id,
+                            user_name: actor.user_name
+                        });
+                    } catch (auditError) {
+                        console.error('Eroare Audit Reset Parolă:', auditError);
+                    }
+                    alert('Emailul pentru resetarea parolei a fost trimis cu succes.');
+                } catch (error) {
+                    console.error(error);
+                    alert(error.message || String(error));
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Schimbă parola';
                 }
             });
 
-            // 4. Activează butonul selectat
-            const butonActiv = document.getElementById(butonId);
-            if (butonActiv) {
-                butonActiv.className = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-600/20 text-rose-300 font-bold border border-rose-500/30 transition-all cursor-pointer';
+            document.addEventListener('click', (event) => {
+                const actionPanel = document.getElementById('actionPanel');
+                const usersTableBody = document.getElementById('usersTableBody');
+                if (actionPanel && usersTableBody && !actionPanel.contains(event.target) && !usersTableBody.contains(event.target)) {
+                    resetUserForm();
+                }
+            });
+        });
+
+        // Aplică filtrele și acțiunile principale prin butoanele paginii
+        document.addEventListener('click', async (event) => {
+            const deleteDevizEstimativBtn = event.target.closest('[data-delete-deviz-estimativ]');
+            if (deleteDevizEstimativBtn) {
+                await deleteDevizEstimativ(deleteDevizEstimativBtn.getAttribute('data-delete-deviz-estimativ'), deleteDevizEstimativBtn);
+                return;
             }
 
-            if (pageTitle) {
-                if (paginaId === 'page-megafon') pageTitle.textContent = 'Megafon (Anunțuri Interne)';
-                if (paginaId === 'page-alerte') pageTitle.textContent = 'Configurare Alerte & Flotă';
-                if (paginaId === 'page-jurnal') pageTitle.textContent = 'Jurnal Activitate';
-                if (paginaId === 'page-devize') pageTitle.textContent = 'Gestiune Devize';
+            const deleteDevizFinalBtn = event.target.closest('[data-delete-deviz-final]');
+            if (deleteDevizFinalBtn) {
+                await deleteDevizFinal(deleteDevizFinalBtn.getAttribute('data-delete-deviz-final'), deleteDevizFinalBtn);
+                return;
             }
 
-            if (paginaId === 'page-alerte') {
-                loadAlertePage();
+            const subtabButton = event.target.closest('[data-consumabile-subtab]');
+            if (subtabButton) {
+                switchConsumabileSubtab(subtabButton.getAttribute('data-consumabile-subtab'));
+                return;
             }
-            if (paginaId === 'page-megafon') {
-                loadAnnouncementHistory();
-                updateMegafonUI();
+
+            const consumabileSection = event.target.closest('#sectiune-consumabile');
+            if (consumabileSection) {
+                const editStockBtn = event.target.closest('[data-edit-stock-product]');
+                if (editStockBtn) {
+                    try {
+                        activateStockProductEditor(editStockBtn.getAttribute('data-edit-stock-product'));
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
+
+                const saveStockBtn = event.target.closest('[data-save-stock-product]');
+                if (saveStockBtn) {
+                    try {
+                        await saveStockProductEditor(saveStockBtn.getAttribute('data-save-stock-product'));
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
+
+                const cancelStockBtn = event.target.closest('[data-cancel-stock-product]');
+                if (cancelStockBtn) {
+                    try {
+                        await loadStockProductsAdmin();
+                    } catch (error) {
+                        console.error(error);
+                    }
+                    return;
+                }
             }
-            if (paginaId === 'page-devize') {
-                loadDevizeTable();
+
+            const applyFilterButton = event.target.closest('#apply-stock-movements-filter');
+            if (applyFilterButton) {
+                await loadStockMovementsAdmin();
+                return;
             }
-            // Dacă deschidem pagina de alerte, încărcăm mașinile
-        if (paginaId === 'page-alerte') {
-            incarcaFlotaAlerte();
-            incarcaEmailGeneral();
-        }
-        }
+
+            const resetFilterButton = event.target.closest('#reset-stock-movements-filter');
+            if (resetFilterButton) {
+                const startInput = document.getElementById('stock-movements-start-date');
+                const endInput = document.getElementById('stock-movements-end-date');
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                await loadStockMovementsAdmin();
+                return;
+            }
+
+            const applyAuditFiltersButton = event.target.closest('#audit-apply-filters');
+            if (applyAuditFiltersButton) {
+                await loadAuditLogs();
+                return;
+            }
+
+            const resetAuditFiltersButton = event.target.closest('#audit-reset-filters');
+            if (resetAuditFiltersButton) {
+                ['audit-filter-module', 'audit-filter-action', 'audit-filter-user', 'audit-filter-from', 'audit-filter-to', 'audit-filter-search'].forEach((id) => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = '';
+                });
+                await loadAuditLogs();
+                return;
+            }
+
+            const productFilterButton = event.target.closest('[data-stock-products-filter]');
+            if (productFilterButton) {
+                stockProductsManagementFilter = productFilterButton.getAttribute('data-stock-products-filter') || 'active';
+                updateStockProductsFilterButtons();
+                await loadStockProductsManagement();
+                return;
+            }
+
+            const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
+            if (deleteMovementBtn) {
+                await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
+                return;
+            }
+
+            const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
+            if (archiveProductBtn) {
+                await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
+                return;
+            }
+
+            const reactivateProductBtn = event.target.closest('[data-reactivate-stock-product]');
+            if (reactivateProductBtn) {
+                await setStockProductActive(reactivateProductBtn.getAttribute('data-reactivate-stock-product'), true);
+            }
+        });
 
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
         const sb = supabase.createClient(supabaseUrl, supabaseKey);
+        window.supabaseClient = sb;
 
         const pageTitle = document.getElementById('page-title');
         const adminMessageInput = document.getElementById('admin-message-input');
@@ -218,6 +1864,21 @@
         const contentArea = document.getElementById('content-area');
         const staticAdminPages = Array.from(contentArea.querySelectorAll('.admin-page'));
         let devizePage = null;
+        let stockProductsManagementFilter = 'active';
+        let stockSearchReloadTimer = null;
+        let auditProfiles = [];
+        let auditProfilesById = new Map();
+        let auditProfilesLoaded = false;
+        let auditActorPromise = null;
+
+        document.getElementById('stock-search-input')?.addEventListener('input', () => {
+            clearTimeout(stockSearchReloadTimer);
+            stockSearchReloadTimer = setTimeout(() => {
+                loadStockProductsAdmin();
+                loadStockMovementsAdmin();
+                loadStockProductsManagement();
+            }, 250);
+        });
 
         function restoreStaticAdminPages() {
             if (!contentArea) return;
@@ -228,6 +1889,7 @@
             }
         }
 
+        // Construiește zona administrativă pentru devize și consumabile
         function createDevizePage() {
             const page = document.createElement('div');
             page.id = 'page-devize';
@@ -282,6 +1944,7 @@
                             </table>
                         </div>
                     </div>
+                    <!-- ===== MODAL NOMENCLATOR PENTRU MODIFICĂRI VIITOARE ===== -->
                     <div id="stock-products-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
                         <div class="w-full max-w-5xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
                             <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
@@ -311,6 +1974,7 @@
                             </div>
                         </div>
                     </div>
+                    <!-- ===== MODAL TRANZACȚII PENTRU MODIFICĂRI VIITOARE ===== -->
                     <div id="stock-movements-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
                         <div class="w-full max-w-6xl rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl flex flex-col max-h-[80vh]">
                             <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4 flex-shrink-0">
@@ -416,6 +2080,18 @@
                 const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
                 if (deleteMovementBtn) {
                     await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
+                    return;
+                }
+
+                const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
+                if (archiveProductBtn) {
+                    await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
+                    return;
+                }
+
+                const reactivateProductBtn = event.target.closest('[data-reactivate-stock-product]');
+                if (reactivateProductBtn) {
+                    await setStockProductActive(reactivateProductBtn.getAttribute('data-reactivate-stock-product'), true);
                 }
             });
 
@@ -434,6 +2110,7 @@
             contentArea.replaceChildren(devizePage);
         }
 
+        // Afișează mesaje de succes sau eroare pentru devize
         function setDevizeStatus(message, type = 'info') {
             const el = document.getElementById('devize-status');
             if (!el) return;
@@ -469,14 +2146,14 @@
             if (!el) return;
             el.textContent = message || '';
             if (type === 'success') {
-                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
                 return;
             }
             if (type === 'error') {
-                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
                 return;
             }
-            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
         }
 
         function setStockMovementsStatus(message, type = 'info') {
@@ -484,14 +2161,42 @@
             if (!el) return;
             el.textContent = message || '';
             if (type === 'success') {
-                el.className = 'mb-4 min-h-6 text-sm text-emerald-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
                 return;
             }
             if (type === 'error') {
-                el.className = 'mb-4 min-h-6 text-sm text-rose-400';
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
                 return;
             }
-            el.className = 'mb-4 min-h-6 text-sm text-slate-400';
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
+        }
+
+        function setStockProductsManagementStatus(message, type = 'info') {
+            const el = document.getElementById('stock-products-admin-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
+        }
+
+        // Citește textul folosit pentru filtrarea consumabilelor
+        function getStockSearchTerm() {
+            return document.getElementById('stock-search-input')?.value?.trim().toLowerCase() || '';
+        }
+
+        function matchesStockSearch(row) {
+            const term = getStockSearchTerm();
+            if (!term) return true;
+            const productName = row?.stoc_produse?.denumire || row?.denumire || '';
+            const productCode = row?.cod_articol || '';
+            return `${productName} ${productCode}`.toLowerCase().includes(term);
         }
 
         function formatDevizDate(value) {
@@ -506,6 +2211,14 @@
             const date = new Date(value);
             if (Number.isNaN(date.getTime())) return String(value);
             return date.toLocaleDateString('ro-RO');
+        }
+
+        function formatAuditLogDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            const pad = (part) => String(part).padStart(2, '0');
+            return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
         }
 
         function formatDevizMoney(value) {
@@ -573,6 +2286,48 @@
             `).join('');
         }
 
+        function updateStockProductsFilterButtons() {
+            document.querySelectorAll('[data-stock-products-filter]').forEach((btn) => {
+                const isActive = btn.getAttribute('data-stock-products-filter') === stockProductsManagementFilter;
+                btn.className = isActive
+                    ? 'stock-products-filter-btn rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors'
+                    : 'stock-products-filter-btn rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-700';
+            });
+        }
+
+        function renderStockProductsManagementRows(rows) {
+            const tbody = document.getElementById('stock-products-admin-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există produse pentru filtrul selectat.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const isActive = row.activ !== false;
+                const statusClass = isActive ? 'text-emerald-300' : 'text-slate-500';
+                const statusLabel = isActive ? 'Activ' : 'Arhivat';
+                const actionButton = isActive
+                    ? `<button type="button" data-archive-stock-product="${escapeHtml(row.id)}" class="rounded-xl bg-amber-600 hover:bg-amber-500 px-3 py-2 text-xs font-bold text-white transition-colors">Arhivează</button>`
+                    : `<button type="button" data-reactivate-stock-product="${escapeHtml(row.id)}" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition-colors">Reactivează</button>`;
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-slate-300">${escapeHtml(row.cod_articol || '-')}</td>
+                        <td class="px-4 py-3 text-slate-100">${escapeHtml(row.denumire || '-')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.prag_minim ?? '-')}</td>
+                        <td class="px-4 py-3 font-semibold ${statusClass}">${statusLabel}</td>
+                        <td class="px-4 py-3 text-right">${actionButton}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function renderStockMovementsRows(rows) {
             const tbody = document.getElementById('stock-movements-body');
             if (!tbody) return;
@@ -605,6 +2360,217 @@
             }).join('');
         }
 
+        function getAuditUserDisplayName(profile) {
+            if (!profile) return '';
+            const fullName = [profile.nume, profile.prenume].filter(Boolean).join(' ').trim();
+            return profile.porecla || profile.prenume || fullName || profile.email || profile.id || '';
+        }
+
+        function getAuditRowUserFallback(row) {
+            return row.utilizator ?? row.user_name ?? row.user_email ?? row.email ?? row.created_by_name ?? row.created_by ?? row.user_id ?? '—';
+        }
+
+        function getAuditRowUserName(row) {
+            const profile = auditProfilesById.get(String(row.user_id || ''));
+            return getAuditUserDisplayName(profile) || getAuditRowUserFallback(row);
+        }
+
+        function normalizeAuditText(value) {
+            return String(value ?? '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function auditModuleMatches(rowModule, selectedModule) {
+            if (!selectedModule) return true;
+            const normalizedModule = normalizeAuditText(rowModule);
+            const normalizedSelected = normalizeAuditText(selectedModule);
+            const aliases = {
+                autentificare: ['autentificare', 'auth', 'login'],
+                'deviz estimativ': ['deviz estimativ', 'devize estimative', 'estimativ'],
+                'deviz final': ['deviz final', 'devize finale', 'final'],
+                consumabile: ['consumabile', 'stoc', 'magazie'],
+                awb: ['awb'],
+                avansuri: ['avansuri', 'avans'],
+                flota: ['flota', 'fleet'],
+                detailing: ['detailing'],
+                constatari: ['constatari', 'constatare']
+            };
+            return (aliases[normalizedSelected] || [normalizedSelected]).some((alias) => normalizedModule.includes(alias));
+        }
+
+        function getAuditFilters() {
+            return {
+                module: document.getElementById('audit-filter-module')?.value || '',
+                action: document.getElementById('audit-filter-action')?.value || '',
+                userId: document.getElementById('audit-filter-user')?.value || '',
+                from: document.getElementById('audit-filter-from')?.value || '',
+                to: document.getElementById('audit-filter-to')?.value || '',
+                search: normalizeAuditText(document.getElementById('audit-filter-search')?.value || '')
+            };
+        }
+
+        async function loadAuditProfiles() {
+            const { data, error } = await sb
+                .from('auth_profiles')
+                .select('id, porecla, nume, prenume, email')
+                .order('porecla', { ascending: true });
+
+            if (error) throw error;
+
+            auditProfiles = data || [];
+            auditProfilesById = new Map(auditProfiles.map((profile) => [String(profile.id), profile]));
+            auditProfilesLoaded = true;
+            populateAuditUserFilter();
+        }
+
+        function populateAuditUserFilter() {
+            const select = document.getElementById('audit-filter-user');
+            if (!select) return;
+            const selectedValue = select.value;
+            const options = ['<option value="">Toți</option>'].concat(
+                auditProfiles.map((profile) => {
+                    const label = getAuditUserDisplayName(profile);
+                    return `<option value="${escapeHtml(profile.id)}">${escapeHtml(label || profile.id)}</option>`;
+                })
+            );
+            select.innerHTML = options.join('');
+            if (selectedValue && auditProfilesById.has(String(selectedValue))) {
+                select.value = selectedValue;
+            }
+        }
+
+        function auditUserMatches(row, selectedUserId) {
+            if (!selectedUserId) return true;
+            const profile = auditProfilesById.get(String(selectedUserId));
+            if (String(row.user_id || '') === String(selectedUserId)) return true;
+            if (!profile) return false;
+
+            const rowUser = normalizeAuditText(getAuditRowUserFallback(row));
+            const profileValues = [
+                getAuditUserDisplayName(profile),
+                profile.porecla,
+                profile.prenume,
+                [profile.nume, profile.prenume].filter(Boolean).join(' '),
+                profile.email,
+                profile.id
+            ].map(normalizeAuditText).filter(Boolean);
+
+            return profileValues.some((value) => rowUser === value || rowUser.includes(value));
+        }
+
+        // Filtrează înregistrările Audit după criteriile selectate
+        function filterAuditRows(rows) {
+            const filters = getAuditFilters();
+            const fromTime = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : null;
+            const toTime = filters.to ? new Date(`${filters.to}T23:59:59.999`).getTime() : null;
+
+            return rows.filter((row) => {
+                const modul = row.modul ?? row.module ?? '—';
+                const actiune = row.actiune ?? row.action ?? '—';
+                const descriere = row.descriere ?? row.description ?? '—';
+                const rowTime = row.created_at ? new Date(row.created_at).getTime() : null;
+
+                if (!auditModuleMatches(modul, filters.module)) return false;
+                if (filters.action && String(actiune || '').toUpperCase() !== filters.action) return false;
+                if (!auditUserMatches(row, filters.userId)) return false;
+                if (fromTime && (!rowTime || rowTime < fromTime)) return false;
+                if (toTime && (!rowTime || rowTime > toTime)) return false;
+
+                if (filters.search) {
+                    const haystack = normalizeAuditText([
+                        formatAuditLogDate(row.created_at),
+                        getAuditRowUserName(row),
+                        modul,
+                        actiune,
+                        descriere
+                    ].join(' '));
+                    if (!haystack.includes(filters.search)) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function renderAuditRows(rows) {
+            const tbody = document.getElementById('audit-log-body');
+            if (!tbody) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există activitate pentru filtrele selectate.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const utilizator = getAuditRowUserName(row);
+                const modul = row.modul ?? row.module ?? '—';
+                const actiune = row.actiune ?? row.action ?? '—';
+                const descriere = row.descriere ?? row.description ?? '—';
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(formatAuditLogDate(row.created_at))}</td>
+                        <td class="px-4 py-3 text-slate-100">${escapeHtml(utilizator)}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(modul)}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(actiune)}</td>
+                        <td class="px-4 py-3 text-slate-400">${escapeHtml(descriere)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Încarcă istoricul Audit direct din Supabase
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('audit-log-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă logurile...</td>
+                </tr>
+            `;
+
+            try {
+                if (!auditProfilesLoaded) {
+                    await loadAuditProfiles();
+                }
+
+                const { data, error } = await sb
+                    .from('audit_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(500);
+
+                if (error) throw error;
+
+                if (!data?.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există încă activitate înregistrată.</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                renderAuditRows(filterAuditRows(data || []));
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea logurilor: ${escapeHtml(error.message || 'Necunoscută')}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Încarcă tabelul administrativ al devizelor din Supabase
         async function loadDevizeTable() {
             const tbody = document.getElementById('devize-table-body');
             if (!tbody) return;
@@ -635,6 +2601,8 @@
             }
         }
 
+        // ===== MODALURI ȘI DIALOGURI CONSUMABILE =====
+        // Deschide dialogul cu nomenclatorul de produse
         function openStockProductsModal() {
             const modal = document.getElementById('stock-products-modal');
             if (!modal) return;
@@ -667,6 +2635,8 @@
             modal.classList.remove('flex');
         }
 
+        // ===== ÎNCĂRCARE CONSUMABILE DIN SUPABASE =====
+        // Încarcă și filtrează nomenclatorul de consumabile
         async function loadStockProductsAdmin() {
             const tbody = document.getElementById('stock-products-body');
             if (!tbody) return;
@@ -685,8 +2655,9 @@
                     .order('denumire', { ascending: true });
 
                 if (error) throw error;
-                renderStockProductsRows(data || []);
-                setStockProductsStatus(`Au fost încărcate ${data?.length || 0} produse.`, 'success');
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockProductsRows(filteredRows);
+                setStockProductsStatus(`Au fost încărcate ${filteredRows.length} produse.`, 'success');
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -752,15 +2723,111 @@
                 if (error) throw error;
                 setStockProductsStatus('Produsul a fost actualizat.', 'success');
                 setStockAdminStatus('Nomenclatorul a fost actualizat.', 'success');
+                logAuditConsumabile(
+                    'UPDATE',
+                    `A modificat produsul consumabil ${denumire}`,
+                    productId
+                );
                 await loadStockProductsAdmin();
+                await loadStockProductsManagement();
             } catch (error) {
+                console.error(error);
                 setStockProductsStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
             }
         }
 
+        // Încarcă produsele active, arhivate sau toate produsele
+        async function loadStockProductsManagement() {
+            const tbody = document.getElementById('stock-products-admin-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă produsele...</td>
+                </tr>
+            `;
+            updateStockProductsFilterButtons();
+            setStockProductsManagementStatus('Se încarcă produsele...');
+
+            try {
+                let query = sb
+                    .from('stoc_produse')
+                    .select('id, cod_articol, denumire, prag_minim, activ')
+                    .order('denumire', { ascending: true });
+
+                if (stockProductsManagementFilter === 'active') {
+                    query = query.or('activ.eq.true,activ.is.null');
+                }
+                if (stockProductsManagementFilter === 'archived') {
+                    query = query.eq('activ', false);
+                }
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockProductsManagementRows(filteredRows);
+                setStockProductsManagementStatus(`Au fost încărcate ${filteredRows.length} produse.`, 'success');
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea produselor.</td>
+                    </tr>
+                `;
+                setStockProductsManagementStatus(error.message || 'Eroare la încărcarea produselor.', 'error');
+            }
+        }
+
+        async function setStockProductActive(productId, isActive) {
+            if (!productId) return;
+            const actionLabel = isActive ? 'reactivează' : 'arhivează';
+            setStockProductsManagementStatus(`Se ${actionLabel} produsul ${productId}...`);
+
+            try {
+                let productBeforeUpdate = null;
+                try {
+                    const { data, error } = await sb
+                        .from('stoc_produse')
+                        .select('denumire')
+                        .eq('id', productId)
+                        .maybeSingle();
+                    if (error) throw error;
+                    productBeforeUpdate = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
+                const { error } = await sb
+                    .from('stoc_produse')
+                    .update({ activ: isActive })
+                    .eq('id', productId);
+
+                if (error) throw error;
+                setStockProductsManagementStatus(isActive ? 'Produsul a fost reactivat.' : 'Produsul a fost arhivat.', 'success');
+                setStockAdminStatus(isActive ? 'Produs reactivat.' : 'Produs arhivat.', 'success');
+                const productName = productBeforeUpdate?.denumire || `ID ${productId}`;
+                logAuditConsumabile(
+                    'UPDATE',
+                    isActive
+                        ? `A reactivat produsul consumabil ${productName}`
+                        : `A arhivat produsul consumabil ${productName}`,
+                    productId
+                );
+                await loadStockProductsManagement();
+                await loadStockProductsAdmin();
+            } catch (error) {
+                console.error(error);
+                setStockProductsManagementStatus(error.message || 'Eroare la actualizarea produsului.', 'error');
+            }
+        }
+
+        // Încarcă tranzacțiile de stoc și aplică filtrele de dată
         async function loadStockMovementsAdmin() {
             const tbody = document.getElementById('stock-movements-body');
             if (!tbody) return;
+
+            const startDate = document.getElementById('stock-movements-start-date')?.value || '';
+            const endDate = document.getElementById('stock-movements-end-date')?.value || '';
 
             tbody.innerHTML = `
                 <tr>
@@ -770,15 +2837,21 @@
             setStockMovementsStatus('Se încarcă ultimele tranzacții...');
 
             try {
-                const { data, error } = await sb
+                let query = sb
                     .from('stoc_miscari')
-                    .select('id, data, tip_miscare, cantitate, destinatie, observatii, stoc_produse(denumire)')
+                    .select('id, data, tip_miscare, cantitate, destinatie, observatii, stoc_produse(denumire)');
+
+                if (startDate) query = query.gte('data', startDate);
+                if (endDate) query = query.lte('data', endDate);
+
+                const { data, error } = await query
                     .order('data', { ascending: false })
-                    .limit(50);
+                    .limit(100);
 
                 if (error) throw error;
-                renderStockMovementsRows(data || []);
-                setStockMovementsStatus(`Au fost încărcate ${data?.length || 0} tranzacții.`, 'success');
+                const filteredRows = (data || []).filter(matchesStockSearch);
+                renderStockMovementsRows(filteredRows);
+                setStockMovementsStatus(`Au fost încărcate ${filteredRows.length} tranzacții.`, 'success');
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -789,12 +2862,26 @@
             }
         }
 
+        // Șterge o tranzacție de stoc după confirmare
         async function deleteStockMovement(movementId) {
             if (!movementId) return;
             if (!confirm('Ești sigur?')) return;
 
             setStockMovementsStatus(`Se șterge tranzacția ${movementId}...`);
             try {
+                let movementBeforeDelete = null;
+                try {
+                    const { data, error } = await sb
+                        .from('stoc_miscari')
+                        .select('id, stoc_produse(denumire)')
+                        .eq('id', movementId)
+                        .maybeSingle();
+                    if (error) throw error;
+                    movementBeforeDelete = data;
+                } catch (error) {
+                    console.error(error);
+                }
+
                 const { error } = await sb
                     .from('stoc_miscari')
                     .delete()
@@ -803,8 +2890,15 @@
                 if (error) throw error;
                 setStockMovementsStatus('Tranzacția a fost ștearsă.', 'success');
                 setStockAdminStatus('A fost efectuată o corecție de tranzacție.', 'success');
+                const productName = movementBeforeDelete?.stoc_produse?.denumire || `tranzacția ${movementId}`;
+                logAuditConsumabile(
+                    'DELETE',
+                    `A șters/corectat tranzacția pentru ${productName}`,
+                    movementId
+                );
                 await loadStockMovementsAdmin();
             } catch (error) {
+                console.error(error);
                 setStockMovementsStatus(error.message || 'Eroare la ștergerea tranzacției.', 'error');
             }
         }
@@ -973,6 +3067,59 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        async function getConsumabileAuditActor() {
+            if (!auditActorPromise) {
+                auditActorPromise = (async () => {
+                    const { data: { session } = {} } = await sb.auth.getSession();
+                    const user = session?.user || null;
+                    if (!user?.id) {
+                        return { user_id: null, user_name: '' };
+                    }
+
+                    let profile = null;
+                    try {
+                        const { data, error } = await sb
+                            .from('auth_profiles')
+                            .select('porecla, email')
+                            .eq('id', user.id)
+                            .maybeSingle();
+                        if (error) throw error;
+                        profile = data;
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    return {
+                        user_id: user.id,
+                        user_name: profile?.porecla || profile?.email || user.email || ''
+                    };
+                })().catch((error) => {
+                    console.error(error);
+                    return { user_id: null, user_name: '' };
+                });
+            }
+
+            return auditActorPromise;
+        }
+
+        async function logAuditConsumabile(actiune, descriere, entitateId) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getConsumabileAuditActor();
+                await window.addAuditLog({
+                    modul: 'Consumabile',
+                    actiune,
+                    descriere,
+                    entitate: 'consumabil',
+                    entitate_id: entitateId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
 
         function renderAnnouncementHistory(rows) {
@@ -1507,8 +3654,9 @@ async function salveazaEmailGeneral(btn) {
             }
         });
 
-        loadAnnouncementHistory();
+        openFirstAvailableAdminTab();
     </script>
-    
+    <!-- Autodeconectare după inactivitate -->
+    <script src="/js/session-timeout.js?v=2"></script>
 </body>
 </html>

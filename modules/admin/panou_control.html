@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panou Control Administrare</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../js/config.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        body {
+            background-color: #121214;
+            color: #e1e1e6;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .back-btn {
+            background: #1d1d22;
+            border: 1px solid #29292e;
+            color: #e1e1e6;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: #29292e; }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 1024px) { .grid-container { grid-template-columns: 1fr; } }
+        .card {
+            background: #1d1d22;
+            border: 1px solid #29292e;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .card h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #a8a8b3;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 1200px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #a8a8b3;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: #121214;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            color: #e1e1e6;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00b37e;
+        }
+        .form-group input[readonly] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #121214;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .permission-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #00b37e;
+        }
+        .permission-item label {
+            margin: 0;
+            color: #e1e1e6;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #00b37e;
+            color: #001f15;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        .submit-btn:hover { background: #00c88c; }
+        .delete-btn {
+            width: 100%;
+            padding: 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .delete-btn:hover { background: #dc2626; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #29292e;
+        }
+        th {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #a8a8b3;
+            font-weight: 600;
+        }
+        td { font-size: 14px; }
+        .edit-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .edit-btn:hover { background: #4b5563; }
+        #loadingState {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #a8a8b3;
+        }
+        #mainContent { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Loading State -->
+    <div id="loadingState">Se încarcă...</div>
+
+    <!-- Main Content -->
+    <div id="mainContent">
+        <div class="header">
+            <a href="../../index.html" class="back-btn">← Înapoi</a>
+            <h1>Panou Control Administrare</h1>
+        </div>
+
+        <div class="grid-container">
+            <!-- Left Column: Lista utilizatori -->
+            <div class="card">
+                <h2>Lista utilizatori</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nume Complet</th>
+                            <th>Poreclă</th>
+                            <th>Telefon</th>
+                            <th>Rol</th>
+                            <th>Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Right Column: Dynamic Action Panel -->
+            <div id="actionPanel" class="card">
+                <h3 id="panelTitle">Crează utilizator nou</h3>
+                <form id="userForm">
+                    <div class="form-grid">
+                        <!-- Column 1: Date Utilizator -->
+                        <div class="form-column">
+                            <h4>Date Utilizator</h4>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" placeholder="email@exemplu.com" />
+                            </div>
+                            <div class="form-group" id="passwordField">
+                                <label for="parola">Parolă</label>
+                                <input type="password" id="parola" placeholder="Parolă" />
+                            </div>
+                            <div class="form-group">
+                                <label for="nume">Nume</label>
+                                <input type="text" id="nume" placeholder="Nume" />
+                            </div>
+                            <div class="form-group">
+                                <label for="prenume">Prenume</label>
+                                <input type="text" id="prenume" placeholder="Prenume" />
+                            </div>
+                            <div class="form-group">
+                                <label for="porecla">Poreclă</label>
+                                <input type="text" id="porecla" placeholder="Poreclă" />
+                            </div>
+                            <div class="form-group">
+                                <label for="telefon">Telefon</label>
+                                <input type="text" id="telefon" placeholder="Telefon" />
+                            </div>
+                            <div class="form-group">
+                                <label for="rol">Rol</label>
+                                <select id="rol">
+                                    <option value="1">Admin</option>
+                                    <option value="2">Manager</option>
+                                    <option value="3">Birou</option>
+                                    <option value="4">Magazioner</option>
+                                    <option value="5">Electrician</option>
+                                    <option value="6">Vopsitor</option>
+                                    <option value="7">Tinichigiu</option>
+                                    <option value="8">Mecanic</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Column 2: Permisiuni Acces -->
+                        <div class="form-column">
+                            <h4>Permisiuni Acces</h4>
+                            <div class="permission-item">
+                                <input type="checkbox" id="perm_panou_control" />
+                                <label for="perm_panou_control">Panou Control</label>
+                            </div>
+                            <div class="permission-item">
+                                <input type="checkbox" id="perm_constatari" />
+                                <label for="perm_constatari">Constatări</label>
+                            </div>
+                            <div class="permission-item">
+                                <input type="checkbox" id="perm_devize" />
+                                <label for="perm_devize">Devize</label>
+                            </div>
+                            <div class="permission-item">
+                                <input type="checkbox" id="perm_magazie" />
+                                <label for="perm_magazie">Magazie</label>
+                            </div>
+                            <div class="permission-item">
+                                <input type="checkbox" id="perm_flota" />
+                                <label for="perm_flota">Flotă Auto</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" id="submitBtn">Crează Utilizator</button>
+                    <button type="button" id="deleteUserBtn" class="delete-btn" style="display: none;">Șterge Utilizator</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditUserId = null;
+        let isEditMode = false;
+
+        async function initPanou() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const { data: profile, error } = await supabaseClient
+                .from('auth_profiles')
+                .select('rol_id, permissions')
+                .eq('id', session.user.id)
+                .single();
+
+            const isAllowed = !error && profile && (Number(profile.rol_id) === 1 || profile.permissions?.panou_control === true);
+            if (!isAllowed) {
+                alert("Acces interzis! Nu aveți permisiunea de a accesa Panoul de Control Admin.");
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            // Show main content
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+
+            // Load users
+            await incarcaUtilizatori();
+        }
+
+        async function incarcaUtilizatori() {
+            const { data: users, error } = await supabaseClient
+                .from('auth_profiles')
+                .select('id, nume, prenume, porecla, telefon, email, permissions, auth_roles(id, numire_rol)');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                // Store permissions as data attribute (JSON string)
+                const permissionsStr = user.permissions ? JSON.stringify(user.permissions) : '{}';
+                row.innerHTML = `
+                    <td>${user.nume} ${user.prenume}</td>
+                    <td>${user.porecla || '-'}</td>
+                    <td>${user.telefon || '-'}</td>
+                    <td>${user.auth_roles?.numire_rol || 'N/A'}</td>
+                    <td>
+                        <button class="edit-btn" 
+                            data-user-id="${user.id}" 
+                            data-nume="${user.nume}" 
+                            data-prenume="${user.prenume}" 
+                            data-porecla="${user.porecla || ''}" 
+                            data-telefon="${user.telefon || ''}" 
+                            data-email="${user.email || ''}" 
+                            data-rol-id="${user.auth_roles?.id || ''}"
+                            data-permissions='${permissionsStr}'>
+                            Editează
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Add click listeners to edit buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const userId = e.target.dataset.userId;
+                    const nume = e.target.dataset.nume;
+                    const prenume = e.target.dataset.prenume;
+                    const porecla = e.target.dataset.porecla;
+                    const telefon = e.target.dataset.telefon;
+                    const email = e.target.dataset.email;
+                    const rolId = e.target.dataset.rolId;
+                    const permissions = JSON.parse(e.target.dataset.permissions || '{}');
+
+                    activeazaModEdit(userId, nume, prenume, porecla, telefon, email, rolId, permissions);
+                });
+            });
+        }
+
+        function activeazaModEdit(userId, nume, prenume, porecla, telefon, email, rolId, permissions) {
+            isEditMode = true;
+            currentEditUserId = userId;
+
+            document.getElementById('panelTitle').textContent = 'Editează Utilizator';
+            document.getElementById('submitBtn').textContent = 'Actualizează Utilizator';
+            document.getElementById('passwordField').style.display = 'none';
+            document.getElementById('deleteUserBtn').style.display = 'block';
+            document.getElementById('email').readOnly = true;
+
+            document.getElementById('email').value = email;
+            document.getElementById('nume').value = nume;
+            document.getElementById('prenume').value = prenume;
+            document.getElementById('porecla').value = porecla;
+            document.getElementById('telefon').value = telefon;
+            if (rolId) {
+                document.getElementById('rol').value = rolId;
+            }
+            
+            // Populate permissions checkboxes
+            document.getElementById('perm_panou_control').checked = permissions?.panou_control || false;
+            document.getElementById('perm_constatari').checked = permissions?.constatari || false;
+            document.getElementById('perm_devize').checked = permissions?.devize || false;
+            document.getElementById('perm_magazie').checked = permissions?.magazie || false;
+            document.getElementById('perm_flota').checked = permissions?.flota || false;
+        }
+
+        function reseteazaFormular() {
+            isEditMode = false;
+            currentEditUserId = null;
+
+            document.getElementById('panelTitle').textContent = 'Crează utilizator nou';
+            document.getElementById('submitBtn').textContent = 'Crează Utilizator';
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('deleteUserBtn').style.display = 'none';
+            document.getElementById('email').readOnly = false;
+            document.getElementById('userForm').reset();
+            
+            // Clear permissions checkboxes
+            document.getElementById('perm_panou_control').checked = false;
+            document.getElementById('perm_constatari').checked = false;
+            document.getElementById('perm_devize').checked = false;
+            document.getElementById('perm_magazie').checked = false;
+            document.getElementById('perm_flota').checked = false;
+        }
+
+        // Form submission
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isEditMode) {
+                // UPDATE mode
+                const nume = document.getElementById('nume').value;
+                const prenume = document.getElementById('prenume').value;
+                const porecla = document.getElementById('porecla').value;
+                const telefon = document.getElementById('telefon').value;
+                const rol_id = document.getElementById('rol').value;
+                
+                // Create permissions object
+                const updatedPermissions = {
+                    panou_control: document.getElementById('perm_panou_control').checked,
+                    constatari: document.getElementById('perm_constatari').checked,
+                    devize: document.getElementById('perm_devize').checked,
+                    magazie: document.getElementById('perm_magazie').checked,
+                    flota: document.getElementById('perm_flota').checked
+                };
+
+                const { error } = await supabaseClient
+                    .from('auth_profiles')
+                    .update({ nume, prenume, porecla, telefon, rol_id: Number(rol_id), permissions: updatedPermissions })
+                    .eq('id', currentEditUserId);
+
+                if (error) {
+                    alert('Eroare la actualizare: ' + error.message);
+                    return;
+                }
+
+                alert('Actualizare realizată cu succes!');
+            } else {
+                // CREATE mode (placeholder for future)
+                alert('Creare: Funcționalitate viitoare');
+                return;
+            }
+            reseteazaFormular();
+            await incarcaUtilizatori();
+        });
+
+        // Delete button
+        document.getElementById('deleteUserBtn').addEventListener('click', () => {
+            if (window.confirm('Sigur doriți să ștergeți acest utilizator?')) {
+                alert('Ștergere: Funcționalitate viitoare');
+                reseteazaFormular();
+                incarcaUtilizatori();
+            }
+        });
+
+        // Reset form when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('actionPanel').contains(e.target) &&
+                !document.getElementById('usersTableBody').contains(e.target)) {
+                reseteazaFormular();
+            }
+        });
+
+        // Initialize on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', initPanou);
+    </script>
+
+</body>
+</html>
