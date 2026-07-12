@@ -18,6 +18,233 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @media (max-width: 767px) {
+            body {
+                height: auto !important;
+                max-height: none !important;
+                min-height: 100vh;
+                overflow-x: hidden;
+                overflow-y: visible;
+            }
+
+            header > div:first-child {
+                gap: 8px;
+                padding: 9px 12px;
+            }
+
+            header > div:first-child h1 {
+                font-size: 0.95rem;
+                line-height: 1.2;
+                letter-spacing: 0.08em;
+            }
+
+            header > div:nth-child(2) {
+                gap: 8px;
+                padding: 9px 12px;
+            }
+
+            #searchInput {
+                padding-top: 9px;
+                padding-bottom: 9px;
+            }
+
+            header > div:nth-child(2) > button {
+                min-height: 38px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            body > div.flex-1 {
+                display: block;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 10px;
+            }
+
+            body > div.flex-1 > .panel-card {
+                display: block;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                border: 0;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            body > div.flex-1 > .panel-card > div:first-child {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            table,
+            tbody,
+            tr,
+            td {
+                display: block;
+                width: 100%;
+            }
+
+            table thead {
+                display: none;
+            }
+
+            #avansBody {
+                display: grid;
+                gap: 8px;
+            }
+
+            #avansBody tr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas:
+                    "date plate"
+                    "model model"
+                    "details details"
+                    ". actions";
+                gap: 6px 10px;
+                padding: 11px;
+                border: 1px solid #1e293b;
+                border-radius: 14px;
+                background: #0f172a;
+            }
+
+            #avansBody td {
+                min-width: 0;
+                padding: 0;
+            }
+
+            #avansBody td:nth-child(1) {
+                grid-area: date;
+                align-self: center;
+                font-size: 0.8rem;
+            }
+
+            #avansBody td:nth-child(2) {
+                grid-area: model;
+                padding-top: 2px;
+            }
+
+            #avansBody td:nth-child(3) {
+                grid-area: plate;
+                justify-self: end;
+                width: auto;
+                white-space: nowrap;
+            }
+
+            #avansBody td:nth-child(4) {
+                grid-area: details;
+            }
+
+            #avansBody td:nth-child(4) input {
+                padding: 6px 8px;
+                border: 1px solid rgba(59, 130, 246, 0.35);
+                border-radius: 9px;
+                background: rgba(37, 99, 235, 0.12);
+                color: #93c5fd;
+                font-weight: 700;
+            }
+
+            #avansBody td:nth-child(4) input:placeholder-shown {
+                display: none;
+            }
+
+            #avansBody td:nth-child(5) {
+                grid-area: actions;
+                justify-self: end;
+                width: auto;
+            }
+
+            #avansBody td:nth-child(5) button {
+                width: 36px;
+                height: 36px;
+                margin: 0;
+            }
+
+            #avansBody tr > td:only-child {
+                grid-area: 1 / 1 / -1 / -1;
+                padding: 24px 10px;
+            }
+        }
+
+        /* Suprascriere finală: scroll normal al documentului pe mobil. */
+        @media (max-width: 767px) {
+            html {
+                height: auto !important;
+                min-height: 100% !important;
+                max-height: none !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            body.h-screen.overflow-hidden {
+                position: static !important;
+                height: auto !important;
+                min-height: 100% !important;
+                max-height: none !important;
+                overflow-x: hidden !important;
+                overflow-y: visible !important;
+            }
+
+            body > .flex-1.overflow-hidden.flex.flex-col.p-4 {
+                position: static !important;
+                flex: 0 0 auto !important;
+                height: auto !important;
+                min-height: 100% !important;
+                max-height: none !important;
+                overflow: visible !important;
+                overflow-x: hidden !important;
+            }
+
+            body > .flex-1.overflow-hidden.flex.flex-col.p-4
+                > .panel-card.flex-1.overflow-hidden {
+                position: static !important;
+                flex: 0 0 auto !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            body > .flex-1.overflow-hidden.flex.flex-col.p-4
+                > .panel-card.flex-1.overflow-hidden
+                > .overflow-x-auto.overflow-y-auto.flex-1 {
+                position: static !important;
+                flex: 0 0 auto !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            body > header.panel-card > div:first-child {
+                gap: 4px !important;
+                padding: 6px 10px !important;
+            }
+
+            body > header.panel-card > div:first-child h1 {
+                font-size: 0.9rem !important;
+                line-height: 1.15 !important;
+            }
+
+            body > header.panel-card > div:nth-child(2) {
+                gap: 6px !important;
+                padding: 7px 10px !important;
+            }
+
+            body > header.panel-card #searchInput {
+                padding-top: 7px !important;
+                padding-bottom: 7px !important;
+            }
+
+            body > header.panel-card > div:nth-child(2) > button {
+                min-height: 34px !important;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
+            }
+        }
     </style>
 </head>
 <body class="text-slate-200 font-sans h-screen flex flex-col overflow-hidden">
