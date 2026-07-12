@@ -13,6 +13,133 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; margin: 0; }
+
+        @media (max-width: 767px) {
+            html {
+                min-height: 100%;
+                overflow-x: hidden;
+            }
+
+            body.h-screen.overflow-hidden {
+                height: auto !important;
+                min-height: 100% !important;
+                max-height: none !important;
+                overflow-x: hidden !important;
+                overflow-y: visible !important;
+            }
+
+            body > header > div {
+                padding: 7px 10px;
+            }
+
+            body > header > div > div {
+                gap: 6px;
+            }
+
+            body > header a {
+                padding: 5px 7px;
+                font-size: 0.75rem;
+            }
+
+            body > header .text-xl {
+                font-size: 0.95rem;
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+
+            body > header + div.shrink-0 {
+                padding-right: 10px;
+                padding-left: 10px;
+            }
+
+            body > header + div.shrink-0 > div:first-child {
+                margin-top: 8px;
+            }
+
+            .history-tab-btn {
+                padding: 7px 8px !important;
+                font-size: 0.75rem !important;
+            }
+
+            #search-input {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                padding: 9px 16px;
+                font-size: 0.875rem;
+            }
+
+            body > header + div.shrink-0 > div:last-child {
+                display: none;
+            }
+
+            #results.flex-1.overflow-y-auto {
+                flex: 0 0 auto !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding-right: 10px;
+                padding-bottom: 12px;
+                padding-left: 10px;
+            }
+
+            #results-inner {
+                width: 100%;
+                overflow: visible;
+            }
+
+            #results-inner .hub-card {
+                margin-bottom: 8px;
+                padding: 11px;
+            }
+
+            #results-inner .hub-card > div {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas:
+                    "plate date"
+                    "number value"
+                    ". action";
+                gap: 7px 10px;
+            }
+
+            #results-inner .hub-card > div > div {
+                min-width: 0;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(1) {
+                grid-area: date;
+                justify-self: end;
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(2) {
+                grid-area: plate;
+                overflow-wrap: anywhere;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(3) {
+                grid-area: number;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(4) {
+                grid-area: value;
+                justify-self: end;
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(5) {
+                grid-area: action;
+                justify-self: end;
+                text-align: right;
+            }
+
+            #results-inner .hub-card > div > div:nth-child(5) a {
+                padding: 7px 12px;
+            }
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">

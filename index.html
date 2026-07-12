@@ -245,6 +245,10 @@
     </script>
 
     <style>
+      :root {
+        --mobile-header-height: 64px;
+      }
+
       body {
         font-family: "Inter", sans-serif;
       }
@@ -361,6 +365,204 @@
         background: rgba(255, 255, 255, 0.12);
         border-radius: 9999px;
       }
+
+      body.menu-open {
+        overflow: hidden;
+      }
+
+      /* Sidebar mobil tip drawer */
+      @media (max-width: 768px) {
+        .dashboard-topbar {
+          gap: 0.5rem;
+        }
+        #sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 60;
+          width: min(280px, 86vw) !important;
+          height: 100dvh;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+        #sidebar.mobile-open {
+          transform: translateX(0);
+        }
+        #sidebar.collapsed {
+          width: min(280px, 86vw) !important;
+        }
+        #sidebar .brand-text,
+        #sidebar.collapsed .brand-text {
+          display: flex !important;
+          opacity: 1 !important;
+        }
+        #sidebar .sidebar-label,
+        #sidebar .sidebar-section-title,
+        #sidebar .sidebar-brand-text,
+        #sidebar .collapse-label,
+        #sidebar.collapsed .sidebar-label,
+        #sidebar.collapsed .sidebar-section-title,
+        #sidebar.collapsed .sidebar-brand-text,
+        #sidebar.collapsed .collapse-label {
+          display: block !important;
+        }
+        #sidebar .nav-btn,
+        #sidebar.collapsed .nav-btn {
+          justify-content: flex-start;
+        }
+        #collapseBtn {
+          display: none;
+        }
+        .sidebar-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 50;
+          background: rgba(0, 0, 0, 0.55);
+        }
+        .topbar-actions {
+          gap: 0.5rem;
+        }
+        #global-search-container.mobile-search-open {
+          position: fixed;
+          top: var(--mobile-header-height);
+          left: 0;
+          right: 0;
+          z-index: 45;
+          display: block;
+          padding: 14px 16px 0;
+        }
+        #global-search-container.mobile-search-open .global-search-inner {
+          max-width: none;
+        }
+        #global-search-container.mobile-search-open #globalSearch {
+          height: 42px;
+          padding-right: 2.75rem;
+        }
+        #global-search-container.mobile-search-open .mobile-search-close {
+          display: grid;
+        }
+        #global-search-container.mobile-search-open #searchDropdown {
+          max-height: min(50dvh, 420px);
+          overflow-y: auto;
+        }
+        .mobile-search-btn.is-active {
+          color: #f1f2f4;
+          border-color: rgba(45, 212, 207, 0.45);
+          box-shadow: 0 0 0 1px rgba(45, 212, 207, 0.2);
+        }
+
+        /* Compactare dashboard pe mobil */
+        .dashboard-main {
+          padding-top: 1rem;
+          padding-bottom: 1.1rem;
+        }
+        .dashboard-greeting {
+          margin-bottom: 1rem;
+        }
+        .dashboard-greeting h1 {
+          font-size: 1.5rem;
+          line-height: 1.2;
+        }
+        .alert-center {
+          margin-bottom: 1.25rem;
+          padding: 0.85rem;
+        }
+        .alert-center-header {
+          margin-bottom: 0.75rem;
+          gap: 0.75rem;
+        }
+        .alert-center-title {
+          gap: 0.6rem;
+        }
+        .alert-center-title > span {
+          width: 1.85rem;
+          height: 1.85rem;
+        }
+        .alert-center-title > span i {
+          width: 1rem;
+          height: 1rem;
+        }
+        .section-header {
+          margin-bottom: 0.75rem;
+          gap: 0.6rem;
+        }
+        .section-header > span {
+          width: 1.85rem;
+          height: 1.85rem;
+        }
+        .section-header > span i {
+          width: 1rem;
+          height: 1rem;
+        }
+        .dashboard-section {
+          margin-bottom: 1.25rem;
+        }
+        .dashboard-columns {
+          gap: 1.25rem;
+        }
+        #alertGrid,
+        #heroGrid,
+        #birouGrid,
+        #serviceGrid {
+          gap: 0.75rem;
+        }
+        .mobile-compact-alert-card {
+          gap: 0.75rem;
+          padding: 0.8rem;
+        }
+        .mobile-compact-alert-card > span:first-child {
+          width: 2.35rem;
+          height: 2.35rem;
+        }
+        .mobile-compact-alert-card > span:first-child i {
+          width: 1rem;
+          height: 1rem;
+        }
+        .mobile-compact-alert-card .font-mono {
+          font-size: 1rem;
+        }
+        .mobile-compact-hero-card {
+          min-height: 9.75rem;
+          padding: 1rem;
+        }
+        .mobile-compact-hero-card .hero-card-icon {
+          width: 2.7rem;
+          height: 2.7rem;
+        }
+        .mobile-compact-hero-card .hero-card-icon i {
+          width: 1.15rem;
+          height: 1.15rem;
+        }
+        .mobile-compact-hero-card .hero-card-content {
+          margin-top: 1rem;
+        }
+        .mobile-compact-hero-card .hero-card-title {
+          font-size: 1.1rem;
+          line-height: 1.25;
+        }
+        .mobile-compact-hero-card .hero-card-description {
+          line-clamp: 3;
+          display: -webkit-box;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+        }
+        .mobile-compact-hero-card .hero-card-action {
+          margin-top: 0.65rem;
+        }
+        .mobile-compact-card {
+          gap: 0.75rem;
+          padding: 0.85rem;
+        }
+        .mobile-compact-card .compact-card-icon {
+          width: 2.35rem;
+          height: 2.35rem;
+        }
+        .mobile-compact-card .compact-card-icon i {
+          width: 1rem;
+          height: 1rem;
+        }
+      }
     </style>
   </head>
 
@@ -402,15 +604,37 @@
         </div>
       </aside>
 
+      <div id="sidebarOverlay" class="sidebar-overlay hidden md:hidden" aria-hidden="true"></div>
+
       <!-- ============ MAIN COLUMN ============ -->
       <div class="flex min-w-0 flex-1 flex-col">
         <!-- ===== TOP BAR ===== -->
         <header
-          class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-xl md:px-6"
+          class="dashboard-topbar sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-xl md:px-6"
         >
+          <button
+            type="button"
+            id="mobileMenuBtn"
+            aria-label="Deschide meniul"
+            aria-expanded="false"
+            class="mobile-menu-btn grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground md:hidden"
+          >
+            <i data-lucide="menu" class="size-[18px]"></i>
+          </button>
+
+          <button
+            type="button"
+            id="mobileSearchBtn"
+            aria-label="Deschide căutarea"
+            aria-expanded="false"
+            class="mobile-search-btn hidden size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground max-md:grid"
+          >
+            <i data-lucide="search" class="size-[18px]"></i>
+          </button>
+
           <!-- Search -->
-          <div class="relative hidden flex-1 md:block">
-            <div class="relative max-w-md">
+          <div id="global-search-container" class="relative hidden flex-1 md:block">
+            <div class="global-search-inner relative max-w-md">
               <i
                 data-lucide="search"
                 class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -422,6 +646,14 @@
                 placeholder="Caută deviz, VIN, client…"
                 class="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/25"
               />
+              <button
+                type="button"
+                id="mobileSearchCloseBtn"
+                aria-label="Închide căutarea"
+                class="mobile-search-close absolute right-2 top-1/2 hidden size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground md:hidden"
+              >
+                <i data-lucide="x" class="size-4"></i>
+              </button>
               <div
                 id="searchDropdown"
                 class="absolute left-0 top-full z-50 mt-1 hidden w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/40"
@@ -429,7 +661,7 @@
             </div>
           </div>
 
-          <div class="flex flex-1 items-center justify-end gap-3 md:flex-none">
+          <div class="topbar-actions flex flex-1 items-center justify-end gap-3 md:flex-none">
             <!-- Date + clock -->
             <div
               class="hidden items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 sm:flex"
@@ -516,9 +748,9 @@
         </header>
 
         <!-- ===== MAIN CONTENT ===== -->
-        <main class="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main class="dashboard-main mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8 md:py-8">
           <!-- Greeting -->
-          <div class="mb-6">
+          <div class="dashboard-greeting mb-6">
             <h1 id="greetingText" class="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
               Bună dimineața! Să curgă devizele!
             </h1>
@@ -530,10 +762,10 @@
           <!-- Alert center -->
           <section
             aria-label="Centru de alerte directe"
-            class="mx-auto mb-8 max-w-5xl rounded-2xl border border-border bg-card/60 p-4 shadow-xl shadow-black/20 md:p-5"
+            class="alert-center mx-auto mb-8 max-w-5xl rounded-2xl border border-border bg-card/60 p-4 shadow-xl shadow-black/20 md:p-5"
           >
-            <div class="mb-4 flex items-center justify-between gap-4">
-              <div class="flex items-center gap-2.5 shrink-0">
+            <div class="alert-center-header mb-4 flex items-center justify-between gap-4">
+              <div class="alert-center-title flex items-center gap-2.5 shrink-0">
                 <span class="grid size-8 place-items-center rounded-lg bg-destructive/15 text-destructive">
                   <i data-lucide="alert-triangle" class="size-[18px]"></i>
                 </span>
@@ -558,8 +790,8 @@
           </section>
 
           <!-- Detailing & Constatări — hero -->
-          <div id="detailingSection" class="mb-8">
-            <div class="mb-4 flex items-center gap-2.5">
+          <div id="detailingSection" class="dashboard-section mb-8">
+            <div class="section-header mb-4 flex items-center gap-2.5">
               <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                 <i data-lucide="sparkles" class="size-[18px]"></i>
               </span>
@@ -576,9 +808,9 @@
           </div>
 
           <!-- Bento grid: Birou + Service -->
-          <div class="grid gap-8 xl:grid-cols-2">
+          <div class="dashboard-columns grid gap-8 xl:grid-cols-2">
             <section id="birouSection">
-              <div class="mb-4 flex items-center gap-2.5">
+              <div class="section-header mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="receipt-text" class="size-[18px]"></i>
                 </span>
@@ -593,7 +825,7 @@
             </section>
 
             <section id="serviceSection">
-              <div class="mb-4 flex items-center gap-2.5">
+              <div class="section-header mb-4 flex items-center gap-2.5">
                 <span class="grid size-8 place-items-center rounded-lg bg-secondary text-primary">
                   <i data-lucide="wrench" class="size-[18px]"></i>
                 </span>
@@ -934,10 +1166,10 @@
             : "bg-destructive shadow-[0_0_6px_#ef4757]";
         return `
           <a href="${card.url}"
-            class="shimmer-on-hover group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-lg shadow-black/20 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30">
+            class="mobile-compact-card shimmer-on-hover group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-lg shadow-black/20 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30">
             ${card.statusDot ? `<span class="absolute right-3 top-3 size-2.5 rounded-full ${dotClass}"></span>` : ""}
             <div class="flex items-start justify-between">
-              <span class="grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-105 ${iconTone[card.tone]}">
+              <span class="compact-card-icon grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-105 ${iconTone[card.tone]}">
                 <i data-lucide="${card.icon}" class="size-5"></i>
               </span>
               <i data-lucide="arrow-up-right" class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"></i>
@@ -959,7 +1191,7 @@
         const s = alertLevel[a.level];
         return `
           <a href="${a.url}" style="--glow-soft:${s.glow[0]};--glow-strong:${s.glow[1]}"
-            class="group flex w-full items-center gap-3 rounded-xl border bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 ${s.anim ? s.anim : ''} ${s.ring}">
+            class="mobile-compact-alert-card group flex w-full items-center gap-3 rounded-xl border bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 ${s.anim ? s.anim : ''} ${s.ring}">
             <span class="grid size-11 shrink-0 place-items-center rounded-lg ${s.chip}">
               <i data-lucide="${a.icon}" class="size-5"></i>
             </span>
@@ -979,12 +1211,12 @@
           return `
             <a
               href="${card.url}"
-              class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
+              class="mobile-compact-hero-card group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-primary/60"
             >
               <div class="bg-grid absolute inset-0 opacity-60"></div>
               <div class="absolute -right-8 -top-10 size-40 rounded-full bg-primary/20 blur-3xl transition-all group-hover:bg-primary/30"></div>
               <div class="relative flex items-start justify-between">
-                <span class="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110">
+                <span class="hero-card-icon grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform group-hover:scale-110">
                   <i data-lucide="sparkles" class="size-6 animate-float"></i>
                 </span>
                 <span id="badge-detailing" class="flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
@@ -992,12 +1224,12 @@
                   —
                 </span>
               </div>
-              <div class="relative mt-6">
-                <h3 class="text-xl font-bold text-foreground">Fișă Detailing</h3>
-                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+              <div class="hero-card-content relative mt-6">
+                <h3 class="hero-card-title text-xl font-bold text-foreground">Fișă Detailing</h3>
+                <p class="hero-card-description mt-1 max-w-sm text-sm text-muted-foreground">
                   Deschide procesul complet de detailing și marchează fiecare etapă în timp real.
                 </p>
-                <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                <span class="hero-card-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
                   <i data-lucide="play" class="size-4 fill-current"></i>
                   Începe sesiunea
                 </span>
@@ -1008,25 +1240,25 @@
         return `
           <a
             href="${card.url}"
-            class="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
+            class="mobile-compact-hero-card group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border border-success/30 bg-card p-5 text-left shadow-xl shadow-black/25 transition-all hover:-translate-y-1 hover:border-success/60"
           >
             <div class="bg-grid absolute inset-0 opacity-60"></div>
             <div class="absolute -right-8 -top-10 size-40 rounded-full bg-success/20 blur-3xl transition-all group-hover:bg-success/30"></div>
             <div class="relative flex items-start justify-between">
-              <span class="grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110">
+              <span class="hero-card-icon grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110">
                 <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
               </span>
               <span class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
                 Recomandat
               </span>
             </div>
-            <div class="relative mt-6">
-              <h3 class="text-xl font-bold text-foreground">Constatări (old version)</h3>
-              <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+            <div class="hero-card-content relative mt-6">
+              <h3 class="hero-card-title text-xl font-bold text-foreground">Constatări (old version)</h3>
+              <p class="hero-card-description mt-1 max-w-sm text-sm text-muted-foreground">
                 Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
                 intervenție.
               </p>
-              <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success">
+              <span class="hero-card-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-success">
                 <i data-lucide="play" class="size-4 fill-current"></i>
                 Constatare nouă
               </span>
@@ -1064,6 +1296,12 @@
       /* ---------------- SIDEBAR TOGGLE ---------------- */
       const sidebar = document.getElementById("sidebar");
       const collapseBtn = document.getElementById("collapseBtn");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const mobileSearchBtn = document.getElementById("mobileSearchBtn");
+      const mobileSearchCloseBtn = document.getElementById("mobileSearchCloseBtn");
+      const sidebarOverlay = document.getElementById("sidebarOverlay");
+      const globalSearchContainer = document.getElementById("global-search-container");
+      const mobileSidebarMedia = window.matchMedia("(max-width: 768px)");
 
       if (localStorage.getItem("sidebarCollapsed") === "true") {
         sidebar.classList.add("collapsed");
@@ -1090,6 +1328,75 @@
     icon.setAttribute("data-lucide", collapsed ? "panel-left" : "chevron-left");
     lucide.createIcons();
 });
+
+      function syncMobileMenuState(isOpen) {
+        document.body.classList.toggle("menu-open", isOpen);
+        sidebar.classList.toggle("mobile-open", isOpen);
+        sidebarOverlay.classList.toggle("hidden", !isOpen);
+        mobileMenuBtn.setAttribute("aria-expanded", String(isOpen));
+      }
+
+      // Deschide sau închide meniul mobil
+      function openMobileSidebar() {
+        if (!mobileSidebarMedia.matches) return;
+        closeMobileSearch();
+        syncMobileMenuState(true);
+      }
+
+      function closeMobileSidebar() {
+        syncMobileMenuState(false);
+      }
+
+      function toggleMobileSidebar() {
+        if (!mobileSidebarMedia.matches) return;
+        const isOpen = sidebar.classList.contains("mobile-open");
+        if (!isOpen) {
+          openMobileSidebar();
+          return;
+        }
+        syncMobileMenuState(false);
+      }
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener("click", toggleMobileSidebar);
+      }
+
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener("click", closeMobileSidebar);
+      }
+
+      if (sidebar) {
+        sidebar.addEventListener("click", (event) => {
+          if (!mobileSidebarMedia.matches) return;
+          if (event.target.closest("a")) {
+            closeMobileSidebar();
+          }
+        });
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (globalSearchContainer?.classList.contains("mobile-search-open")) {
+          closeMobileSearch();
+          return;
+        }
+        if (sidebar.classList.contains("mobile-open")) {
+          closeMobileSidebar();
+        }
+      });
+
+      function handleMobileSidebarBreakpoint(event) {
+        if (!event.matches) {
+          closeMobileSearch();
+          closeMobileSidebar();
+        }
+      }
+
+      if (typeof mobileSidebarMedia.addEventListener === "function") {
+        mobileSidebarMedia.addEventListener("change", handleMobileSidebarBreakpoint);
+      } else {
+        mobileSidebarMedia.addListener(handleMobileSidebarBreakpoint);
+      }
 
       /* ---------------- LIVE CLOCK ---------------- */
       const DAYS = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
@@ -1424,6 +1731,42 @@
       const searchDropdown = document.getElementById("searchDropdown");
       let searchTimer = null;
 
+      // Controlează căutarea globală pe mobile
+      function openMobileSearch() {
+        if (!mobileSidebarMedia.matches || !globalSearchContainer || !globalSearch) return;
+        closeMobileSidebar();
+        globalSearchContainer.classList.remove("hidden");
+        globalSearchContainer.classList.add("mobile-search-open");
+        mobileSearchBtn.classList.add("is-active");
+        mobileSearchBtn.setAttribute("aria-expanded", "true");
+        requestAnimationFrame(() => {
+          globalSearch.focus({ preventScroll: true });
+        });
+      }
+
+      function closeMobileSearch() {
+        if (!globalSearchContainer || !globalSearch || !searchDropdown || !mobileSearchBtn) return;
+        globalSearchContainer.classList.remove("mobile-search-open");
+        if (mobileSidebarMedia.matches) {
+          globalSearchContainer.classList.add("hidden");
+          globalSearch.value = "";
+        }
+        searchDropdown.classList.add("hidden");
+        searchDropdown.innerHTML = "";
+        mobileSearchBtn.classList.remove("is-active");
+        mobileSearchBtn.setAttribute("aria-expanded", "false");
+      }
+
+      function toggleMobileSearch() {
+        if (!mobileSidebarMedia.matches || !globalSearchContainer) return;
+        const isOpen = globalSearchContainer.classList.contains("mobile-search-open");
+        if (isOpen) {
+          closeMobileSearch();
+          return;
+        }
+        openMobileSearch();
+      }
+
       function renderSearchDropdown(groups) {
         const total = groups.reduce((n, g) => n + g.items.length, 0);
         if (!total) {
@@ -1569,9 +1912,29 @@
         });
       }
 
+      if (mobileSearchBtn) {
+        mobileSearchBtn.addEventListener("click", toggleMobileSearch);
+      }
+
+      if (mobileSearchCloseBtn) {
+        mobileSearchCloseBtn.addEventListener("click", closeMobileSearch);
+      }
+
+      if (searchDropdown) {
+        searchDropdown.addEventListener("click", (event) => {
+          if (event.target.closest("a") && mobileSidebarMedia.matches) {
+            closeMobileSearch();
+          }
+        });
+      }
+
       document.addEventListener("click", (e) => {
         if (!searchDropdown || !globalSearch) return;
-        if (!searchDropdown.contains(e.target) && e.target !== globalSearch) {
+        if (
+          !searchDropdown.contains(e.target) &&
+          e.target !== globalSearch &&
+          !globalSearchContainer?.contains(e.target)
+        ) {
           searchDropdown.classList.add("hidden");
         }
       });
@@ -1651,7 +2014,7 @@ const SYSTEM_UPDATES = [
     title: "Versiune Nouă HUB v2.1",
     // Folosim o listă de mesaje în loc de un singur text lung:
     description: [
-       "⚠️ Atenție: La prima autentificare folosiți User-ul primit și parola asociată. Pentru resetarea parolei, contactați administratorul.",
+      "⚠️ Atenție: La prima autentificare folosiți User-ul primit și parola asociată. Pentru resetarea parolei, contactați administratorul.",
       "Sistem nou de autentificare cu User și parolă pentru acces securizat în HUB.",
       "Au fost introduse roluri și permisiuni individuale pentru fiecare utilizator și modul.",
       "Activitatea utilizatorilor este înregistrată în Audit Log pentru o mai bună trasabilitate.",

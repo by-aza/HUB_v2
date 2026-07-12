@@ -3,6 +3,7 @@
 <html lang="ro" class="dark">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deviz Reparație</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -352,6 +353,364 @@ td:nth-child(3) input {
     width: 100% !important;
 }
 	
+}
+
+@media (max-width: 767px) {
+    html,
+    body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    body > div.print\:hidden.fixed {
+        position: static;
+    }
+
+    body > div.print\:hidden.fixed > div {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 7px 10px;
+    }
+
+    body > div.print\:hidden.fixed > div > a {
+        justify-self: start;
+        padding: 5px 8px;
+        font-size: 0.75rem;
+        line-height: 1rem;
+    }
+
+    body > div.print\:hidden.fixed > div > div {
+        display: flex;
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 5px;
+    }
+
+    body > div.print\:hidden.fixed button {
+        margin-right: 0 !important;
+        padding: 6px 9px;
+        border-radius: 9px;
+        font-size: 0.7rem;
+        line-height: 1rem;
+    }
+
+    #labelUltimulDeviz {
+        width: 100%;
+        margin-left: 0;
+        font-size: 0.7rem;
+        line-height: 1rem;
+    }
+
+    body > main.print\:hidden {
+        width: 100%;
+        max-width: 100%;
+        padding-top: 0;
+        overflow: visible;
+    }
+
+    body > main.print\:hidden > div {
+        padding: 10px;
+    }
+
+    body > main.print\:hidden > div > div:first-child {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 9px;
+        padding: 11px;
+    }
+
+    body > main.print\:hidden > div > div:first-child > label {
+        width: 100%;
+    }
+
+    #screen-id-deviz,
+    #screen-data-deviz,
+    #screen-autovehicul,
+    #screen-nr-auto,
+    #screen-vin {
+        width: 100%;
+        max-width: none;
+    }
+
+    body > main.print\:hidden > div > div:first-child > div:last-child {
+        order: -1;
+        width: 100%;
+        margin-left: 0;
+        text-align: right;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2) {
+        width: 100%;
+        overflow: visible;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2) > div:first-child {
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 11px;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2) > div:first-child > div {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    #btn-add-row {
+        padding: 7px 10px;
+        font-size: 0.75rem;
+    }
+
+    #screen-items-table {
+        display: block;
+        width: 100%;
+        table-layout: auto;
+    }
+
+    #screen-items-table thead {
+        display: none;
+    }
+
+    #screen-items-table tbody {
+        display: grid;
+        gap: 8px;
+        width: 100%;
+        padding: 8px;
+    }
+
+    #screen-items-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "description description"
+            "quantity cost"
+            "tva markup"
+            "price total"
+            ". remove";
+        gap: 7px 8px;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid rgba(71, 85, 105, 0.7);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.65);
+    }
+
+    #screen-items-table tbody td {
+        display: block;
+        width: 100% !important;
+        min-width: 0;
+        padding: 0;
+        text-align: left;
+    }
+
+    #screen-items-table tbody td:nth-child(1) { grid-area: description; }
+    #screen-items-table tbody td:nth-child(2) { grid-area: quantity; }
+    #screen-items-table tbody td:nth-child(3) { grid-area: cost; }
+    #screen-items-table tbody td:nth-child(4) { grid-area: tva; }
+    #screen-items-table tbody td:nth-child(5) { grid-area: markup; }
+    #screen-items-table tbody td:nth-child(6) { grid-area: price; }
+    #screen-items-table tbody td:nth-child(7) { grid-area: total; }
+    #screen-items-table tbody td:nth-child(8) {
+        grid-area: remove;
+        justify-self: end;
+        width: auto !important;
+        text-align: right;
+    }
+
+    #screen-items-table tbody .internal-col.hidden {
+        display: none !important;
+    }
+
+    #screen-items-table tbody input.row-desc,
+    #screen-items-table tbody input.row-qty,
+    #screen-items-table tbody input.row-cost,
+    #screen-items-table tbody input.row-tva,
+    #screen-items-table tbody input.row-markup,
+    #screen-items-table tbody input.row-price {
+        width: 100%;
+        max-width: none;
+    }
+
+    #screen-items-table .row-total {
+        width: 100%;
+        padding-top: 6px;
+        text-align: right;
+    }
+
+    #screen-items-table .row-del {
+        display: inline-flex;
+        min-width: 36px;
+        min-height: 34px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: #be123c;
+        color: #fff;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2) > div.overflow-x-auto {
+        overflow: visible;
+    }
+}
+
+/* Layout mobil pentru structura interactivă; nu afectează documentul de print. */
+@media (max-width: 768px) {
+    html,
+    body,
+    body > main.print\:hidden,
+    body > main.print\:hidden > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow-x: hidden !important;
+        overflow-y: visible !important;
+    }
+
+    body {
+        position: static !important;
+        min-height: 100% !important;
+    }
+
+    body > div.print\:hidden.fixed,
+    body > div.print\:hidden.fixed > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    body > div.print\:hidden.fixed {
+        position: static !important;
+    }
+
+    body > div.print\:hidden.fixed > div {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body > div.print\:hidden.fixed > div > div {
+        display: flex !important;
+        min-width: 0 !important;
+        flex-wrap: wrap !important;
+    }
+
+    body > div.print\:hidden.fixed button,
+    body > div.print\:hidden.fixed a {
+        max-width: 100%;
+        flex: 0 1 auto;
+    }
+
+    body > main.print\:hidden > div > div:first-child {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    body > main.print\:hidden {
+        padding-top: 0 !important;
+    }
+
+    body > main.print\:hidden > div > div:first-child > div:last-child {
+        order: -1;
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    body > main.print\:hidden > div > div:first-child > label,
+    body > main.print\:hidden > div > div:first-child > label > input,
+    #screen-id-deviz,
+    #screen-data-deviz,
+    #screen-autovehicul,
+    #screen-nr-auto,
+    #screen-vin {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2),
+    body > main.print\:hidden > div > div:nth-child(2) > div,
+    #screen-items-table,
+    #screen-items-body {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    body > main.print\:hidden > div > div:nth-child(2) > div.overflow-x-auto {
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
+    #screen-items-table,
+    #screen-items-table[data-acquisition-details="hidden"] {
+        display: block !important;
+        table-layout: auto !important;
+    }
+
+    #screen-items-table thead {
+        display: none !important;
+    }
+
+    #screen-items-body {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    #screen-items-body > tr {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-areas:
+            "description description"
+            "quantity cost"
+            "tva markup"
+            "price total"
+            ". remove" !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        gap: 7px 8px;
+        padding: 10px;
+        border: 1px solid rgba(71, 85, 105, 0.7);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.65);
+    }
+
+    #screen-items-body > tr > td:nth-child(1) { grid-area: description; }
+    #screen-items-body > tr > td:nth-child(2) { grid-area: quantity; }
+    #screen-items-body > tr > td:nth-child(3) { grid-area: cost; }
+    #screen-items-body > tr > td:nth-child(4) { grid-area: tva; }
+    #screen-items-body > tr > td:nth-child(5) { grid-area: markup; }
+    #screen-items-body > tr > td:nth-child(6) { grid-area: price; }
+    #screen-items-body > tr > td:nth-child(7) { grid-area: total; }
+    #screen-items-body > tr > td:nth-child(8) { grid-area: remove; }
+
+    #screen-items-table .screen-desc-col,
+    #screen-items-table .screen-desc-cell,
+    #screen-items-body > tr > td,
+    #screen-items-body input,
+    #screen-items-body .row-total {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    #screen-items-body > tr > td:nth-child(8) {
+        width: auto !important;
+        justify-self: end;
+    }
+
+    #screen-items-body > tr > .internal-col.hidden {
+        display: none !important;
+    }
 }
 
 </style>

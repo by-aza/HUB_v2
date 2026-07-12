@@ -96,6 +96,10 @@
             min-height: 100vh;
             background: linear-gradient(180deg, #14161c 0%, #1a1d25 100%);
         }
+        .mobile-menu-toggle,
+        .sidebar-overlay {
+            display: none;
+        }
         /* Aici se modifică înălțimea barei principale */
         .glass-header {
             flex: 0 0 44px;
@@ -260,13 +264,967 @@
                 justify-content: flex-start;
             }
         }
+        @media (max-width: 767px) {
+            .admin-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 220ms ease;
+            }
+            .admin-sidebar.is-open {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 40;
+                display: block;
+                background: rgba(0, 0, 0, 0.58);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 220ms ease;
+            }
+            .sidebar-overlay.is-open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .mobile-menu-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+                flex: 0 0 36px;
+                border: 1px solid var(--border-strong);
+                border-radius: 0.75rem;
+                background: rgba(27, 30, 38, 0.72);
+                color: var(--text);
+            }
+            .admin-main {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+            #content-area {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+            .glass-header {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+        }
+        @media (max-width: 768px) {
+          body {
+            display: block !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+          }
+
+          .admin-sidebar {
+            position: fixed !important;
+            inset: 0 auto 0 0 !important;
+            width: min(280px, 86vw) !important;
+            height: 100dvh !important;
+            flex: none !important;
+            transform: translateX(-100%);
+            z-index: 60;
+          }
+
+          .admin-sidebar.mobile-open {
+            transform: translateX(0);
+          }
+
+          .admin-main {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            flex: none !important;
+          }
+
+          .content-area {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            padding: 12px !important;
+            overflow-x: hidden !important;
+          }
+        }
+        @media (max-width: 767px) {
+          #sectiune-megafon > div > .glass-panel {
+            padding: 14px;
+            border-radius: 10px;
+          }
+
+          #sectiune-megafon > div > .glass-panel:first-child > .flex:first-child {
+            gap: 10px;
+            margin-bottom: 10px;
+          }
+
+          #sectiune-megafon > div > .glass-panel:first-child > .flex:first-child > div:first-child {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 40px;
+            border-radius: 10px;
+            font-size: 1.35rem;
+          }
+
+          #sectiune-megafon h3 {
+            font-size: 1.25rem;
+            line-height: 1.2;
+          }
+
+          #sectiune-megafon .glass-panel:first-child .flex:first-child p {
+            font-size: 13px;
+            line-height: 1.35;
+            margin-top: 2px;
+          }
+
+          #sectiune-megafon #admin-message-input {
+            min-height: 70px;
+          }
+
+          #sectiune-megafon #admin-message-input + .flex {
+            justify-content: flex-start;
+            gap: 8px;
+            margin-top: 10px;
+          }
+
+          #sectiune-megafon > div > .glass-panel + .glass-panel {
+            margin-top: 12px;
+          }
+
+          #sectiune-megafon > div > .glass-panel + .glass-panel > .flex:first-child {
+            gap: 10px;
+            margin-bottom: 10px;
+          }
+
+          #sectiune-megafon table th,
+          #sectiune-megafon table td {
+            padding-top: 8px;
+            padding-bottom: 8px;
+          }
+
+          #sectiune-alerte > div {
+            gap: 12px;
+          }
+
+          #sectiune-alerte h2 {
+            margin-bottom: 10px;
+            font-size: 1.125rem;
+            line-height: 1.3;
+          }
+
+          #sectiune-alerte > div > .flex-shrink-0 .glass-panel {
+            padding: 14px;
+            border-radius: 10px;
+          }
+
+          #sectiune-alerte .admin-table-panel,
+          #sectiune-alerte .admin-table-scroll {
+            overflow-x: hidden;
+          }
+
+          #sectiune-alerte table,
+          #sectiune-alerte #tabel-flota-alerte {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #sectiune-alerte thead {
+            display: none;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte {
+            padding: 8px;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte tr {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 8px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte td {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            padding: 0 0 10px;
+            text-align: left;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte td:last-child {
+            padding-bottom: 0;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte td::before {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+          }
+
+          #sectiune-alerte #tabel-flota-alerte td:nth-child(1)::before { content: "Nr. Auto"; }
+          #sectiune-alerte #tabel-flota-alerte td:nth-child(2)::before { content: "Expiră în / status"; }
+          #sectiune-alerte #tabel-flota-alerte td:nth-child(3)::before { content: "Email șofer"; }
+
+          #sectiune-alerte #tabel-flota-alerte input {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+          }
+
+          #sectiune-alerte #tabel-flota-alerte td:last-child button {
+            display: block;
+          }
+
+          #sectiune-devize .admin-fixed-shell {
+            gap: 12px;
+          }
+
+          #sectiune-devize .admin-fixed-shell > .glass-panel:first-child {
+            padding: 12px;
+            border-radius: 10px;
+          }
+
+          #sectiune-devize .admin-fixed-shell > .glass-panel:first-child p {
+            margin-top: 2px;
+            font-size: 13px;
+            line-height: 1.35;
+          }
+
+          #sectiune-devize .admin-fixed-shell > .glass-panel:first-child > .flex {
+            margin-top: 10px;
+            gap: 8px;
+          }
+
+          #sectiune-devize .devize-subtab-btn {
+            padding: 7px 10px;
+            font-size: 0.75rem;
+          }
+
+          #sectiune-devize .admin-table-panel,
+          #sectiune-devize .admin-table-scroll {
+            overflow-x: hidden;
+          }
+
+          #sectiune-devize table,
+          #sectiune-devize tbody {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #sectiune-devize thead {
+            display: none;
+          }
+
+          #sectiune-devize tbody {
+            padding: 8px;
+          }
+
+          #sectiune-devize tbody tr {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 8px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #sectiune-devize tbody tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #sectiune-devize tbody td {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            padding: 0 0 10px;
+            text-align: left;
+          }
+
+          #sectiune-devize tbody td:last-child {
+            padding-bottom: 0;
+            text-align: right;
+          }
+
+          #sectiune-devize tbody td:not([colspan])::before {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+          }
+
+          #sectiune-devize tbody td:nth-child(1)::before { content: "Nr. Deviz"; }
+          #sectiune-devize tbody td:nth-child(2)::before { content: "Auto / Client"; }
+          #sectiune-devize tbody td:nth-child(3)::before { content: "Total"; }
+          #sectiune-devize tbody td:nth-child(4)::before { content: "Creat de"; }
+          #sectiune-devize tbody td:nth-child(5)::before { content: "Data"; }
+
+          #sectiune-devize tbody tr {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            row-gap: 8px;
+            column-gap: 12px;
+            align-items: center;
+            padding: 12px;
+          }
+
+          #sectiune-devize tbody td {
+            width: auto;
+            padding: 0;
+          }
+
+          #sectiune-devize tbody td:not([colspan])::before {
+            display: none;
+            content: none;
+          }
+
+          #sectiune-devize tbody td:nth-child(1) { grid-column: 1; grid-row: 1; }
+          #sectiune-devize tbody td:nth-child(5) { grid-column: 2; grid-row: 1; }
+          #sectiune-devize tbody td:nth-child(2) { grid-column: 1; grid-row: 2; }
+          #sectiune-devize tbody td:nth-child(3) { grid-column: 2; grid-row: 2; text-align: right; }
+          #sectiune-devize tbody td:nth-child(4) { grid-column: 1; grid-row: 3; }
+          #sectiune-devize tbody td:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right; }
+
+          #sectiune-consumabile .admin-fixed-shell > .glass-panel:first-child {
+            padding: 12px;
+            border-radius: 10px;
+          }
+
+          #sectiune-consumabile .admin-fixed-shell > .glass-panel:first-child h2 {
+            font-size: 1.25rem;
+            line-height: 1.3;
+          }
+
+          #sectiune-consumabile .admin-fixed-shell > .glass-panel:first-child p {
+            margin-top: 2px;
+            font-size: 13px;
+            line-height: 1.35;
+          }
+
+          #sectiune-consumabile .admin-fixed-shell > .glass-panel:first-child > div:nth-child(2) {
+            display: block;
+            margin-top: 10px;
+          }
+
+          #sectiune-consumabile #stock-search-input {
+            display: block;
+            width: 100%;
+            height: 34px;
+            padding-top: 6px;
+            padding-bottom: 6px;
+          }
+
+          #sectiune-consumabile .admin-fixed-shell > .glass-panel:first-child > div:nth-child(2) > div {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            gap: 6px;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 8px;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+          }
+
+          #sectiune-consumabile .consumabile-subtab-btn {
+            flex: 0 0 auto;
+            height: 34px;
+            padding: 0 10px;
+            white-space: nowrap;
+          }
+
+          #sectiune-consumabile #stock-admin-status {
+            margin-top: 8px;
+            line-height: 1.25;
+          }
+
+          #consumabile-nomenclator-tab-panel,
+          #consumabile-nomenclator-tab-panel .admin-table-scroll {
+            overflow-x: hidden;
+          }
+
+          #consumabile-nomenclator-tab-panel table,
+          #consumabile-nomenclator-tab-panel #stock-products-body {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #consumabile-nomenclator-tab-panel thead {
+            display: none;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body {
+            padding: 7px;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 7px 10px;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 7px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td {
+            display: block;
+            width: auto;
+            min-width: 0;
+            padding: 0;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td:nth-child(3) {
+            grid-column: 2;
+            grid-row: 1;
+            text-align: right;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td:nth-child(2) {
+            grid-column: 1 / -1;
+            grid-row: 2;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td:nth-child(4) {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            text-align: right;
+          }
+
+          #consumabile-nomenclator-tab-panel #stock-products-body td[colspan] {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            text-align: center;
+          }
+
+          #consumabile-miscari-tab-panel > div:first-child {
+            padding: 11px;
+          }
+
+          #consumabile-miscari-tab-panel > div:first-child > div {
+            gap: 8px;
+          }
+
+          #consumabile-miscari-tab-panel > div:first-child > div > div:first-child {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          #consumabile-miscari-tab-panel > div:first-child label,
+          #consumabile-miscari-tab-panel > div:first-child input {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #consumabile-miscari-tab-panel > div:first-child > div > div:last-child {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+          }
+
+          #consumabile-miscari-tab-panel,
+          #consumabile-miscari-tab-panel .admin-table-scroll {
+            overflow-x: hidden;
+          }
+
+          #consumabile-miscari-tab-panel table,
+          #consumabile-miscari-tab-panel #stock-movements-body {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #consumabile-miscari-tab-panel thead {
+            display: none;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body {
+            padding: 7px;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 6px 12px;
+            align-items: start;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 7px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td {
+            display: block;
+            width: auto;
+            min-width: 0;
+            padding: 0;
+            text-align: left;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td::before {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(1)::before { content: "Data"; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(2)::before { content: "Produs"; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(3)::before { content: "Tip"; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(4)::before { content: "Cantitate"; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(5)::before { content: "Detalii"; }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(2) {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            overflow-wrap: anywhere;
+          }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(1) { grid-column: 1; grid-row: 2; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(3) { grid-column: 2; grid-row: 2; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(4) { grid-column: 1; grid-row: 3; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(5) { grid-column: 2; grid-row: 3; }
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(6) {
+            grid-column: 1 / -1;
+            grid-row: 4;
+            justify-self: end;
+            text-align: right;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td:nth-child(6)::before,
+          #consumabile-miscari-tab-panel #stock-movements-body td[colspan]::before {
+            display: none;
+            content: none;
+          }
+
+          #consumabile-miscari-tab-panel #stock-movements-body td[colspan] {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            text-align: center;
+          }
+
+          #sectiune-consumabile:has(#consumabile-miscari-tab-panel:not(.hidden)),
+          #sectiune-consumabile:has(#consumabile-miscari-tab-panel:not(.hidden)) > .admin-fixed-shell,
+          #consumabile-miscari-tab-panel {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+          }
+
+          #consumabile-miscari-tab-panel.admin-table-panel {
+            flex: none;
+            min-height: 0;
+          }
+
+          #consumabile-miscari-tab-panel .admin-table-scroll {
+            height: auto;
+            max-height: none;
+            overflow-y: visible;
+            overflow-x: hidden;
+          }
+
+          #consumabile-produse-tab-panel > div:first-child {
+            padding: 10px 11px;
+            overflow: hidden;
+          }
+
+          #consumabile-produse-tab-panel > div:first-child > div {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+          }
+
+          #consumabile-produse-tab-panel .stock-products-filter-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
+          }
+
+          #consumabile-produse-tab-panel,
+          #consumabile-produse-tab-panel .admin-table-scroll {
+            overflow-x: hidden;
+          }
+
+          #consumabile-produse-tab-panel table,
+          #consumabile-produse-tab-panel #stock-products-admin-body {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #consumabile-produse-tab-panel thead {
+            display: none;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body {
+            padding: 7px;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 7px 12px;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 7px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td {
+            display: block;
+            width: auto;
+            min-width: 0;
+            padding: 0;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td:nth-child(4) {
+            grid-column: 2;
+            grid-row: 1;
+            text-align: right;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td:nth-child(2) {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            overflow-wrap: anywhere;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td:nth-child(3) {
+            grid-column: 1;
+            grid-row: 3;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td:nth-child(5) {
+            grid-column: 2;
+            grid-row: 3;
+            text-align: right;
+          }
+
+          #consumabile-produse-tab-panel #stock-products-admin-body td[colspan] {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            text-align: center;
+          }
+
+          #consumabile-produse-tab-panel [data-archive-stock-product] {
+            background-color: rgb(225 29 72);
+          }
+
+          #sectiune-audit-log,
+          #sectiune-audit-log > .admin-fixed-shell,
+          #sectiune-audit-log .admin-table-panel {
+            height: auto;
+            max-height: none;
+            min-height: 0;
+            overflow: visible;
+          }
+
+          #sectiune-audit-log .admin-table-panel {
+            flex: none;
+          }
+
+          #sectiune-audit-log .admin-table-scroll {
+            height: auto;
+            max-height: none;
+            overflow-y: visible;
+            overflow-x: hidden;
+          }
+
+          #sectiune-audit-log table,
+          #sectiune-audit-log #audit-log-body {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #sectiune-audit-log thead {
+            display: none;
+          }
+
+          #sectiune-audit-log #audit-log-body {
+            padding: 7px;
+          }
+
+          #sectiune-audit-log #audit-log-body tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 7px 12px;
+            align-items: start;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 7px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #sectiune-audit-log #audit-log-body tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #sectiune-audit-log #audit-log-body td {
+            display: block;
+            width: auto;
+            min-width: 0;
+            padding: 0;
+            overflow-wrap: anywhere;
+          }
+
+          #sectiune-audit-log #audit-log-body td:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+          }
+
+          #sectiune-audit-log #audit-log-body td:nth-child(2) {
+            grid-column: 2;
+            grid-row: 1;
+            text-align: right;
+          }
+
+          #sectiune-audit-log #audit-log-body td:nth-child(3) {
+            grid-column: 1;
+            grid-row: 2;
+          }
+
+          #sectiune-audit-log #audit-log-body td:nth-child(4) {
+            grid-column: 2;
+            grid-row: 2;
+            text-align: right;
+          }
+
+          #sectiune-audit-log #audit-log-body td:nth-child(5) {
+            grid-column: 1 / -1;
+            grid-row: 3;
+          }
+
+          #sectiune-audit-log #audit-log-body td[colspan] {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            text-align: center;
+          }
+
+          #sectiune-useri > div {
+            width: 100%;
+            max-width: 100%;
+          }
+
+          #sectiune-useri > div > .glass-panel:first-child {
+            padding: 12px;
+          }
+
+          #sectiune-useri > div > .glass-panel:first-child h2 {
+            font-size: 1.25rem;
+          }
+
+          #sectiune-useri > div > .grid {
+            display: block;
+          }
+
+          #sectiune-useri > div > .grid > .glass-panel:first-child {
+            padding: 11px;
+          }
+
+          #sectiune-useri > div > .grid > .glass-panel:first-child > div {
+            overflow-x: hidden;
+          }
+
+          #sectiune-useri table,
+          #sectiune-useri #usersTableBody {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          #sectiune-useri thead {
+            display: none;
+          }
+
+          #sectiune-useri #usersTableBody tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 5px 10px;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+            margin-bottom: 7px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+          }
+
+          #sectiune-useri #usersTableBody tr:last-child {
+            margin-bottom: 0;
+          }
+
+          #sectiune-useri #usersTableBody td {
+            display: block;
+            width: auto;
+            min-width: 0;
+            padding: 0;
+            overflow-wrap: anywhere;
+          }
+
+          #sectiune-useri #usersTableBody td:nth-child(1) { grid-column: 1; grid-row: 1; font-weight: 700; }
+          #sectiune-useri #usersTableBody td:nth-child(4) { grid-column: 2; grid-row: 1; text-align: right; }
+          #sectiune-useri #usersTableBody td:nth-child(2) { grid-column: 1; grid-row: 2; }
+          #sectiune-useri #usersTableBody td:nth-child(5) { grid-column: 2; grid-row: 2; text-align: right; }
+          #sectiune-useri #usersTableBody td:nth-child(3) {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            font-size: 0.75rem;
+            color: var(--muted);
+          }
+
+          #sectiune-useri #usersTableBody td[colspan] {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            text-align: center;
+          }
+
+          #sectiune-useri #actionPanel {
+            display: none;
+            width: 100%;
+            padding: 12px;
+          }
+
+          #sectiune-useri.user-mobile-editing > div > .glass-panel:first-child,
+          #sectiune-useri.user-mobile-editing > div > .grid > .glass-panel:first-child {
+            display: none;
+          }
+
+          #sectiune-useri.user-mobile-editing #actionPanel {
+            display: block;
+          }
+
+          #sectiune-useri #mobile-back-to-users {
+            display: inline-flex !important;
+            margin-bottom: 10px;
+          }
+
+          #sectiune-useri #userForm,
+          #sectiune-useri #userForm > .grid,
+          #sectiune-useri #userForm .xl\:grid-cols-2,
+          #sectiune-useri #userForm .sm\:grid-cols-2 {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          #sectiune-useri #userForm {
+            gap: 0;
+          }
+
+          #sectiune-useri #userForm > * + * {
+            margin-top: 10px;
+          }
+
+          #sectiune-useri #userForm > .grid,
+          #sectiune-useri #userForm .grid {
+            gap: 10px;
+          }
+
+          #sectiune-useri #userForm .space-y-2 > * + * {
+            margin-top: 4px;
+          }
+
+          #sectiune-useri #userForm > .rounded-xl {
+            padding: 10px;
+          }
+
+          #sectiune-useri #userForm > .rounded-xl > h4 {
+            margin-bottom: 8px;
+          }
+
+          #sectiune-useri #userForm > .rounded-xl .rounded-xl {
+            padding: 9px;
+          }
+
+          #sectiune-useri #userForm > .rounded-xl h5 {
+            margin-bottom: 6px;
+          }
+
+          #sectiune-useri #userForm > .flex:last-child {
+            gap: 7px;
+          }
+
+          #sectiune-useri #userForm > .flex:last-child button {
+            padding: 7px 10px;
+            font-size: 0.75rem;
+          }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 min-h-screen flex overflow-hidden">
 
     <!-- ===== MENIU LATERAL ADMIN ===== -->
     <!-- MENIU LATERAL (SIDEBAR) -->
-    <aside class="admin-sidebar sticky top-0 h-screen flex-shrink-0 flex flex-col backdrop-blur-md">
+    <aside id="admin-sidebar" class="admin-sidebar sticky top-0 h-screen flex-shrink-0 flex flex-col backdrop-blur-md">
         <div class="h-16 flex items-center px-6 border-b border-slate-800/60">
             <h1 class="text-lg font-bold tracking-wider text-rose-500">🛡️ HUB ADMIN</h1>
         </div>
@@ -300,12 +1258,17 @@
         </div>
     </aside>
 
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
+
     <!-- ZONA DE CONȚINUT PRINCIPALĂ -->
     <main class="admin-main flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- ===== HEADER PRINCIPAL ===== -->
         <!-- Header Conținut -->
         <header class="glass-header flex items-center justify-between px-8">
+            <button id="mobile-menu-toggle" type="button" class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Deschide meniul" aria-controls="admin-sidebar" aria-expanded="false">
+                <span aria-hidden="true">☰</span>
+            </button>
             <h2 id="page-title" class="text-xl font-semibold text-slate-100">Megafon (Anunțuri Interne)</h2>
             <div class="flex items-center gap-3">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -686,6 +1649,7 @@
 
                         <!-- ===== FORMULAR UTILIZATORI PENTRU MODIFICĂRI VIITOARE ===== -->
                         <div id="actionPanel" class="glass-panel p-5">
+                            <button id="mobile-back-to-users" type="button" class="hidden rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-100">← Înapoi la listă</button>
                             <h3 id="panelTitle" class="text-lg font-semibold text-slate-100 mb-4">Crează utilizator nou</h3>
                             <form id="userForm" class="space-y-4">
                                 <div class="grid gap-4 md:grid-cols-2">
@@ -793,6 +1757,29 @@
     </main>
 
     <script>
+        function setMobileSidebarState(isOpen) {
+            const sidebar = document.querySelector('.admin-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggle = document.getElementById('mobile-menu-toggle');
+            sidebar?.classList.toggle('is-open', isOpen);
+            overlay?.classList.toggle('is-open', isOpen);
+            toggle?.setAttribute('aria-expanded', String(isOpen));
+            toggle?.setAttribute('aria-label', isOpen ? 'Închide meniul' : 'Deschide meniul');
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.admin-sidebar');
+            setMobileSidebarState(!sidebar?.classList.contains('is-open'));
+        }
+
+        function closeMobileSidebar() {
+            setMobileSidebarState(false);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeMobileSidebar();
+        });
+
         // Schimbă lista vizibilă între devize estimative și finale
         function switchDevizeSubtab(tabId) {
             document.querySelectorAll('.devize-subtab-btn').forEach((btn) => {
@@ -1374,6 +2361,7 @@
                 if (sectiuneId === 'sectiune-audit-log' && typeof loadAuditLogs === 'function') {
                     loadAuditLogs();
                 }
+                closeMobileSidebar();
                 return true;
             } catch (error) {
                 console.error(error);
@@ -1552,6 +2540,10 @@
                     btn.addEventListener('click', () => {
                         const user = JSON.parse(btn.getAttribute('data-user') || '{}');
                         populateUserForm(user);
+                        if (window.matchMedia('(max-width: 767px)').matches) {
+                            document.getElementById('sectiune-useri')?.classList.add('user-mobile-editing');
+                            document.getElementById('actionPanel')?.scrollIntoView({ block: 'start' });
+                        }
                     });
                 });
             } catch (error) {
@@ -1563,6 +2555,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             resetUserForm();
+            document.getElementById('mobile-back-to-users')?.addEventListener('click', () => {
+                document.getElementById('sectiune-useri')?.classList.remove('user-mobile-editing');
+                document.getElementById('sectiune-useri')?.scrollIntoView({ block: 'start' });
+            });
             document.getElementById('porecla')?.addEventListener('blur', (event) => {
                 const input = event.currentTarget;
                 input.value = normalizeUserValue(input.value);
@@ -3312,13 +4308,7 @@
             }
         }
 
-        function renderFleetAlertRows(fleetRows, configRows) {
-            const configByPlate = new Map(
-                (configRows || [])
-                    .filter((row) => row.nr_auto)
-                    .map((row) => [String(row.nr_auto).trim().toUpperCase(), row.email_sofer || ''])
-            );
-
+        function renderFleetAlertRows(fleetRows) {
             if (!fleetRows.length) {
                 alertsFleetBody.innerHTML = `
                     <tr>
@@ -3330,7 +4320,7 @@
 
             alertsFleetBody.innerHTML = fleetRows.map((car) => {
                 const plate = String(car.nr_inmatriculare || '').trim().toUpperCase();
-                const email = configByPlate.get(plate) || '';
+                const email = car.email_sofer || '';
                 return `
                     <tr class="align-middle">
                         <td class="py-3 pr-4 font-mono font-bold text-slate-200">${escapeHtml(plate || '-')}</td>
@@ -3360,26 +4350,25 @@
         async function loadGeneralAlertSettings() {
             const { data, error } = await sb
                 .from('config_alerte')
-                .select('emailuri_generale')
-                .eq('tip', 'general')
+                .select('valoare')
+                .eq('cheie', 'email_general')
                 .limit(1);
 
             const generalAlertEmails = document.getElementById('input-email-general');
             if (error) throw error;
-            if (generalAlertEmails) generalAlertEmails.value = data?.[0]?.emailuri_generale || '';
+            if (generalAlertEmails) generalAlertEmails.value = data?.[0]?.valoare || '';
         }
 
         async function loadFleetAlertSettings() {
-            const [{ data: fleetRows, error: fleetError }, { data: configRows, error: configError }] = await Promise.all([
-                sb.from('flota_auto').select('nr_inmatriculare').order('nr_inmatriculare', { ascending: true }),
-                sb.from('config_alerte').select('nr_auto, email_sofer')
-            ]);
+            const { data: fleetRows, error: fleetError } = await sb
+                .from('flota_auto')
+                .select('id, nr_inmatriculare, email_sofer')
+                .order('nr_inmatriculare', { ascending: true });
 
             if (fleetError) throw fleetError;
-            if (configError) throw configError;
 
             const alertsFleetBody = document.getElementById('tabel-flota-alerte');
-            if (alertsFleetBody) renderFleetAlertRows(fleetRows || [], configRows || []);
+            if (alertsFleetBody) renderFleetAlertRows(fleetRows || []);
         }
 
         async function loadAlertePage() {
@@ -3407,7 +4396,8 @@
             try {
                 const { error } = await sb
                     .from('config_alerte')
-                    .upsert({ tip: 'general', emailuri_generale: generalAlertEmails.value.trim() }, { onConflict: 'tip' });
+                    .update({ valoare: generalAlertEmails.value.trim() })
+                    .eq('cheie', 'email_general');
 
                 if (error) throw error;
                 setAlertsStatus('Setările generale au fost salvate.', 'success');
@@ -3429,8 +4419,9 @@
 
             try {
                 const { error } = await sb
-                    .from('config_alerte')
-                    .upsert({ nr_auto: plate, email_sofer: input.value.trim() }, { onConflict: 'nr_auto' });
+                    .from('flota_auto')
+                    .update({ email_sofer: input.value.trim() })
+                    .eq('nr_inmatriculare', plate);
 
                 if (error) throw error;
                 setAlertsStatus(`Email-ul pentru ${plate} a fost salvat.`, 'success');
@@ -3511,7 +4502,9 @@ async function incarcaFlotaAlerte() {
     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">Se încarcă mașinile...</td></tr>';
 
     try {
-        const { data: masini, error } = await sb.from('flota_auto').select('*');
+        const { data: masini, error } = await sb
+            .from('flota_auto')
+            .select('id, nr_inmatriculare, email_sofer');
         if (error) throw error;
 
         tbody.innerHTML = ''; 
