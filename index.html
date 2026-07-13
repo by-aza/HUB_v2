@@ -1525,22 +1525,25 @@
       }
 
       async function loadAvansBadge() {
-        const today = todayISO();
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(startOfToday);
+        endOfToday.setDate(endOfToday.getDate() + 1);
+
         const { data, error } = await sb
-          .from("evidente_avansuri")
-          .select("detalii_avans, data_crearii")
-          .eq("este_arhivat", false)
-          .eq("data_crearii", today);
+          .from("evidente_avansuri_plati")
+          .select("suma, data_platii")
+          .gte("data_platii", startOfToday.toISOString())
+          .lt("data_platii", endOfToday.toISOString());
 
         if (error) {
-          patchCard(birouCards, "avansuri", { meta: "—" });
+          console.error(error);
+          patchCard(birouCards, "avansuri", { meta: "Azi: 0 Lei" });
           return;
         }
 
-        const sum = (data || []).reduce((acc, r) => acc + extractLei(r.detalii_avans), 0);
-        patchCard(birouCards, "avansuri", {
-          meta: sum > 0 ? `Azi: +${formatLei(sum)} Lei` : "Azi: 0 Lei",
-        });
+        const sum = (data || []).reduce((acc, r) => acc + (Number(r?.suma) || 0), 0);
+        patchCard(birouCards, "avansuri", { meta: `Azi: ${formatLei(sum)} Lei` });
       }
 
       async function loadAwbBadge() {
@@ -1954,6 +1957,7 @@
       sb.channel("dashboard_badges")
         .on("postgres_changes", { event: "*", schema: "public", table: "generator_logs" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri_plati" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "evidenta_awb" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "admin_announcements" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "contracte" }, refreshDashboard)
