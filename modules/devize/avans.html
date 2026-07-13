@@ -6,18 +6,380 @@
     <title>Evidență Avansuri - HUB Service Auto</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/config.js"></script>
     <script src="/js/audit.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="manifest" href="/manifest.json">
     
     <style>
-        body { background-color: #020617; }
-        .panel-card { background-color: #0f172a; border: 1px solid #1e293b; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        :root {
+            --bg: #14161c;
+            --surface: #181b22;
+            --card: #1b1e26;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f1f2f4;
+            --muted: #98a0ad;
+            --accent: #2dd4cf;
+            --danger: #ef4757;
+            --success: #27c79a;
+            --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+        }
+
+        html {
+            background: var(--bg);
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top, rgba(45, 212, 207, 0.08), transparent 30%),
+                var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .panel-card {
+            background: rgba(27, 30, 38, 0.96);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .page-header,
+        .table-shell,
+        #avansModal .panel-card,
+        #paymentModal .panel-card,
+        #paymentHistoryModal .panel-card {
+            border-radius: 16px;
+        }
+
+        .mono-text,
+        .avans-col-car .font-mono,
+        .avans-col-total .font-bold,
+        #totalAvans {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #161922; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2f3745; border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #465063; }
+
+        .page-header .header-top {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header .header-intro {
+            min-width: 0;
+            text-align: center;
+        }
+
+        .page-header .header-intro h1 {
+            margin: 0;
+            font-size: 1.15rem;
+            line-height: 1.15;
+            letter-spacing: 0.08em;
+            color: var(--text);
+        }
+
+        .page-header .header-intro p {
+            margin: 6px 0 0;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .page-header .back-link {
+            color: var(--muted);
+        }
+
+        .page-header .back-link:hover {
+            color: var(--text);
+        }
+
+        .page-header .add-btn {
+            min-height: 40px;
+            padding: 0 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(45, 212, 207, 0.28);
+            background: rgba(45, 212, 207, 0.16);
+            color: #dffdfb;
+            box-shadow: none;
+        }
+
+        .page-header .add-btn:hover {
+            background: rgba(45, 212, 207, 0.24);
+        }
+
+        .page-header .header-search {
+            padding: 12px 18px 14px;
+            background: rgba(20, 22, 28, 0.72);
+            border-bottom: 1px solid var(--border);
+        }
+
+        #searchInput,
+        #avansForm input,
+        #avansForm select,
+        #avansForm textarea,
+        #paymentForm input,
+        #paymentForm select,
+        #paymentForm textarea {
+            min-height: 42px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #13161f;
+            color: var(--text);
+            box-shadow: none;
+        }
+
+        #searchInput::placeholder,
+        #avansForm input::placeholder,
+        #avansForm textarea::placeholder,
+        #paymentForm input::placeholder,
+        #paymentForm textarea::placeholder {
+            color: #7c8594;
+        }
+
+        #searchInput:focus,
+        #avansForm input:focus,
+        #avansForm select:focus,
+        #avansForm textarea:focus,
+        #paymentForm input:focus,
+        #paymentForm select:focus,
+        #paymentForm textarea:focus {
+            outline: none;
+            border-color: rgba(45, 212, 207, 0.75);
+            box-shadow: 0 0 0 3px rgba(45, 212, 207, 0.12);
+        }
+
+        .page-shell {
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .table-shell {
+            overflow: hidden;
+        }
+
+        .table-shell thead {
+            background: rgba(20, 22, 28, 0.96);
+            backdrop-filter: blur(12px);
+        }
+
+        .table-shell th {
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .table-shell tbody tr {
+            background: transparent;
+            transition: background-color 0.18s ease;
+        }
+
+        .table-shell tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .table-shell tbody td {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        .avans-col-date {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .avans-col-car .font-mono {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text) !important;
+        }
+
+        .avans-col-car .text-xs {
+            font-size: 0.8rem;
+            color: var(--muted) !important;
+        }
+
+        .avans-col-notes .text-sm {
+            color: #c7ced8 !important;
+            line-height: 1.45;
+        }
+
+        .avans-col-total .font-bold {
+            font-size: 0.98rem;
+            color: var(--success) !important;
+        }
+
+        .avans-col-total .text-xs {
+            color: var(--muted) !important;
+        }
+
+        .avans-col-actions > div {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .avans-col-actions button {
+            min-height: 34px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            box-shadow: none;
+        }
+
+        .avans-col-actions button:nth-child(1) {
+            background: rgba(45, 212, 207, 0.14) !important;
+            border-color: rgba(45, 212, 207, 0.22) !important;
+            color: #dffdfb !important;
+        }
+
+        .avans-col-actions button:nth-child(2),
+        .avans-col-actions button:nth-child(3) {
+            background: rgba(148, 163, 184, 0.11) !important;
+            border-color: rgba(148, 163, 184, 0.14) !important;
+            color: #e5e7eb !important;
+        }
+
+        .avans-col-actions button:nth-child(4) {
+            background: rgba(239, 71, 87, 0.12) !important;
+            border-color: rgba(239, 71, 87, 0.18) !important;
+            color: #ffc7ce !important;
+        }
+
+        .avans-col-actions button:hover {
+            filter: brightness(1.08);
+        }
+
+        .table-shell > div:last-child {
+            background: rgba(20, 22, 28, 0.72) !important;
+            border-top: 1px solid var(--border) !important;
+            color: var(--muted) !important;
+        }
+
+        #statusMsg {
+            color: var(--muted) !important;
+        }
+
+        #avansModal,
+        #paymentModal,
+        #paymentHistoryModal {
+            background: rgba(5, 8, 14, 0.72);
+            backdrop-filter: blur(10px);
+        }
+
+        #avansModal .panel-card,
+        #paymentModal .panel-card,
+        #paymentHistoryModal .panel-card {
+            background: rgba(27, 30, 38, 0.98);
+            border: 1px solid var(--border);
+        }
+
+        #avansModal .border-b,
+        #paymentModal .border-b,
+        #paymentHistoryModal .border-b {
+            border-color: var(--border) !important;
+        }
+
+        #avansModal h2,
+        #paymentModal h2,
+        #paymentHistoryModal h2 {
+            color: var(--text) !important;
+            letter-spacing: 0.06em;
+        }
+
+        #avansModal label,
+        #paymentModal label,
+        #paymentHistoryModal label {
+            color: var(--muted) !important;
+        }
+
+        #avansForm .pt-4,
+        #paymentForm .pt-4 {
+            padding-top: 8px;
+        }
+
+        #avansForm .flex.gap-3,
+        #paymentForm .flex.gap-3 {
+            justify-content: flex-end;
+        }
+
+        #avansForm .flex.gap-3 button,
+        #paymentForm .flex.gap-3 button {
+            flex: 0 0 auto;
+            min-width: 118px;
+            min-height: 40px;
+            border-radius: 10px;
+            padding: 0 16px;
+            font-size: 12px;
+            box-shadow: none;
+        }
+
+        #avansForm button[type="button"],
+        #paymentForm button[type="button"] {
+            background: rgba(148, 163, 184, 0.11) !important;
+            border: 1px solid rgba(148, 163, 184, 0.14) !important;
+            color: #e5e7eb !important;
+        }
+
+        #avansForm button[type="submit"],
+        #paymentForm button[type="submit"] {
+            background: rgba(45, 212, 207, 0.16) !important;
+            border: 1px solid rgba(45, 212, 207, 0.26) !important;
+            color: #dffdfb !important;
+        }
+
+        #paymentHistoryObservatii {
+            color: #cfd5de;
+            line-height: 1.45;
+        }
+
+        #paymentHistoryModal th {
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        #paymentHistoryModal td {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #paymentHistoryBody button {
+            min-height: 34px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            box-shadow: none;
+        }
+
+        #paymentHistoryBody button:first-child {
+            background: rgba(148, 163, 184, 0.11) !important;
+            border-color: rgba(148, 163, 184, 0.14) !important;
+            color: #e5e7eb !important;
+        }
+
+        #paymentHistoryBody button:last-child {
+            background: rgba(239, 71, 87, 0.12) !important;
+            border-color: rgba(239, 71, 87, 0.18) !important;
+            color: #ffc7ce !important;
+        }
 
         @media (max-width: 767px) {
             body {
@@ -28,31 +390,46 @@
                 overflow-y: visible;
             }
 
-            header > div:first-child {
+            .page-header .header-top {
                 gap: 8px;
-                padding: 9px 12px;
+                padding: 12px;
+                grid-template-columns: auto minmax(0, 1fr);
             }
 
-            header > div:first-child h1 {
-                font-size: 0.95rem;
+            .page-header .back-link {
+                order: 1;
+            }
+
+            .page-header .header-intro {
+                order: 2;
+                text-align: left;
+            }
+
+            .page-header .header-intro h1 {
+                font-size: 0.96rem;
                 line-height: 1.2;
-                letter-spacing: 0.08em;
             }
 
-            header > div:nth-child(2) {
+            .page-header .header-intro p {
+                font-size: 0.76rem;
+                margin-top: 4px;
+            }
+
+            .page-header .add-btn {
+                grid-column: 1 / -1;
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .page-header .header-search {
                 gap: 8px;
-                padding: 9px 12px;
+                padding: 10px 12px 12px;
             }
 
             #searchInput {
                 padding-top: 9px;
                 padding-bottom: 9px;
-            }
-
-            header > div:nth-child(2) > button {
-                min-height: 38px;
-                padding-top: 8px;
-                padding-bottom: 8px;
             }
 
             body > div.flex-1 {
@@ -100,15 +477,16 @@
                 display: grid;
                 grid-template-columns: minmax(0, 1fr) auto;
                 grid-template-areas:
-                    "date plate"
-                    "model model"
-                    "details details"
-                    ". actions";
-                gap: 6px 10px;
-                padding: 11px;
-                border: 1px solid #1e293b;
+                    "date total"
+                    "car car"
+                    "observations observations"
+                    "actions actions";
+                gap: 8px 10px;
+                padding: 12px;
+                border: 1px solid var(--border);
                 border-radius: 14px;
-                background: #0f172a;
+                background: rgba(27, 30, 38, 0.98);
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
             }
 
             #avansBody td {
@@ -116,51 +494,39 @@
                 padding: 0;
             }
 
-            #avansBody td:nth-child(1) {
+            #avansBody .avans-col-date {
                 grid-area: date;
                 align-self: center;
                 font-size: 0.8rem;
             }
 
-            #avansBody td:nth-child(2) {
-                grid-area: model;
+            #avansBody .avans-col-car {
+                grid-area: car;
                 padding-top: 2px;
             }
 
-            #avansBody td:nth-child(3) {
-                grid-area: plate;
-                justify-self: end;
-                width: auto;
-                white-space: nowrap;
-            }
-
-            #avansBody td:nth-child(4) {
-                grid-area: details;
-            }
-
-            #avansBody td:nth-child(4) input {
-                padding: 6px 8px;
-                border: 1px solid rgba(59, 130, 246, 0.35);
-                border-radius: 9px;
-                background: rgba(37, 99, 235, 0.12);
-                color: #93c5fd;
-                font-weight: 700;
-            }
-
-            #avansBody td:nth-child(4) input:placeholder-shown {
+            #avansBody .avans-col-plate {
                 display: none;
             }
 
-            #avansBody td:nth-child(5) {
-                grid-area: actions;
+            #avansBody .avans-col-total {
+                grid-area: total;
                 justify-self: end;
-                width: auto;
+                text-align: right;
             }
 
-            #avansBody td:nth-child(5) button {
-                width: 36px;
-                height: 36px;
-                margin: 0;
+            #avansBody .avans-col-notes {
+                grid-area: observations;
+            }
+
+            #avansBody .avans-col-actions {
+                grid-area: actions;
+                width: 100%;
+            }
+
+            #avansBody .avans-col-actions > div {
+                justify-content: flex-start;
+                flex-wrap: wrap;
             }
 
             #avansBody tr > td:only-child {
@@ -219,71 +585,59 @@
                 overflow: visible !important;
             }
 
-            body > header.panel-card > div:first-child {
-                gap: 4px !important;
-                padding: 6px 10px !important;
-            }
-
-            body > header.panel-card > div:first-child h1 {
-                font-size: 0.9rem !important;
-                line-height: 1.15 !important;
-            }
-
-            body > header.panel-card > div:nth-child(2) {
-                gap: 6px !important;
-                padding: 7px 10px !important;
-            }
-
-            body > header.panel-card #searchInput {
+            .page-header #searchInput {
                 padding-top: 7px !important;
                 padding-bottom: 7px !important;
             }
+        }
 
-            body > header.panel-card > div:nth-child(2) > button {
-                min-height: 34px !important;
-                padding-top: 6px !important;
-                padding-bottom: 6px !important;
+        @media (min-width: 768px) {
+            .page-shell {
+                padding-left: 20px;
+                padding-right: 20px;
             }
         }
     </style>
 </head>
 <body class="text-slate-200 font-sans h-screen flex flex-col overflow-hidden">
 
-    <header class="panel-card shrink-0 z-20 shadow-2xl">
-        <div class="p-4 grid grid-cols-3 items-center gap-3 border-b border-slate-800">
-            <a href="../../index.html" class="justify-self-start inline-flex items-center gap-2 text-slate-400 hover:text-white transition-all group">
+    <header class="page-shell page-header panel-card shrink-0 z-20">
+        <div class="header-top">
+            <a href="../../index.html" class="back-link justify-self-start inline-flex items-center gap-2 transition-all group">
                 <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
                 <span class="font-bold uppercase tracking-wider text-xs">Înapoi</span>
             </a>
-            <h1 class="justify-self-center text-lg md:text-xl font-black uppercase tracking-widest text-blue-400 text-center">EVIDENȚĂ AVANSURI</h1>
-            <div class="justify-self-end w-16 md:w-20"></div>
+            <div class="header-intro">
+                <h1 class="font-black uppercase">Evidență Avansuri</h1>
+                <p>Gestionează rapid fișele auto, plățile și istoricul avansurilor.</p>
+            </div>
+            <button onclick="openModal()" class="add-btn font-black uppercase text-xs tracking-wider inline-flex items-center justify-center gap-2 shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Adaugă avans
+            </button>
         </div>
 
-        <div class="sticky top-0 p-4 flex flex-col sm:flex-row gap-3 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+        <div class="header-search sticky top-0">
             <div class="relative flex-1">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500"></i>
                 <input type="text" id="searchInput" placeholder="Caută model, nr. înmatriculare sau avans..."
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all shadow-inner text-base"
+                    class="w-full py-3 pl-10 pr-4 transition-all text-base"
                     oninput="handleSearch()">
             </div>
-            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 shrink-0">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                ADAUGĂ AVANS
-            </button>
         </div>
     </header>
 
-    <div class="flex-1 overflow-hidden flex flex-col p-4">
-        <div class="panel-card rounded-2xl flex-1 flex flex-col overflow-hidden shadow-2xl">
+    <div class="page-shell flex-1 overflow-hidden flex flex-col p-4">
+        <div class="table-shell panel-card rounded-2xl flex-1 flex flex-col overflow-hidden">
             <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 bg-slate-900 z-10">
                         <tr class="text-slate-300 text-sm font-bold tracking-wide border-b border-slate-800">
-                            <th class="p-4 whitespace-nowrap">Data</th>
-                            <th class="p-4">Model</th>
-                            <th class="p-4 whitespace-nowrap">Nr. Înmatriculare</th>
-                            <th class="p-4">Avans &amp; Observații</th>
-                            <th class="p-4 text-center whitespace-nowrap">Acțiuni</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Data</th>
+                            <th class="px-4 py-3">Auto</th>
+                            <th class="px-4 py-3">Observații</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Total avansuri</th>
+                            <th class="px-4 py-3 text-center whitespace-nowrap">Acțiuni</th>
                         </tr>
                     </thead>
                     <tbody id="avansBody" class="text-base divide-y divide-slate-800/50">
@@ -298,9 +652,9 @@
     </div>
 
     <div id="avansModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="panel-card w-full max-w-md rounded-3xl shadow-2xl transform transition-all overflow-hidden">
+        <div class="panel-card w-full max-w-lg rounded-3xl shadow-2xl transform transition-all overflow-hidden">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h2 class="text-lg font-black uppercase tracking-widest text-blue-400">Adaugă Avans</h2>
+                <h2 id="avansModalTitle" class="text-lg font-black uppercase tracking-widest text-blue-400">Adaugă Avans</h2>
                 <button onclick="closeModal()" class="text-slate-500 hover:text-white transition-colors">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
@@ -316,11 +670,26 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Nr. Înmatriculare</label>
-                    <input type="text" id="avansNr" required oninput="this.value = this.value.toUpperCase().replace(/\s/g, '')" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all font-mono tracking-wider">
+                    <input type="text" id="avansNr" required onblur="this.value = normalizeazaNrInmatriculare(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all font-mono tracking-wider">
+                </div>
+                <div id="initialPaymentFields" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Sumă avans</label>
+                        <input type="number" id="initialPaymentAmount" min="0.01" step="0.01" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Metodă plată</label>
+                        <select id="initialPaymentMethod" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all [color-scheme:dark]">
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="OP">OP</option>
+                            <option value="Factura">Factura</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Avans &amp; Observații</label>
-                    <input type="text" id="avansDetalii" placeholder="Ex: 500 RON - reparație motor" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Observații generale</label>
+                    <textarea id="avansObservatii" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all resize-y"></textarea>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all">Anulează</button>
@@ -330,14 +699,79 @@
         </div>
     </div>
 
+    <div id="paymentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="panel-card w-full max-w-md rounded-3xl shadow-2xl transform transition-all overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h2 id="paymentModalTitle" class="text-lg font-black uppercase tracking-widest text-emerald-400">Adaugă avans</h2>
+                <button type="button" onclick="closePaymentModal()" class="text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="paymentForm" onsubmit="savePayment(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Sumă</label>
+                    <input type="number" id="paymentAmount" min="0.01" step="0.01" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-emerald-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Metodă plată</label>
+                    <select id="paymentMethod" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-emerald-500 transition-all [color-scheme:dark]">
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="OP">OP</option>
+                        <option value="Factura">Factura</option>
+                    </select>
+                </div>
+                <div id="paymentDateField">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Data plății</label>
+                    <input type="datetime-local" id="paymentDate" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-emerald-500 transition-all [color-scheme:dark]">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closePaymentModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all">Anulează</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-black uppercase text-xs tracking-wider transition-all shadow-lg">Salvează</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="paymentHistoryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="panel-card w-full max-w-4xl rounded-3xl shadow-2xl transform transition-all overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <div>
+                    <h2 class="text-lg font-black uppercase tracking-widest text-blue-400">Istoric plăți</h2>
+                    <div id="paymentHistorySubtitle" class="mt-1 text-xs text-slate-400"></div>
+                </div>
+                <button type="button" onclick="closePaymentHistoryModal()" class="text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 border-b border-slate-800/70 bg-slate-900/35">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Observații generale</div>
+                <div id="paymentHistoryObservatii" class="mt-2 text-sm text-slate-300">—</div>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar max-h-[70vh]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-slate-900 z-10">
+                        <tr class="text-slate-300 text-sm font-bold tracking-wide border-b border-slate-800">
+                            <th class="p-4 whitespace-nowrap">Data</th>
+                            <th class="p-4 whitespace-nowrap">Sumă</th>
+                            <th class="p-4 whitespace-nowrap">Metodă</th>
+                            <th class="p-4 text-center whitespace-nowrap">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentHistoryBody" class="text-base divide-y divide-slate-800/50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const dbUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
-        const dbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74';
-        const sb = supabase.createClient(dbUrl, dbKey);
-        window.supabaseClient = sb;
+        const sb = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
 
         let allAvansuri = [];
         let auditActorPromise = null;
+        let currentPaymentAvansId = null;
+        let editingPaymentId = null;
+        let editingAvansId = null;
 
         const todayYyyyMmDd = () => {
             const d = new Date();
@@ -346,7 +780,7 @@
 
         const formatDate = (value) => {
             if (!value) return '-';
-            const parts = String(value).split('-');
+            const parts = String(value).split('T')[0].split('-');
             if (parts.length !== 3) return String(value);
             return `${parts[2]}.${parts[1]}.${parts[0]}`;
         };
@@ -354,6 +788,53 @@
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
         })[ch]);
+
+        const setStatusMessage = (message = '') => {
+            document.getElementById('statusMsg').textContent = message;
+        };
+
+        const formatMoney = (value) => {
+            const amount = Number(value) || 0;
+            return `${new Intl.NumberFormat('ro-RO', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+            }).format(amount)} RON`;
+        };
+
+        const formatDateTime = (value) => {
+            if (!value) return '—';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return String(value);
+            return d.toLocaleString('ro-RO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        };
+
+        const toDatetimeLocalValue = (value = new Date()) => {
+            const d = value instanceof Date ? value : new Date(value);
+            if (Number.isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+
+        const toDateInputValue = (value) => {
+            if (!value) return todayYyyyMmDd();
+            return String(value).split('T')[0];
+        };
+
+        function normalizeazaNrInmatriculare(value) {
+            return String(value || '')
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, '');
+        }
 
         async function getAuditActor() {
             if (!auditActorPromise) {
@@ -445,41 +926,60 @@
 
         async function init() {
             lucide.createIcons();
+            if (!sb) {
+                alert('Clientul Supabase nu este disponibil.');
+                return;
+            }
             await fetchAvansuri();
         }
 
         async function fetchAvansuri() {
-            const { data, error } = await sb
-                .from('evidente_avansuri')
-                .select('*')
-                .eq('este_arhivat', false)
-                .order('data_crearii', { ascending: false });
+            try {
+                const [{ data: avansuriData, error: avansuriError }, { data: platiData, error: platiError }] = await Promise.all([
+                    sb
+                        .from('evidente_avansuri')
+                        .select('*')
+                        .eq('este_arhivat', false)
+                        .order('data_crearii', { ascending: false }),
+                    sb
+                        .from('evidente_avansuri_plati')
+                        .select('id, avans_id, suma, metoda_plata, observatii, data_platii, created_at')
+                        .order('data_platii', { ascending: false }),
+                ]);
 
-            if (error) {
+                if (avansuriError) throw avansuriError;
+                if (platiError) throw platiError;
+
+                const paymentsByAvansId = new Map();
+                (platiData || []).forEach((payment) => {
+                    const key = String(payment.avans_id || '');
+                    if (!paymentsByAvansId.has(key)) paymentsByAvansId.set(key, []);
+                    paymentsByAvansId.get(key).push(payment);
+                });
+
+                allAvansuri = (avansuriData || []).map((row) => {
+                    const payments = paymentsByAvansId.get(String(row.id)) || [];
+                    const totalPlati = payments.reduce((sum, payment) => sum + (Number(payment.suma) || 0), 0);
+                    const latestPayment = [...payments].sort((a, b) => {
+                        const timeA = new Date(a.data_platii || a.created_at || 0).getTime();
+                        const timeB = new Date(b.data_platii || b.created_at || 0).getTime();
+                        return timeB - timeA;
+                    })[0] || null;
+                    return {
+                        ...row,
+                        _payments: payments,
+                        _totalPlati: totalPlati,
+                        _latestPayment: latestPayment,
+                    };
+                });
+
+                handleSearch();
+                setStatusMessage('');
+            } catch (error) {
                 console.error('Error fetching avansuri:', error);
-                document.getElementById('statusMsg').textContent = 'Eroare la încărcare.';
-                return;
+                setStatusMessage('Eroare la încărcare.');
+                alert('Nu s-au putut încărca fișele de avans și plățile asociate.');
             }
-
-            // Formatează data_crearii la DD.MM.YYYY
-            allAvansuri = (data || []).map(row => {
-                let origDate = row.data_crearii;
-                let dateOnly = '';
-                if (origDate) {
-                    // Suportă formate de tip ISO: "YYYY-MM-DD", "YYYY-MM-DDTHH:MM:SSZ"
-                    let raw = String(origDate).split('T')[0]; // "YYYY-MM-DD"
-                    let [yy, mm, dd] = raw.split('-');
-                    if (yy && mm && dd) {
-                        dateOnly = `${dd.padStart(2, '0')}.${mm.padStart(2, '0')}.${yy}`;
-                    } else {
-                        // fallback la valoarea brută dacă split nu reușește
-                        dateOnly = origDate;
-                    }
-                }
-                return { ...row, data_crearii: dateOnly };
-            });
-
-            handleSearch();
         }
    
 
@@ -494,20 +994,33 @@
 
             body.innerHTML = data.map((row) => `
                 <tr class="hover:bg-slate-800/30 transition-colors border-b border-slate-800/30" data-id="${row.id}">
-                    <td class="p-4 whitespace-nowrap font-semibold text-slate-200">${formatDate(row.data_crearii)}</td>
-                    <td class="p-4 font-bold text-slate-100">${escapeHtml(row.model_masina) || '-'}</td>
-                    <td class="p-4 font-mono font-bold text-blue-400">${escapeHtml(row.nr_inmatriculare) || '-'}</td>
-                    <td class="p-4">
-                        <input type="text"
-                            value="${escapeHtml(row.detalii_avans || '')}"
-                            placeholder="Avans & observații..."
-                            class="w-full bg-transparent border-b border-dashed border-slate-700 px-1 py-1 text-slate-200 focus:outline-none focus:border-blue-500 transition-all"
-                            onblur="saveDetalii(${row.id}, this)">
+                    <td class="avans-col-date px-4 py-3 whitespace-nowrap font-semibold text-slate-200">${formatDate(row.data_crearii)}</td>
+                    <td class="avans-col-car px-4 py-3">
+                        <div class="font-mono text-base font-bold text-blue-400">${escapeHtml(row.nr_inmatriculare) || '—'}</div>
+                        <div class="mt-1 text-xs text-slate-400">${escapeHtml(row.model_masina) || '—'}</div>
                     </td>
-                    <td class="p-4 text-center">
-                        <button onclick="archiveAvans(${row.id}, this)" class="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white flex items-center justify-center transition-all shadow-sm mx-auto" title="Arhivează">
-                            <i data-lucide="archive" class="w-5 h-5"></i>
-                        </button>
+                    <td class="avans-col-notes px-4 py-3">
+                        <div class="text-sm text-slate-300">${escapeHtml(row.observatii || '—')}</div>
+                    </td>
+                    <td class="avans-col-total px-4 py-3 whitespace-nowrap">
+                        <div class="font-bold text-emerald-300">${escapeHtml(formatMoney(row._totalPlati))}</div>
+                        <div class="mt-1 text-xs text-slate-500">${row._payments.length} plăți</div>
+                    </td>
+                    <td class="avans-col-actions px-4 py-3">
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" onclick="openPaymentModal(${row.id})" class="rounded-xl bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all">
+                                + Plată
+                            </button>
+                            <button type="button" onclick="openPaymentHistoryModal(${row.id})" class="rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all">
+                                Istoric
+                            </button>
+                            <button type="button" onclick="openEditModal(${row.id})" class="rounded-xl bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all">
+                                Editează
+                            </button>
+                            <button onclick="archiveAvans(${row.id}, this)" class="rounded-xl bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all" title="Arhivează">
+                                Arhivează
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -519,36 +1032,10 @@
             const filtered = allAvansuri.filter((row) =>
                 (row.model_masina || '').toLowerCase().includes(term) ||
                 (row.nr_inmatriculare || '').toLowerCase().includes(term) ||
-                (row.detalii_avans || '').toLowerCase().includes(term)
+                (row.detalii_avans || '').toLowerCase().includes(term) ||
+                (row.observatii || '').toLowerCase().includes(term)
             );
             renderAvansuri(filtered);
-        }
-
-        async function saveDetalii(id, input) {
-            const val = input.value.trim();
-            const original = input.defaultValue.trim();
-
-            if (val === original) return;
-
-            const { error } = await sb
-                .from('evidente_avansuri')
-                .update({ detalii_avans: val || null })
-                .eq('id', id);
-
-            if (error) {
-                console.error('Error saving detalii:', error);
-                input.value = original;
-                document.getElementById('statusMsg').textContent = 'Eroare la salvare.';
-                return;
-            }
-
-            const item = allAvansuri.find((r) => r.id === id);
-            if (item) item.detalii_avans = val;
-            input.defaultValue = val;
-            const entityId = getAvansEntityId(item, id);
-            logAvansAudit('UPDATE', `A modificat avansul pentru deviz ${entityId}`, entityId);
-            document.getElementById('statusMsg').textContent = 'Salvat.';
-            setTimeout(() => { document.getElementById('statusMsg').textContent = ''; }, 2000);
         }
 
         async function archiveAvans(id, btn) {
@@ -575,13 +1062,177 @@
         }
 
         function openModal() {
+            editingAvansId = null;
             document.getElementById('avansForm').reset();
             document.getElementById('avansData').value = todayYyyyMmDd();
+            document.getElementById('avansModalTitle').textContent = 'Adaugă Avans';
+            document.getElementById('initialPaymentFields').classList.remove('hidden');
+            document.getElementById('initialPaymentAmount').value = '';
+            document.getElementById('initialPaymentMethod').value = 'Cash';
             document.getElementById('avansModal').classList.remove('hidden');
         }
 
         function closeModal() {
             document.getElementById('avansModal').classList.add('hidden');
+            editingAvansId = null;
+        }
+
+        function openEditModal(id) {
+            const avans = getAvansById(id);
+            if (!avans) return;
+            editingAvansId = id;
+            document.getElementById('avansModalTitle').textContent = 'Editează Fișa';
+            document.getElementById('avansData').value = toDateInputValue(avans.data_crearii);
+            document.getElementById('avansModel').value = avans.model_masina || '';
+            document.getElementById('avansNr').value = avans.nr_inmatriculare || '';
+            document.getElementById('avansObservatii').value = avans.observatii || '';
+            document.getElementById('initialPaymentFields').classList.add('hidden');
+            document.getElementById('avansModal').classList.remove('hidden');
+        }
+
+        function getAvansById(id) {
+            return allAvansuri.find((row) => String(row.id) === String(id)) || null;
+        }
+
+        function openPaymentModal(avansId, paymentId = null) {
+            currentPaymentAvansId = avansId;
+            editingPaymentId = paymentId;
+            const avans = getAvansById(avansId);
+            const payment = paymentId ? avans?._payments?.find((item) => String(item.id) === String(paymentId)) : null;
+            document.getElementById('paymentHistoryModal').classList.add('hidden');
+            document.getElementById('paymentForm').reset();
+            document.getElementById('paymentModalTitle').textContent = payment ? 'Editează plată' : 'Adaugă plată';
+            document.getElementById('paymentAmount').value = payment?.suma ?? '';
+            document.getElementById('paymentMethod').value = payment?.metoda_plata || 'Cash';
+            document.getElementById('paymentDate').value = toDatetimeLocalValue(payment?.data_platii || new Date());
+            document.getElementById('paymentDateField').classList.toggle('hidden', !paymentId);
+            document.getElementById('paymentModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            currentPaymentAvansId = null;
+            editingPaymentId = null;
+        }
+
+        function openPaymentHistoryModal(avansId) {
+            currentPaymentAvansId = avansId;
+            const avans = getAvansById(avansId);
+            document.getElementById('paymentHistorySubtitle').textContent = avans
+                ? `${avans.model_masina || '-'} • ${avans.nr_inmatriculare || '-'}`
+                : '';
+            document.getElementById('paymentHistoryObservatii').textContent = avans?.observatii || '—';
+            renderPaymentHistory(avans);
+            document.getElementById('paymentHistoryModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closePaymentHistoryModal() {
+            document.getElementById('paymentHistoryModal').classList.add('hidden');
+            currentPaymentAvansId = null;
+        }
+
+        function renderPaymentHistory(avans) {
+            const body = document.getElementById('paymentHistoryBody');
+            const payments = [...(avans?._payments || [])].sort((a, b) => {
+                const timeA = new Date(a.data_platii || a.created_at || 0).getTime();
+                const timeB = new Date(b.data_platii || b.created_at || 0).getTime();
+                return timeB - timeA;
+            });
+
+            if (!payments.length) {
+                body.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-500">Nu există plăți înregistrate.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = payments.map((payment) => `
+                <tr class="hover:bg-slate-800/30 transition-colors border-b border-slate-800/30">
+                    <td class="p-4 whitespace-nowrap text-slate-200">${escapeHtml(formatDateTime(payment.data_platii || payment.created_at))}</td>
+                    <td class="p-4 whitespace-nowrap font-semibold text-emerald-300">${escapeHtml(formatMoney(payment.suma))}</td>
+                    <td class="p-4 whitespace-nowrap text-slate-200">${escapeHtml(payment.metoda_plata || '—')}</td>
+                    <td class="p-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" onclick="openPaymentModal(${avans.id}, ${payment.id})" class="rounded-xl bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all">Editare</button>
+                            <button type="button" onclick="deletePayment(${payment.id})" class="rounded-xl bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all">Ștergere</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function savePayment(event) {
+            event.preventDefault();
+            if (!currentPaymentAvansId) return;
+
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Se salvează...';
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const payload = {
+                avans_id: currentPaymentAvansId,
+                suma: Number(document.getElementById('paymentAmount').value),
+                metoda_plata: document.getElementById('paymentMethod').value,
+                data_platii: editingPaymentId
+                    ? new Date(document.getElementById('paymentDate').value).toISOString()
+                    : new Date().toISOString(),
+            };
+
+            try {
+                if (!Number.isFinite(payload.suma) || payload.suma < 0.01) {
+                    throw new Error('Suma trebuie să fie mai mare decât 0.');
+                }
+
+                let result;
+                if (editingPaymentId) {
+                    result = await sb
+                        .from('evidente_avansuri_plati')
+                        .update({
+                            suma: payload.suma,
+                            metoda_plata: payload.metoda_plata,
+                            data_platii: payload.data_platii,
+                        })
+                        .eq('id', editingPaymentId);
+                } else {
+                    result = await sb
+                        .from('evidente_avansuri_plati')
+                        .insert([payload]);
+                }
+
+                if (result.error) throw result.error;
+
+                closePaymentModal();
+                await fetchAvansuri();
+            } catch (error) {
+                console.error(error);
+                alert(`Operația asupra plății a eșuat: ${error.message || 'Eroare necunoscută'}`);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function deletePayment(paymentId) {
+            if (!confirm('Ștergi această plată?')) return;
+
+            try {
+                const { error } = await sb
+                    .from('evidente_avansuri_plati')
+                    .delete()
+                    .eq('id', paymentId);
+
+                if (error) throw error;
+
+                closePaymentHistoryModal();
+                await fetchAvansuri();
+            } catch (error) {
+                console.error(error);
+                alert(`Ștergerea plății a eșuat: ${error.message || 'Eroare necunoscută'}`);
+            }
         }
 
         async function saveAvans(e) {
@@ -592,31 +1243,74 @@
             btn.textContent = 'Se salvează...';
             btn.classList.add('opacity-50', 'cursor-not-allowed');
 
-            const normalizePlate = (plate) => {
-                if (!plate) return 'FaraNumar';
-                const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                return cleaned || 'FaraNumar';
-            };
-            
-            const nrInmatriculareNormalized = normalizePlate(document.getElementById('avansNr').value);
+            const avansNrInput = document.getElementById('avansNr');
+            const nrInmatriculareNormalized = normalizeazaNrInmatriculare(avansNrInput.value);
+            avansNrInput.value = nrInmatriculareNormalized;
+
+            if (!nrInmatriculareNormalized) {
+                console.error('Numărul de înmatriculare este gol după normalizare.');
+                alert('Numărul de înmatriculare este invalid.');
+                btn.disabled = false;
+                btn.textContent = originalText;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                return;
+            }
 
             const payload = {
                 data_crearii: document.getElementById('avansData').value,
                 model_masina: document.getElementById('avansModel').value.trim(),
                 nr_inmatriculare: nrInmatriculareNormalized,
-                detalii_avans: document.getElementById('avansDetalii').value.trim() || null,
-                este_arhivat: false,
+                observatii: document.getElementById('avansObservatii').value.trim() || null,
             };
 
             try {
-                const { error } = await sb.from('evidente_avansuri').insert([payload]);
-                if (error) throw error;
-                findCreatedAvansId(payload)
-                    .then((createdId) => {
-                        const entityId = getAvansEntityId({ ...payload, id: createdId }, createdId);
-                        return logAvansAudit('CREATE', `A introdus avans pentru deviz ${entityId}`, entityId);
-                    })
-                    .catch((error) => console.error(error));
+                if (editingAvansId) {
+                    const { error } = await sb
+                        .from('evidente_avansuri')
+                        .update(payload)
+                        .eq('id', editingAvansId);
+                    if (error) throw error;
+                    const entityId = getAvansEntityId({ ...payload, id: editingAvansId }, editingAvansId);
+                    logAvansAudit('UPDATE', `A modificat fișa de avans ${entityId}`, entityId);
+                } else {
+                    const initialAmount = Number(document.getElementById('initialPaymentAmount').value);
+                    if (!Number.isFinite(initialAmount) || initialAmount < 0.01) {
+                        throw new Error('Suma avansului trebuie să fie mai mare decât 0.');
+                    }
+
+                    const createPayload = {
+                        ...payload,
+                        detalii_avans: null,
+                        este_arhivat: false,
+                    };
+
+                    const { data: createdAvans, error: createError } = await sb
+                        .from('evidente_avansuri')
+                        .insert([createPayload])
+                        .select('id')
+                        .single();
+                    if (createError) throw createError;
+
+                    const paymentPayload = {
+                        avans_id: createdAvans.id,
+                        suma: initialAmount,
+                        metoda_plata: document.getElementById('initialPaymentMethod').value,
+                        data_platii: new Date().toISOString(),
+                    };
+
+                    const { error: paymentError } = await sb
+                        .from('evidente_avansuri_plati')
+                        .insert([paymentPayload]);
+
+                    if (paymentError) {
+                        console.error(paymentError);
+                        await sb.from('evidente_avansuri').delete().eq('id', createdAvans.id);
+                        throw paymentError;
+                    }
+
+                    const entityId = getAvansEntityId({ ...createPayload, id: createdAvans.id }, createdAvans.id);
+                    logAvansAudit('CREATE', `A introdus avans pentru deviz ${entityId}`, entityId);
+                }
                 closeModal();
                 await fetchAvansuri();
             } catch (err) {

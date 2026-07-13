@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manager Dashboard — HUB Service Auto</title>
+
+<!-- Font Inter din Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Chart.js din CDN, pentru grafice -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<!-- Supabase JS + config, la fel ca pe celelalte pagini din HUB -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script>
+window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : undefined);
+</script>
+
+<link rel="stylesheet" href="manager.css">
+</head>
+<body>
+
+<!-- HEADER: titlu pagina + data/ora live -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo-badge">MD</div>
+    <div>
+      <h1>Manager Dashboard</h1>
+      <p class="subtitle">CSN GARAGE S.R.L. — statistici avansate</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="clock" id="liveClock">--:--:--</div>
+    <div class="status-pill"><span class="dot"></span> Sistem Online</div>
+  </div>
+</header>
+
+<!-- NAVIGARE TAB-URI + CAUTARE GLOBALA pe acelasi rand -->
+<nav class="tabs">
+  <div class="tabs-left">
+    <button class="tab-btn active" data-tab="financiar">Financiar &amp; Vânzări</button>
+    <button class="tab-btn" data-tab="performanta">Performanță Departamente</button>
+    <button class="tab-btn" data-tab="plati">Plăți</button>
+  </div>
+
+  <!-- cautare globala: cauta live in toate seturile de date -->
+  <div class="search-wrap">
+    <input type="text" id="globalSearch" placeholder="Caută nr. înmatriculare, AWB, produs, nume..." autocomplete="off">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</nav>
+
+<main class="content">
+
+  <!-- ===================== TAB 1: FINANCIAR & VANZARI (unificat cu AWB) ===================== -->
+  <section class="tab-panel active" id="tab-financiar">
+
+    <!-- randul cu cardurile de indicatori rapizi -->
+    <div class="bento-row bento-4">
+      <div class="card kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Devize Finale (luna curentă)</span>
+          <span class="badge badge-green">▲ live</span>
+        </div>
+        <div class="kpi-value" id="kpiIncasariLuna">0 Lei</div>
+        <div class="kpi-compare" id="kpiIncasariCompare">vs. luna trecută</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Avansuri (azi)</span>
+          <span class="badge badge-blue">reset zilnic</span>
+        </div>
+        <div class="kpi-value" id="kpiAvansuriAzi">0 Lei</div>
+        <div class="kpi-compare" id="kpiAvansuriCount">0 avansuri încasate azi</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">AWB Livrate (net de retur)</span>
+          <span class="badge badge-neutral">piese SH/noi</span>
+        </div>
+        <div class="kpi-value" id="kpiAwbNet">0 Lei</div>
+        <div class="kpi-compare" id="kpiAwbNetDetail">livrate − retururi</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-label">Valoare Detailing finalizat</span>
+          <span class="badge badge-purple">luna curentă</span>
+        </div>
+        <div class="kpi-value" id="kpiDetailing">0 Lei</div>
+        <div class="kpi-compare" id="kpiDetailingCount">0 lucrări finalizate</div>
+      </div>
+    </div>
+
+    <!-- graficul de evolutie vanzari, 4 categorii/culori -->
+    <div class="card chart-card">
+      <div class="card-head">
+        <h2>Evoluția vânzărilor</h2>
+        <p class="card-sub">Devize finale · Avansuri · AWB livrate (net) · Detailing — ultimele 4 luni</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartVanzari"></canvas>
+      </div>
+    </div>
+
+    <!-- tabel AWB, doar cele in tranzit -->
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>AWB — În tranzit</h2>
+        <p class="card-sub">Colete aflate momentan pe drum</p>
+      </div>
+      <table class="data-table" id="tableAwb">
+        <thead>
+          <tr><th>AWB</th><th>Client</th><th>Piesă</th><th>Valoare</th></tr>
+        </thead>
+        <tbody><!-- randurile se genereaza din JS --></tbody>
+      </table>
+    </div>
+
+    <!-- tabel consumabile: stoc / prag / status, fara cost (nu exista pret inca) -->
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Consumabile — stoc</h2>
+        <p class="card-sub">Produsele sub pragul minim sunt marcate roșu</p>
+      </div>
+      <table class="data-table" id="tableConsumabile">
+        <thead>
+          <tr><th>Produs</th><th>Stoc curent</th><th>Prag minim</th><th>Status</th></tr>
+        </thead>
+        <tbody><!-- randurile se genereaza din JS --></tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- ===================== TAB 2: PERFORMANTA DEPARTAMENTE ===================== -->
+  <section class="tab-panel" id="tab-performanta">
+
+    <!-- grafic: nr masini intrate pe departamente -->
+    <div class="card chart-card">
+      <div class="card-head">
+        <h2>Mașini intrate pe departamente</h2>
+        <p class="card-sub">Detailing vs. Constatări — număr mașini / lună</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartDepartamente"></canvas>
+      </div>
+    </div>
+
+    <!-- tabel masini in lucru acum -->
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Mașini în lucru acum</h2>
+        <p class="card-sub">Status live pe fiecare mașină din service</p>
+      </div>
+      <table class="data-table" id="tableMasiniLucru">
+        <thead>
+          <tr><th>Nr. înmatriculare</th><th>Data intrare</th><th>Status</th><th>Mecanic</th><th></th></tr>
+        </thead>
+        <tbody><!-- randurile se genereaza din JS --></tbody>
+      </table>
+    </div>
+
+    <!-- randul de jos: recurente / alerte fleet / generator -->
+    <div class="bento-row bento-3">
+
+      <!-- top masini recurente -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Top mașini recurente</h2>
+          <p class="card-sub">Câte vizite în service</p>
+        </div>
+        <ul class="alert-list" id="listRecurente"><!-- generat din JS --></ul>
+      </div>
+
+      <!-- alerte fleet: ITP / RCA / Rovinieta -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Alerte Fleet</h2>
+          <p class="card-sub">ITP, RCA, Rovinieta — mașini firmă</p>
+        </div>
+        <ul class="alert-list" id="listFleetAlerts"><!-- generat din JS --></ul>
+      </div>
+
+      <!-- widget generator + bara maintenance -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Log Generator</h2>
+          <p class="card-sub">Luna curentă</p>
+        </div>
+        <div class="gen-stats">
+          <div class="gen-stat">
+            <span class="gen-num" id="genOre">0</span>
+            <span class="gen-label">ore funcționare</span>
+          </div>
+          <div class="gen-stat">
+            <span class="gen-num" id="genMotorina">0 L</span>
+            <span class="gen-label">motorină consumată</span>
+          </div>
+          <div class="gen-stat">
+            <span class="gen-num" id="genPorniri">0</span>
+            <span class="gen-label">porniri</span>
+          </div>
+        </div>
+
+        <!-- bara de progres pana la mentenanta la 100h -->
+        <div class="maintenance-block">
+          <div class="maintenance-top">
+            <span>Maintenance la 100h</span>
+            <span id="maintenanceText">0 / 100h</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="maintenanceFill"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ===================== TAB 3: PLATI (retururi de facut) ===================== -->
+  <section class="tab-panel" id="tab-plati">
+
+    <div class="card table-card">
+      <div class="card-head">
+        <h2>Retururi de plătit</h2>
+        <p class="card-sub">Cine trebuie rambursat, cât și de ce — bifează când e plătit</p>
+      </div>
+      <table class="data-table" id="tablePlati">
+        <thead>
+          <tr><th>Nume</th><th>IBAN</th><th>Sumă</th><th>Motiv</th><th>Status</th></tr>
+        </thead>
+        <tbody><!-- randurile se genereaza din JS --></tbody>
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="manager.js"></script>
+</body>
+</html>

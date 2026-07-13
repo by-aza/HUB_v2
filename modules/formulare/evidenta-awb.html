@@ -342,6 +342,15 @@
 
         const openModal = (el) => el.classList.remove('hidden');
         const closeModal = (el) => el.classList.add('hidden');
+        const setStatusFeedback = (message, tone = 'muted') => {
+            statusSubtitle.textContent = message;
+            statusSubtitle.className = 'text-sm';
+            if (tone === 'error') {
+                statusSubtitle.classList.add('text-rose-400');
+                return;
+            }
+            statusSubtitle.classList.add('text-slate-400');
+        };
 
         const setModalSaving = (buttons, saving, textOverride) => {
             buttons.forEach((btn) => {
@@ -476,10 +485,11 @@
 
             const { data, error } = await supabaseClient
                 .from('evidenta_awb')
-                .select('*')
+                .select('id, data_crearii, curier, nr_awb, nume_client, oras, piesa, pret, telefon_client, stare, motiv_retur, is_archived, data_livrare, data_retur')
                 .order('data_crearii', { ascending: false });
 
             if (error) {
+                console.error(error);
                 awbEmptyEl.textContent = 'Eroare la încărcare.';
                 awbListEl.innerHTML = '';
                 totalSumaEl.textContent = '0 RON';
@@ -507,11 +517,22 @@
             returArea.classList.add('hidden');
         };
 
+        const buildStatusPayload = (awb, stare, extra = {}) => {
+            const payload = { ...extra, stare };
+            if (stare === 'livrat' && !awb?.data_livrare) {
+                payload.data_livrare = new Date().toISOString();
+            }
+            if (stare === 'retur' && !awb?.data_retur) {
+                payload.data_retur = new Date().toISOString();
+            }
+            return payload;
+        };
+
         const openStatusModalFor = (awbId) => {
             selectedAwbId = awbId;
             const awb = allAwbs.find((a) => String(a.id) === String(awbId));
             const title = awb ? `${awb.nume_client ?? ''} • ${awb.nr_awb ?? ''}`.trim() : '';
-            statusSubtitle.textContent = title;
+            setStatusFeedback(title);
             resetReturArea();
             btnMarkArhiva.disabled = !!(awb && awb.is_archived);
             btnMarkArhiva.classList.toggle('opacity-60', !!(awb && awb.is_archived));
@@ -530,7 +551,11 @@
                 .eq('id', id);
 
             setModalSaving(savingButtons, false);
-            if (error) return;
+            if (error) {
+                console.error(error);
+                setStatusFeedback('Nu s-a putut actualiza statusul AWB. Încearcă din nou.', 'error');
+                return;
+            }
             const awbNumber = normalizeAwbNumber(awbBeforeUpdate?.nr_awb);
             const previousStatus = auditStatusLabel(awbBeforeUpdate);
             const nextStatus = auditStatusLabel({ ...awbBeforeUpdate, ...payload });
@@ -603,7 +628,6 @@
             setModalSaving([btnSaveAdd], true, { idle: 'Salvează', saving: 'Se salvează...' });
 
             const { error } = await supabaseClient.from('evidenta_awb').insert({
-                data_crearii: new Date().toISOString(),
                 curier,
                 nr_awb,
                 nume_client,
@@ -613,6 +637,8 @@
                 telefon_client,
                 stare: 'in_tranzit',
                 motiv_retur: null,
+                data_livrare: null,
+                data_retur: null,
                 is_archived: false,
             });
 
@@ -627,7 +653,12 @@
 
         btnMarkLivrat.addEventListener('click', async () => {
             if (!selectedAwbId) return;
-            await updateAwb(selectedAwbId, { stare: 'livrat', motiv_retur: null, is_archived: false }, [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]);
+            const awb = allAwbs.find((item) => String(item.id) === String(selectedAwbId));
+            await updateAwb(
+                selectedAwbId,
+                buildStatusPayload(awb, 'livrat', { motiv_retur: null, is_archived: false }),
+                [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]
+            );
         });
 
         btnMarkArhiva.addEventListener('click', async () => {
@@ -647,7 +678,12 @@
                 returMotiv.focus();
                 return;
             }
-            await updateAwb(selectedAwbId, { stare: 'retur', motiv_retur: motiv, is_archived: false }, [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]);
+            const awb = allAwbs.find((item) => String(item.id) === String(selectedAwbId));
+            await updateAwb(
+                selectedAwbId,
+                buildStatusPayload(awb, 'retur', { motiv_retur: motiv, is_archived: false }),
+                [btnMarkLivrat, btnMarkRetur, btnMarkArhiva, btnConfirmRetur]
+            );
         });
 
         const startRealtime = () => {

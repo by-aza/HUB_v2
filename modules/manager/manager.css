@@ -1,0 +1,241 @@
+/* ===== RESET & BAZA ===== */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:#101012;              /* fundal general foarte inchis */
+  color:#F2F2F3;                    /* text alb aproape pur */
+  font-family:'Inter', sans-serif;
+  min-height:100vh;
+  padding-bottom:60px;
+}
+
+/* ===== HEADER ===== */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:22px 32px;
+  border-bottom:1px solid #232326;   /* linie subtire de separare */
+  background:#161618;
+}
+.topbar-left{ display:flex; align-items:center; gap:14px; }
+.logo-badge{
+  width:44px; height:44px; border-radius:12px;
+  background:linear-gradient(135deg,#22d3c8,#0ea5a0); /* accent teal/cyan */
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:14px; color:#0a0a0b;
+}
+.topbar-left h1{ font-size:19px; font-weight:700; letter-spacing:-0.2px; }
+.subtitle{ font-size:12.5px; color:#8a8a90; margin-top:2px; }
+
+.topbar-right{ display:flex; align-items:center; gap:16px; }
+.clock{
+  font-variant-numeric: tabular-nums;  /* cifrele nu sar la latime */
+  font-size:14px; color:#c9c9cd;
+  background:#1d1d20; padding:8px 14px; border-radius:10px;
+  border:1px solid #2a2a2e;
+}
+.status-pill{
+  display:flex; align-items:center; gap:7px;
+  font-size:12.5px; color:#8ee6c8;
+  background:rgba(34,211,200,0.08);
+  border:1px solid rgba(34,211,200,0.25);
+  padding:7px 12px; border-radius:20px;
+}
+.dot{ width:7px; height:7px; border-radius:50%; background:#22d3c8; box-shadow:0 0 6px #22d3c8; }
+
+/* ===== TABURI + CAUTARE (acelasi rand) ===== */
+.tabs{
+  display:flex; justify-content:space-between; align-items:flex-end; gap:16px;
+  padding:18px 32px 0 32px;
+  border-bottom:1px solid #232326;
+  flex-wrap:wrap;
+}
+.tabs-left{ display:flex; gap:6px; }
+.tab-btn{
+  background:transparent; border:none; cursor:pointer;
+  color:#8a8a90; font-family:'Inter',sans-serif;
+  font-size:14px; font-weight:600;
+  padding:12px 18px; border-radius:10px 10px 0 0;
+  transition:color .15s ease, background .15s ease;
+  position:relative; top:1px;
+}
+.tab-btn:hover{ color:#d5d5d8; }
+.tab-btn.active{
+  color:#22d3c8;                       /* tabul activ devine cyan */
+  background:#101012;
+  border:1px solid #232326;
+  border-bottom:1px solid #101012;     /* "musca" linia de jos ca sa para lipit de continut */
+}
+
+/* bara de cautare globala */
+.search-wrap{ position:relative; margin-bottom:10px; width:320px; max-width:100%; }
+#globalSearch{
+  width:100%; padding:10px 14px; font-family:'Inter',sans-serif; font-size:13px;
+  background:#18181b; border:1px solid #2a2a2e; border-radius:10px;
+  color:#F2F2F3; outline:none;
+}
+#globalSearch:focus{ border-color:#22d3c8; }
+#globalSearch::placeholder{ color:#6b6b70; }
+
+/* dropdown cu rezultatele cautarii */
+.search-results{
+  position:absolute; top:calc(100% + 6px); left:0; right:0;
+  background:#1c1c1f; border:1px solid #2a2a2e; border-radius:10px;
+  max-height:280px; overflow-y:auto; z-index:20;
+  display:none;                        /* apare doar cand exista text + rezultate */
+  box-shadow:0 12px 30px rgba(0,0,0,0.45);
+}
+.search-results.show{ display:block; }
+.search-result-item{
+  padding:10px 14px; font-size:13px; cursor:pointer;
+  border-bottom:1px solid #232326;
+  display:flex; justify-content:space-between; gap:10px;
+}
+.search-result-item:last-child{ border-bottom:none; }
+.search-result-item:hover{ background:#232326; }
+.search-result-tag{ font-size:10.5px; color:#22d3c8; font-weight:700; text-transform:uppercase; }
+.search-result-empty{ padding:14px; font-size:12.5px; color:#8a8a90; text-align:center; }
+
+/* ===== CONTINUT & PANOURI ===== */
+.content{ padding:28px 32px; }
+.tab-panel{ display:none; animation:fadeIn .25s ease; }
+.tab-panel.active{ display:block; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+/* ===== BENTO GRID ===== */
+.bento-row{
+  display:grid;
+  gap:16px;
+  margin-bottom:20px;
+}
+.bento-4{ grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); } /* 4 carduri KPI */
+.bento-3{ grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); } /* 3 carduri jos */
+
+/* ===== CARD DE BAZA ===== */
+.card{
+  background:#18181b;                 /* card mai deschis decat fundalul */
+  border:1px solid #232326;
+  border-radius:16px;                 /* colturi rotunjite, stil bento */
+  padding:20px;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.card:hover{ border-color:#33333a; transform:translateY(-2px); }
+
+.card-head{ margin-bottom:16px; }
+.card-head h2{ font-size:15.5px; font-weight:700; }
+.card-sub{ font-size:12.5px; color:#8a8a90; margin-top:3px; }
+
+/* ===== CARD KPI ===== */
+.kpi-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; }
+.kpi-label{ font-size:12.5px; color:#a3a3a9; font-weight:500; }
+.kpi-value{ font-size:26px; font-weight:800; letter-spacing:-0.5px; }
+.kpi-compare{ font-size:12px; color:#8a8a90; margin-top:6px; }
+
+/* badge-uri tip "pill" neon */
+.badge{
+  font-size:10.5px; font-weight:700; padding:4px 9px;
+  border-radius:20px; white-space:nowrap;
+}
+.badge-green{ background:rgba(34,211,150,0.12); color:#34e6ab; }
+.badge-blue{ background:rgba(56,161,255,0.12); color:#58b6ff; }
+.badge-red{ background:rgba(255,90,90,0.12); color:#ff7a7a; }
+.badge-purple{ background:rgba(190,120,255,0.12); color:#c58bff; }
+.badge-neutral{ background:#232326; color:#a3a3a9; }
+
+/* ===== CARD GRAFIC ===== */
+.chart-card{ margin-bottom:20px; }
+.chart-wrap{ height:300px; position:relative; }
+
+/* ===== TABEL DE DATE ===== */
+.table-card{ margin-bottom:20px; overflow-x:auto; }
+.data-table{ width:100%; border-collapse:collapse; }
+.data-table th{
+  text-align:left; font-size:11.5px; text-transform:uppercase;
+  letter-spacing:0.4px; color:#7a7a80; font-weight:600;
+  padding:10px 12px; border-bottom:1px solid #232326;
+}
+.data-table td{
+  padding:12px; font-size:13.5px; border-bottom:1px solid #1e1e21;
+}
+.data-table tr:last-child td{ border-bottom:none; }
+.data-table tr:hover td{ background:#1e1e21; }
+
+/* status pill folosit direct in celula tabelului */
+.status-pill-sm{
+  font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px;
+  white-space:nowrap;
+}
+.status-tranzit{ background:rgba(56,161,255,0.12); color:#58b6ff; }
+.status-livrat{ background:rgba(34,211,150,0.12); color:#34e6ab; }
+.status-retur{ background:rgba(255,90,90,0.12); color:#ff7a7a; }
+.status-lucru{ background:rgba(245,166,35,0.12); color:#f5c26b; }
+
+/* randul de consumabil sub prag minim, se coloreaza usor rosu */
+.row-alert td{ background:rgba(255,90,90,0.06); }
+
+/* buton mic in tabel, spre pagina de constatari */
+.btn-link{
+  font-size:11.5px; font-weight:700; color:#22d3c8;
+  background:rgba(34,211,200,0.1); border:1px solid rgba(34,211,200,0.3);
+  padding:6px 12px; border-radius:8px; cursor:pointer; text-decoration:none;
+  white-space:nowrap;
+}
+.btn-link:hover{ background:rgba(34,211,200,0.2); }
+
+/* ===== LISTE (fleet, recurente) ===== */
+.alert-list{ list-style:none; display:flex; flex-direction:column; gap:10px; }
+.alert-item{
+  display:flex; justify-content:space-between; align-items:center;
+  background:#1e1e21; border-radius:10px; padding:12px 14px;
+  border-left:3px solid #33333a;                 /* culoarea se schimba dupa urgenta in JS */
+}
+.alert-item.urgent{ border-left-color:#ff5a5a; }
+.alert-item.warning{ border-left-color:#f5a623; }
+.alert-car{ font-size:13.5px; font-weight:600; }
+.alert-detail{ font-size:11.5px; color:#8a8a90; margin-top:2px; }
+.alert-days{ font-size:12px; font-weight:700; }
+.alert-item.urgent .alert-days{ color:#ff7a7a; }
+.alert-item.warning .alert-days{ color:#f5c26b; }
+.alert-count{ font-size:14px; font-weight:800; color:#22d3c8; }
+
+/* ===== GENERATOR WIDGET ===== */
+.gen-stats{ display:flex; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.gen-stat{
+  flex:1; background:#1e1e21; border-radius:12px; padding:16px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.gen-num{ font-size:22px; font-weight:800; color:#22d3c8; }
+.gen-label{ font-size:11px; color:#8a8a90; text-align:center; }
+
+/* bara de progres pentru maintenance generator */
+.maintenance-block{ margin-top:4px; }
+.maintenance-top{
+  display:flex; justify-content:space-between; font-size:12px; color:#a3a3a9;
+  margin-bottom:8px;
+}
+.progress-track{ width:100%; height:8px; background:#232326; border-radius:20px; overflow:hidden; }
+.progress-fill{
+  height:100%; border-radius:20px; background:#22d3c8;   /* verde/cyan implicit */
+  transition:width .3s ease;
+}
+.progress-fill.warning{ background:#f5a623; }             /* peste 70% */
+.progress-fill.danger{ background:#ff5a5a; }               /* peste 90% */
+
+/* ===== TAB PLATI: checkbox status ===== */
+.pay-status-btn{
+  font-size:11px; font-weight:700; padding:6px 12px; border-radius:20px;
+  cursor:pointer; border:1px solid transparent; white-space:nowrap;
+}
+.pay-status-btn.neplatit{ background:rgba(255,90,90,0.12); color:#ff7a7a; border-color:rgba(255,90,90,0.3); }
+.pay-status-btn.platit{ background:rgba(34,211,150,0.12); color:#34e6ab; border-color:rgba(34,211,150,0.3); }
+.iban-text{ font-variant-numeric:tabular-nums; font-size:12.5px; color:#c9c9cd; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:720px){
+  .topbar{ padding:16px; flex-wrap:wrap; gap:10px; }
+  .tabs{ padding:14px 16px 0 16px; }
+  .search-wrap{ width:100%; }
+  .content{ padding:16px; }
+  .bento-4, .bento-3{ grid-template-columns:1fr; }
+}
