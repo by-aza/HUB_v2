@@ -220,6 +220,7 @@ body {
 .alert-item.urgent .alert-days{ color:#ff7a7a; }
 .alert-item.warning .alert-days{ color:#f5c26b; }
 .alert-count{ font-size:14px; font-weight:800; color:#22d3c8; }
+.alert-empty{ color:#8a8a90; font-size:13px; }
 
 /* ===== GENERATOR WIDGET ===== */
 .gen-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
@@ -261,6 +262,25 @@ body {
 .pay-status-btn.neplatit{ background:rgba(255,90,90,0.12); color:#ff7a7a; border-color:rgba(255,90,90,0.3); }
 .pay-status-btn.platit{ background:rgba(34,211,150,0.12); color:#34e6ab; border-color:rgba(34,211,150,0.3); }
 .iban-text{ font-variant-numeric:tabular-nums; font-size:12.5px; color:#c9c9cd; }
+.pay-status-badge{
+  display:inline-flex; align-items:center; font-size:11px; font-weight:800;
+  padding:4px 10px; border-radius:20px; white-space:nowrap;
+}
+.pay-status-badge.neplatit{ background:rgba(245,166,35,0.12); color:#f5c26b; border:1px solid rgba(245,166,35,0.28); }
+.pay-status-badge.platit{ background:rgba(34,211,150,0.12); color:#34e6ab; border:1px solid rgba(34,211,150,0.28); }
+.table-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+.table-action-btn{
+  font-size:11px; font-weight:800; padding:6px 9px; border-radius:8px;
+  border:1px solid #33333a; background:#1e1e21; color:#c9c9cd; cursor:pointer;
+  white-space:nowrap;
+}
+.table-action-btn.pay{ color:#f5c26b; border-color:rgba(245,166,35,0.3); background:rgba(245,166,35,0.1); }
+.copy-cell-btn{
+  border:0; background:transparent; color:inherit; font:inherit; cursor:pointer;
+  padding:0; text-align:left;
+}
+.copy-cell-btn:hover{ color:#22d3c8; }
+.empty-cell{ color:#8a8a90; text-align:center; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width:720px){

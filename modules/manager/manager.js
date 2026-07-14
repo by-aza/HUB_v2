@@ -448,13 +448,65 @@ async function fetchDateDepartamente(){
   }
 }
 
-// -- date fictive: inlocuieste cu SELECT + GROUP BY nr_inmatriculare din istoricul de vizite --
-const dateRecurente = [
-  { nrInmatriculare:'CT24ABC', vizite:6 },
-  { nrInmatriculare:'CJ12ABC', vizite:5 },
-  { nrInmatriculare:'CJ33XYZ', vizite:3 },
-  { nrInmatriculare:'CT11DEF', vizite:2 },
-];
+let dateAsteptarePiese = [];
+
+function formatDurataCompacta(ms){
+  const totalMinutes = Math.max(0, Math.floor((Number(ms) || 0) / 60000));
+  const zile = Math.floor(totalMinutes / 1440);
+  const ore = Math.floor((totalMinutes % 1440) / 60);
+  const minute = totalMinutes % 60;
+  if(zile > 0) return `${zile} zile ${ore}h`;
+  if(ore > 0) return `${ore}h ${minute}m`;
+  return `${minute}m`;
+}
+
+async function fetchDateAsteptarePiese(){
+  try{
+    const { data: constatari, error: constatariError } = await sb
+      .from('constatari')
+      .select('id, nr_inmatriculare, status')
+      .eq('status', 'Asteptare piese');
+
+    if(constatariError) throw constatariError;
+
+    const rows = Array.isArray(constatari) ? constatari : [];
+    const ids = rows.map(row=>row.id).filter(Boolean);
+    if(!ids.length) return [];
+
+    const { data: intervale, error: intervaleError } = await sb
+      .from('constatari_asteptare_piese')
+      .select('id, constatare_id, inceput, sfarsit')
+      .in('constatare_id', ids)
+      .is('sfarsit', null)
+      .order('inceput', { ascending:false });
+
+    if(intervaleError) throw intervaleError;
+
+    const ultimIntervalDeschis = {};
+    (Array.isArray(intervale) ? intervale : []).forEach(interval=>{
+      if(!ultimIntervalDeschis[interval.constatare_id]){
+        ultimIntervalDeschis[interval.constatare_id] = interval;
+      }
+    });
+
+    const acum = Date.now();
+    return rows
+      .map(row=>{
+        const interval = ultimIntervalDeschis[row.id];
+        const inceput = parseDataFlex(interval?.inceput);
+        const durataMs = inceput ? Math.max(0, acum - inceput.getTime()) : 0;
+        return {
+          nrInmatriculare: row.nr_inmatriculare || '—',
+          durataMs,
+          durataText: formatDurataCompacta(durataMs),
+        };
+      })
+      .sort((a,b)=>b.durataMs - a.durataMs);
+  } catch(error){
+    console.error('Eroare asteptare piese:', error);
+    return [];
+  }
+}
 
 let dateMasiniLucru = [];
 
@@ -605,12 +657,14 @@ async function fetchDateGenerator(){
 }
 
 async function initPerformanta(){
-  const [dateDepartamente, dateGenerator, masiniLucru] = await Promise.all([
+  const [dateDepartamente, dateGenerator, masiniLucru, asteptarePiese] = await Promise.all([
     fetchDateDepartamente(),
     fetchDateGenerator(),
     fetchDateMasiniLucru(),
+    fetchDateAsteptarePiese(),
   ]);
   dateMasiniLucru = masiniLucru;
+  dateAsteptarePiese = asteptarePiese;
 
   // grafic bare: nr masini intrate pe departamente
   const ctx = document.getElementById('chartDepartamente');
@@ -636,18 +690,18 @@ async function initPerformanta(){
       <td>${x.dataFinalizare}</td>
       <td><span class="status-pill-sm ${clasaStatus}">${x.status}</span></td>
       <td>${x.mecanic}</td>
+      <td><a class="btn-link" href="/modules/formulare/constatari.html?nr=${encodeURIComponent(x.nr)}">→ Constatări</a></td>
     </tr>`;
   }).join('');
 
-  // lista top masini recurente
-  const listaRecurente = document.getElementById('listRecurente');
-  listaRecurente.innerHTML = dateRecurente
-    .sort((a,b)=>b.vizite - a.vizite)
+  // lista masini in asteptare piese
+  const listaAsteptarePiese = document.getElementById('listAsteptarePiese');
+  listaAsteptarePiese.innerHTML = dateAsteptarePiese.length ? dateAsteptarePiese
     .map(x=>`
       <li class="alert-item">
         <div class="alert-car">${x.nrInmatriculare}</div>
-        <div class="alert-count">${x.vizite}×</div>
-      </li>`).join('');
+        <div class="alert-count">${x.durataText}</div>
+      </li>`).join('') : `<li class="alert-item alert-empty">Nicio mașină în așteptare.</li>`;
 
   // lista alerte fleet: ITP/RCA/Rovinieta
   const listaFleet = document.getElementById('listFleetAlerts');
@@ -683,39 +737,140 @@ async function initPerformanta(){
 // TAB 3: PLATI (retururi de facut catre clienti/furnizori)
 // ============================================================
 
-// -- date fictive: inlocuieste cu SELECT din tabelul plati_retur --
-let datePlati = [
-  { nume:'Ionescu Andrei', iban:'RO49AAAA1B31007593840000', suma:610,  motiv:'Retur AWB-1039 - piesă greșită', platit:false },
-  { nume:'PieseExpress SRL', iban:'RO12BBBB1B31009999990001', suma:250, motiv:'Diferență cost consumabile facturate în plus', platit:true },
-  { nume:'Popescu Mihai',  iban:'RO77CCCC1B31005551230002', suma:1200, motiv:'Anulare comandă detailing', platit:false },
-];
+let datePlati = [];
+let managerUserId = null;
 
-function initPlati(){
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatDataPlati(value){
+  const d = parseDataFlex(value);
+  if(!d) return '—';
+  return d.toLocaleDateString('ro-RO', { day:'2-digit', month:'2-digit', year:'numeric' }).replace(/\//g, '.');
+}
+
+async function fetchDatePlati(){
+  try{
+    const { data, error } = await sb
+      .from('plati_manager')
+      .select('id, beneficiar, iban, suma, motiv, status, data_crearii, data_platii, platit_de')
+      .order('data_crearii', { ascending:false });
+
+    if(error) throw error;
+
+    return (Array.isArray(data) ? data : [])
+      .sort((a,b)=>{
+        const aPlatit = a.status === 'platit' ? 1 : 0;
+        const bPlatit = b.status === 'platit' ? 1 : 0;
+        if(aPlatit !== bPlatit) return aPlatit - bPlatit;
+        return (parseDataFlex(b.data_crearii)?.getTime() || 0) - (parseDataFlex(a.data_crearii)?.getTime() || 0);
+      });
+  } catch(error){
+    console.error('Eroare plati_manager:', error);
+    alert('Nu s-au putut încărca cererile de plată.');
+    return [];
+  }
+}
+
+async function initPlati(){
+  const { data: sessionData, error: sessionError } = await sb.auth.getSession();
+  if(sessionError){
+    console.error('Eroare sesiune Plăți:', sessionError);
+    alert('Nu s-a putut identifica utilizatorul autentificat.');
+    return;
+  }
+  managerUserId = sessionData?.session?.user?.id || null;
+  datePlati = await fetchDatePlati();
   randeazaTabelPlati();
+}
+
+function badgeStatusPlata(status){
+  const normalized = String(status || 'neplatit').toLowerCase();
+  const cls = normalized === 'platit' ? 'platit' : 'neplatit';
+  return `<span class="pay-status-badge ${cls}">${escapeHtml(normalized)}</span>`;
+}
+
+async function copiazaTextPlata(value, element){
+  try{
+    await navigator.clipboard.writeText(String(value || ''));
+    const original = element.textContent;
+    element.textContent = 'Copiat';
+    setTimeout(()=>{ element.textContent = original; }, 900);
+  } catch(error){
+    console.error('Eroare copiere în clipboard:', error);
+    alert('Nu s-a putut copia în clipboard.');
+  }
 }
 
 function randeazaTabelPlati(){
   const tbody = document.querySelector('#tablePlati tbody');
-  tbody.innerHTML = datePlati.map((x,i)=>{
-    const clasaBtn = x.platit ? 'platit' : 'neplatit';
-    const textBtn  = x.platit ? '✓ Plătit' : 'Neplătit';
+  tbody.innerHTML = datePlati.length ? datePlati.map((x)=>{
+    const status = String(x.status || 'neplatit').toLowerCase();
+    const markPaidBtn = status === 'neplatit'
+      ? `<button class="table-action-btn pay" data-action="mark-paid" data-id="${x.id}">Marchează plătit</button>`
+      : '';
     return `<tr>
-      <td>${x.nume}</td>
-      <td class="iban-text">${x.iban}</td>
-      <td>${formatLei(x.suma)}</td>
-      <td>${x.motiv}</td>
-      <td><button class="pay-status-btn ${clasaBtn}" data-index="${i}">${textBtn}</button></td>
+      <td><button class="copy-cell-btn" data-copy="${escapeHtml(x.beneficiar)}">${escapeHtml(x.beneficiar)}</button></td>
+      <td class="iban-text"><button class="copy-cell-btn iban-text" data-copy="${escapeHtml(x.iban)}">${escapeHtml(x.iban)}</button></td>
+      <td>${formatLei(Number(x.suma) || 0)}</td>
+      <td>${escapeHtml(x.motiv)}</td>
+      <td>${badgeStatusPlata(status)}</td>
+      <td>${formatDataPlati(x.data_crearii)}</td>
+      <td>
+        <div class="table-actions">
+          ${markPaidBtn}
+        </div>
+      </td>
     </tr>`;
-  }).join('');
+  }).join('') : `<tr><td colspan="7" class="empty-cell">Nu există cereri de plată.</td></tr>`;
 
-  // click pe buton = toggle status platit/neplatit (local, pana se leaga la Supabase)
-  tbody.querySelectorAll('.pay-status-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const idx = Number(btn.dataset.index);
-      datePlati[idx].platit = !datePlati[idx].platit;
-      randeazaTabelPlati(); // re-randeaza tabelul cu noul status
+  tbody.querySelectorAll('[data-action]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if(action === 'mark-paid') await marcheazaPlataPlatita(id);
     });
   });
+
+  tbody.querySelectorAll('[data-copy]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      await copiazaTextPlata(btn.dataset.copy, btn);
+    });
+  });
+}
+
+async function reincarcaPlatiDupaSucces(){
+  datePlati = await fetchDatePlati();
+  randeazaTabelPlati();
+}
+
+async function marcheazaPlataPlatita(id){
+  if(!managerUserId){
+    alert('Nu s-a putut identifica utilizatorul autentificat.');
+    return;
+  }
+
+  try{
+    const { error } = await sb
+      .from('plati_manager')
+      .update({
+        status: 'platit',
+        data_platii: new Date().toISOString(),
+        platit_de: managerUserId
+      })
+      .eq('id', id);
+
+    if(error) throw error;
+    await reincarcaPlatiDupaSucces();
+  } catch(error){
+    console.error('Eroare marcare plată ca plătită:', error);
+    alert('Nu s-a putut marca plata ca plătită.');
+  }
 }
 
 // ============================================================
@@ -788,8 +943,10 @@ function cautaPesteTot(q){
   });
 
   datePlati.forEach(x=>{
-    if(x.nume.toLowerCase().includes(q) || x.motiv.toLowerCase().includes(q))
-      rezultate.push({ tag:'Plată', text:`${x.nume} — ${formatLei(x.suma)}`, tab:'plati' });
+    const beneficiar = String(x.beneficiar || '').toLowerCase();
+    const motiv = String(x.motiv || '').toLowerCase();
+    if(beneficiar.includes(q) || motiv.includes(q))
+      rezultate.push({ tag:'Plată', text:`${x.beneficiar || '—'} — ${formatLei(Number(x.suma) || 0)}`, tab:'plati' });
   });
 
   return rezultate.slice(0, 8); // limitam la 8 rezultate afisate
@@ -857,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     initTabs();
     await initFinanciar();      // acum face fetch real din Supabase, asteptam sa termine
     await initPerformanta();
-    initPlati();
+    await initPlati();
     initCautareGlobala();
   } catch (error) {
     console.error(error);
