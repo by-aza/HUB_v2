@@ -26,7 +26,7 @@ async function verificaAccesManager(){
 
     const { data: profil, error: profilError } = await sb
       .from('auth_profiles')
-      .select('id, nume, prenume, porecla, rol_id')
+      .select('id, nume, prenume, porecla, rol_id, permissions')
       .eq('id', sesiune.user.id)
       .maybeSingle();
 
@@ -40,7 +40,7 @@ async function verificaAccesManager(){
       return null;
     }
 
-    if (profil.rol_id !== 1 && profil.rol_id !== 2) {
+    if (profil.rol_id !== 1 && profil.rol_id !== 2 && profil?.permissions?.manager_dashboard !== true) {
       alert('Nu ai acces la pagina Manager Dashboard.');
       window.location.href = '/index.html';
       return null;
