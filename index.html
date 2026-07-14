@@ -55,6 +55,10 @@
             };
 
             isAdmin = Number(data.rol_id) === 1;
+            if (Number(data.rol_id) === 2 && new URLSearchParams(window.location.search).get('hub') !== '1') {
+                window.location.href = 'modules/manager/manager.html';
+                return;
+            }
 
             // 4. Adjust activeId if needed
             if (!isAdmin && activeId === 'panou') {
@@ -86,6 +90,7 @@
     function hasPermission(newKey, oldKey = permissionFallbackMap?.[newKey]) {
         try {
             if (Number(window.USER_DATA?.rol_id) === 1) return true;
+            if (newKey === "manager_dashboard" && Number(window.USER_DATA?.rol_id) === 2) return true;
             if (!newKey) return true;
             const permissions = window.USER_DATA?.permissions || {};
             if (Object.prototype.hasOwnProperty.call(permissions, newKey)) {
@@ -879,6 +884,7 @@
           title: "Admin",
           items: [
             { id: "panou", label: "Administrare", icon: "layout-dashboard", url: "modules/admin/admin.html", adminOnly: true },
+            { id: "manager-dashboard-nav", label: "Dashboard Manager", icon: "layout-dashboard", url: "modules/manager/manager.html", permission: "manager_dashboard" },
           ],
         },
       ];
@@ -910,6 +916,7 @@
         { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
         { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
         { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+        { id: "manager-dashboard-card", title: "Dashboard Manager", meta: "—", icon: "layout-dashboard", tone: "neutral", url: "modules/manager/manager.html", permission: "manager_dashboard" },
       ];
 
       const serviceCards = [

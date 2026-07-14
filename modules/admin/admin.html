@@ -1737,6 +1737,7 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_consumabile" class="rounded border-slate-600 bg-slate-900"> Administrare Consumabile</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_audit" class="rounded border-slate-600 bg-slate-900"> Audit Log</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_useri" class="rounded border-slate-600 bg-slate-900"> Gestionare Utilizatori</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_manager_dashboard" class="rounded border-slate-600 bg-slate-900"> Dashboard Manager</label>
                                             </div>
                                         </div>
                                     </div>
@@ -2141,7 +2142,8 @@
             ['perm_admin_devize', 'admin_devize'],
             ['perm_admin_consumabile', 'admin_consumabile'],
             ['perm_admin_audit', 'admin_audit'],
-            ['perm_admin_useri', 'admin_useri']
+            ['perm_admin_useri', 'admin_useri'],
+            ['perm_manager_dashboard', 'manager_dashboard']
         ];
         const userPermissionLabels = {
             deviz_estimativ: 'Deviz Estimativ',
@@ -2163,7 +2165,8 @@
             admin_devize: 'Admin Gestiune Devize',
             admin_consumabile: 'Admin Consumabile',
             admin_audit: 'Admin Audit Log',
-            admin_useri: 'Admin Gestionare Utilizatori'
+            admin_useri: 'Admin Gestionare Utilizatori',
+            manager_dashboard: 'Dashboard Manager'
         };
 
         // Identifică administratorul care face modificarea
