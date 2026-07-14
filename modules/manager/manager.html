@@ -154,14 +154,14 @@ window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'und
     </div>
 
     <!-- tabel masini in lucru acum -->
-    <div class="card table-card">
+    <div class="card table-card masini-lucru-card">
       <div class="card-head">
         <h2>Mașini în lucru acum</h2>
         <p class="card-sub">Status live pe fiecare mașină din service</p>
       </div>
       <table class="data-table" id="tableMasiniLucru">
         <thead>
-          <tr><th>Nr. înmatriculare</th><th>Data intrare</th><th>Status</th><th>Mecanic</th><th></th></tr>
+          <tr><th>Nr. Auto</th><th>Intrare</th><th>Finalizare</th><th>Status</th><th>Mecanic</th></tr>
         </thead>
         <tbody><!-- randurile se genereaza din JS --></tbody>
       </table>

@@ -161,6 +161,28 @@ body {
 .data-table tr:last-child td{ border-bottom:none; }
 .data-table tr:hover td{ background:#1e1e21; }
 
+.masini-lucru-card{
+  overflow-x:auto;
+}
+.masini-lucru-card .data-table{
+  display:block;
+  max-height:320px;
+  overflow-y:auto;
+}
+.masini-lucru-card .data-table thead,
+.masini-lucru-card .data-table tbody,
+.masini-lucru-card .data-table tr{
+  display:table;
+  width:100%;
+  table-layout:fixed;
+}
+.masini-lucru-card .data-table thead{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:#18181b;
+}
+
 /* status pill folosit direct in celula tabelului */
 .status-pill-sm{
   font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px;
@@ -200,13 +222,22 @@ body {
 .alert-count{ font-size:14px; font-weight:800; color:#22d3c8; }
 
 /* ===== GENERATOR WIDGET ===== */
-.gen-stats{ display:flex; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.gen-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
 .gen-stat{
-  flex:1; background:#1e1e21; border-radius:12px; padding:16px 10px;
+  min-width:0; width:100%; background:#1e1e21; border-radius:12px; padding:14px 8px;
   display:flex; flex-direction:column; align-items:center; gap:6px;
 }
 .gen-num{ font-size:22px; font-weight:800; color:#22d3c8; }
 .gen-label{ font-size:11px; color:#8a8a90; text-align:center; }
+
+.card.generator-running{
+  animation: generatorPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes generatorPulse{
+  0%, 100%{ box-shadow:0 0 0 rgba(255,90,90,0); }
+  50%{ box-shadow:0 0 18px rgba(255,90,90,0.22); }
+}
 
 /* bara de progres pentru maintenance generator */
 .maintenance-block{ margin-top:4px; }
@@ -216,7 +247,7 @@ body {
 }
 .progress-track{ width:100%; height:8px; background:#232326; border-radius:20px; overflow:hidden; }
 .progress-fill{
-  height:100%; border-radius:20px; background:#22d3c8;   /* verde/cyan implicit */
+  height:100%; border-radius:20px; background:linear-gradient(90deg,#3b82f6,#10b981);
   transition:width .3s ease;
 }
 .progress-fill.warning{ background:#f5a623; }             /* peste 70% */

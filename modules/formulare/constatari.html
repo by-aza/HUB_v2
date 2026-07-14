@@ -715,6 +715,7 @@ function fromSB(row) {
   return {
     id:            row.id,
     created_at:    row.created_at || '',
+    data_finalizarii: row.data_finalizarii || null,
     date:          (row.created_at || '').substring(0, 10),
     nr_fisa:       row.nr_fisa == null || row.nr_fisa === '' ? '' : String(row.nr_fisa).padStart(4, '0'),
     client:        row.client || '',
@@ -730,6 +731,7 @@ function fromSB(row) {
     obs:           row.observatii || '',
     status:        row.status || 'In lucru',
     urgent:        !!row.este_urgent,
+    asteptare_piese: [],
     photos:        []
   };
 }
@@ -923,8 +925,11 @@ async function loadCards() {
       .order('created_at', { ascending: false });
     if (error) throw error;
     cards = (data || []).map(fromSB);
+    await attachAsteptarePiese(cards);
     renderCards();
   } catch(e) {
+    console.error('Eroare la încărcarea constatărilor:', e);
+    alert('A apărut o eroare la încărcarea constatărilor: ' + (e.message || e));
     toast('Eroare Supabase: ' + (e.message || e), 'error');
     cards = [];
     renderCards();
@@ -941,8 +946,11 @@ async function loadArchive() {
       .order('created_at', { ascending: false });
     if (error) throw error;
     cards = (data || []).map(fromSB);
+    await attachAsteptarePiese(cards);
     renderCards();
   } catch(e) {
+    console.error('Eroare la încărcarea arhivei:', e);
+    alert('A apărut o eroare la încărcarea arhivei: ' + (e.message || e));
     toast('Eroare la arhivă: ' + (e.message || e), 'error');
   }
 }
@@ -968,6 +976,69 @@ function formatDateRO(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function parseDateMs(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  const ms = d.getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function formatDuration(ms) {
+  const safeMs = Math.max(0, Number(ms) || 0);
+  const totalMinutes = Math.floor(safeMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [];
+  if (days) parts.push(`${days} zile`);
+  if (hours) parts.push(`${hours} ore`);
+  if (!days && minutes) parts.push(`${minutes} min`);
+  return parts.length ? parts.join(' ') : '0 min';
+}
+
+function calcTimpuriConstatare(c) {
+  const nowMs = Date.now();
+  const startMs = parseDateMs(c.created_at || c.date);
+  const endMs = parseDateMs(c.data_finalizarii) || nowMs;
+  const durataTotalaMs = startMs ? Math.max(0, endMs - startMs) : 0;
+  const asteptareMs = (c.asteptare_piese || []).reduce((total, interval) => {
+    const inceputMs = parseDateMs(interval.inceput);
+    if (!inceputMs) return total;
+    const sfarsitMs = parseDateMs(interval.sfarsit) || nowMs;
+    return total + Math.max(0, sfarsitMs - inceputMs);
+  }, 0);
+
+  return {
+    durataTotala: formatDuration(durataTotalaMs),
+    asteptarePiese: formatDuration(asteptareMs),
+    lucruEfectiv: formatDuration(Math.max(0, durataTotalaMs - asteptareMs))
+  };
+}
+
+async function attachAsteptarePiese(cardList) {
+  const ids = cardList.map(c => c.id).filter(Boolean);
+  if (!ids.length) return;
+
+  const { data, error } = await sb
+    .from('constatari_asteptare_piese')
+    .select('*')
+    .in('constatare_id', ids)
+    .order('inceput', { ascending: true });
+
+  if (error) throw error;
+
+  const byConstatare = {};
+  (data || []).forEach(interval => {
+    const key = interval.constatare_id;
+    if (!byConstatare[key]) byConstatare[key] = [];
+    byConstatare[key].push(interval);
+  });
+
+  cardList.forEach(c => {
+    c.asteptare_piese = byConstatare[c.id] || [];
+  });
 }
 
 async function getNextNrFisa() {
@@ -1009,6 +1080,7 @@ function renderCards() {
     const fisaText = c.nr_fisa ? `Fișa ${esc(c.nr_fisa)}` : '';
     const dateText = formatDateRO(c.created_at || c.date);
     const metaLines = [fisaText, dateText, c.client ? esc(c.client) : ''].filter(Boolean).join('<br>');
+    const timpuri = calcTimpuriConstatare(c);
     return `
     <article class="card" data-status="${esc(c.status)}" data-id="${c.id}">
       ${c.urgent ? `<div class="urgent-ribbon">🚨 URGENT</div>` : ''}
@@ -1038,6 +1110,10 @@ function renderCards() {
         <div>
           <div class="section-label">Piese utilizate</div>
           <div class="parts-row">${partsHtml}</div>
+        </div>
+        <div>
+          <div class="section-label">Timpi lucrare</div>
+          <div class="section-text">Durata totală: ${esc(timpuri.durataTotala)}<br>Total așteptare piese: ${esc(timpuri.asteptarePiese)}<br>Timp efectiv în lucru: ${esc(timpuri.lucruEfectiv)}</div>
         </div>
         ${c.obs ? `<div class="obs-text">📝 ${esc(c.obs)}</div>` : ''}
       </div>
@@ -1185,24 +1261,35 @@ async function saveCard() {
   try {
     if (editId) {
       const oldCard = cards.find(c => c.id === editId);
-      const { error } = await sb.from(TABLE).update(toSB(payload)).eq('id', editId);
+      const sbPayload = toSB(payload);
+      const statusChanged = oldCard && normAuditText(oldCard.status) !== normAuditText(payload.status);
+      const needsStatusTiming = ['In lucru', 'Asteptare piese', 'Finalizat'].includes(payload.status);
+      if (statusChanged) delete sbPayload.status;
+      const { error } = await sb.from(TABLE).update(sbPayload).eq('id', editId);
       if (error) throw error;
       const idx = cards.findIndex(c => c.id === editId);
-      if (idx >= 0) cards[idx] = { ...cards[idx], ...payload };
-      const updatedCard = idx >= 0 ? cards[idx] : { ...payload, id: editId };
-      if (oldCard && hasConstatareChanges(oldCard, updatedCard)) {
-        logConstatareUpdateDetails(oldCard, updatedCard);
-        if (normAuditText(oldCard.status) !== normAuditText(updatedCard.status)) {
-          logStatusAudit(updatedCard, updatedCard.status);
+      let updatedCard = idx >= 0 ? { ...cards[idx], ...payload } : { ...payload, id: editId };
+      if (needsStatusTiming) {
+        updatedCard = await sincronizeazaStatusConstatare({ ...updatedCard, id: editId }, payload.status);
+      }
+      if (idx >= 0) cards[idx] = { ...cards[idx], ...updatedCard };
+      const savedCard = idx >= 0 ? cards[idx] : { ...payload, id: editId };
+      if (oldCard && hasConstatareChanges(oldCard, savedCard)) {
+        logConstatareUpdateDetails(oldCard, savedCard);
+        if (normAuditText(oldCard.status) !== normAuditText(savedCard.status)) {
+          logStatusAudit(savedCard, savedCard.status);
         }
       } else if (!oldCard) {
-        logConstatareAudit('UPDATE', `A modificat constatarea pentru ${getConstatareLabel(updatedCard)}`, updatedCard);
+        logConstatareAudit('UPDATE', `A modificat constatarea pentru ${getConstatareLabel(savedCard)}`, savedCard);
       }
       toast('Constatare actualizată ✓', 'success');
     } else {
       const { data, error } = await sb.from(TABLE).insert(toSB(payload)).select();
       if (error) throw error;
-      const newCard = data && data[0] ? fromSB(data[0]) : { ...payload, id: Date.now(), created_at: new Date().toISOString(), date: new Date().toISOString().substring(0,10), photos: [] };
+      let newCard = data && data[0] ? fromSB(data[0]) : { ...payload, id: Date.now(), created_at: new Date().toISOString(), date: new Date().toISOString().substring(0,10), data_finalizarii: null, asteptare_piese: [], photos: [] };
+      if (payload.status === 'Asteptare piese' || payload.status === 'Finalizat') {
+        newCard = await sincronizeazaStatusConstatare(newCard, payload.status);
+      }
       cards.unshift(newCard);
       logConstatareAudit('CREATE', `A creat constatarea pentru ${getConstatareLabel(newCard)}`, newCard);
       toast('Constatare adăugată ✓', 'success');
@@ -1210,6 +1297,8 @@ async function saveCard() {
     renderCards();
     closeDrawer();
   } catch(e) {
+    console.error('Eroare la salvarea constatării:', e);
+    alert('Constatarea nu a fost salvată: ' + (e.message || e));
     toast('Eroare Supabase: ' + (e.message || e), 'error');
   }
 
@@ -1266,23 +1355,107 @@ function selectStatus(s) {
   document.querySelectorAll('.status-option').forEach(el => el.classList.remove('selected'));
   document.getElementById('sopt-' + s)?.classList.add('selected');
 }
+
+async function getUltimulIntervalAsteptareDeschis(constatareId) {
+  const { data, error } = await sb
+    .from('constatari_asteptare_piese')
+    .select('*')
+    .eq('constatare_id', constatareId)
+    .is('sfarsit', null)
+    .order('inceput', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+
+async function sincronizeazaStatusConstatare(c, nextStatus) {
+  const nowIso = new Date().toISOString();
+
+  const { data: currentRow, error: currentError } = await sb
+    .from(TABLE)
+    .select('id, data_finalizarii')
+    .eq('id', c.id)
+    .single();
+
+  if (currentError) throw currentError;
+
+  if (nextStatus === 'Asteptare piese') {
+    const intervalDeschis = await getUltimulIntervalAsteptareDeschis(c.id);
+    if (!intervalDeschis) {
+      const { error: insertError } = await sb
+        .from('constatari_asteptare_piese')
+        .insert({ constatare_id: c.id, inceput: nowIso, sfarsit: null });
+      if (insertError) throw insertError;
+    }
+  }
+
+  if (nextStatus === 'In lucru') {
+    const intervalDeschis = await getUltimulIntervalAsteptareDeschis(c.id);
+    if (intervalDeschis) {
+      const { error: closeError } = await sb
+        .from('constatari_asteptare_piese')
+        .update({ sfarsit: nowIso })
+        .eq('id', intervalDeschis.id);
+      if (closeError) throw closeError;
+    }
+  }
+
+  if (nextStatus === 'Finalizat') {
+    const { error: closeAllError } = await sb
+      .from('constatari_asteptare_piese')
+      .update({ sfarsit: nowIso })
+      .eq('constatare_id', c.id)
+      .is('sfarsit', null);
+    if (closeAllError) throw closeAllError;
+  }
+
+  const payload = { status: nextStatus };
+  if (nextStatus === 'Finalizat' && !currentRow?.data_finalizarii) {
+    payload.data_finalizarii = nowIso;
+  }
+
+  const { data: updatedRows, error: updateError } = await sb
+    .from(TABLE)
+    .update(payload)
+    .eq('id', c.id)
+    .select();
+
+  if (updateError) throw updateError;
+
+  const updatedCard = updatedRows && updatedRows[0] ? fromSB(updatedRows[0]) : { ...c, status: nextStatus };
+  if (payload.data_finalizarii) updatedCard.data_finalizarii = payload.data_finalizarii;
+  await attachAsteptarePiese([updatedCard]);
+  return updatedCard;
+}
+
 async function applyStatus() {
   if (!selectedStatus || statusTargetId == null) return;
   try {
     const c = cards.find(x => x.id === statusTargetId);
+    if (!c) return;
     const previousStatus = c?.status || '';
-    const { error } = await sb.from(TABLE).update({ status: selectedStatus }).eq('id', statusTargetId);
-    if (error) throw error;
-    if (c) {
-      c.status = selectedStatus;
+    const updatedCard = await sincronizeazaStatusConstatare(c, selectedStatus);
+    const idx = cards.findIndex(x => x.id === statusTargetId);
+    if (idx >= 0) {
+      cards[idx] = updatedCard;
       if (previousStatus !== selectedStatus) logStatusAudit(c, selectedStatus);
       renderCards();
     }
     toast('Status actualizat: ' + (STATUS_VALUES[selectedStatus]?.label || selectedStatus), 'success');
+    closeStatusModal();
   } catch(e) {
+    const c = cards.find(x => x.id === statusTargetId);
+    if (c) {
+      selectedStatus = c.status;
+      document.querySelectorAll('.status-option').forEach(el => el.classList.remove('selected'));
+      document.getElementById('sopt-' + c.status)?.classList.add('selected');
+    }
+    console.error('Eroare la actualizarea statusului constatării:', e);
+    alert('Statusul nu a fost salvat: ' + (e.message || e));
     toast('Eroare: ' + (e.message || e), 'error');
   }
-  closeStatusModal();
 }
 
 // ═══════════════════════════════════════════════════════
