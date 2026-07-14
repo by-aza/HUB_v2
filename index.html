@@ -92,6 +92,7 @@
         try {
             if (Number(window.USER_DATA?.rol_id) === 1) return true;
             if (newKey === "manager_dashboard" && Number(window.USER_DATA?.rol_id) === 2) return true;
+            if (newKey === "plati" && Number(window.USER_DATA?.rol_id) === 2) return true;
             if (!newKey) return true;
             const permissions = window.USER_DATA?.permissions || {};
             if (Object.prototype.hasOwnProperty.call(permissions, newKey)) {
@@ -857,6 +858,7 @@
           items: [
             { id: "devize", label: "Deviz Estimativ", icon: "file-text", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
             { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "avansuri" },
+            { id: "cereri-plata", label: "Cereri de plată", icon: "wallet", url: "modules/devize/plati.html", permission: "plati" },
             { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
             { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
@@ -913,6 +915,7 @@
       const birouCards = [
         { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
         { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
+        { id: "cereri-plata", title: "Cereri de plată", meta: "—", icon: "wallet", tone: "neutral", url: "modules/devize/plati.html", permission: "plati" },
         { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
         { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
         { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
@@ -1554,6 +1557,38 @@
         patchCard(birouCards, "avansuri", { meta: `Azi: ${formatLei(sum)} Lei` });
       }
 
+      async function loadCereriPlataBadge() {
+        const { count, error } = await sb
+          .from("plati_manager")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "neplatit");
+
+        if (error) {
+          console.error(error);
+          patchCard(birouCards, "cereri-plata", {
+            meta: "Nicio cerere activă",
+            tone: "neutral",
+            badge: null,
+          });
+          return;
+        }
+
+        const activeCount = count || 0;
+        if (activeCount > 0) {
+          patchCard(birouCards, "cereri-plata", {
+            meta: `${activeCount} cereri active`,
+            tone: "warning",
+            badge: null,
+          });
+        } else {
+          patchCard(birouCards, "cereri-plata", {
+            meta: "Nicio cerere activă",
+            tone: "success",
+            badge: null,
+          });
+        }
+      }
+
       async function loadAwbBadge() {
         const { data, error } = await sb
           .from("evidenta_awb")
@@ -1683,6 +1718,7 @@
           loadGeneratorBadge().catch(e => console.warn("loadGeneratorBadge failed:", e)),
           loadConsumabileBadge().catch(e => console.warn("loadConsumabileBadge failed:", e)),
           loadAvansBadge().catch(e => console.warn("loadAvansBadge failed:", e)),
+          loadCereriPlataBadge().catch(e => console.warn("loadCereriPlataBadge failed:", e)),
           loadAwbBadge().catch(e => console.warn("loadAwbBadge failed:", e)),
           loadUltimulDeviz().catch(e => console.warn("loadUltimulDeviz failed:", e)),
           loadContracteBadge().catch(e => console.warn("loadContracteBadge failed:", e)),
@@ -1966,6 +2002,7 @@
         .on("postgres_changes", { event: "*", schema: "public", table: "generator_logs" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri_plati" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "plati_manager" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "evidenta_awb" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "admin_announcements" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "contracte" }, refreshDashboard)

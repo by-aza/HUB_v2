@@ -161,7 +161,7 @@ window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'und
       </div>
       <table class="data-table" id="tableMasiniLucru">
         <thead>
-          <tr><th>Nr. Auto</th><th>Intrare</th><th>Finalizare</th><th>Status</th><th>Mecanic</th></tr>
+          <tr><th>Nr. Auto</th><th>Intrare</th><th>Finalizare</th><th>Status</th><th>Mecanic</th><th>Acțiune</th></tr>
         </thead>
         <tbody><!-- randurile se genereaza din JS --></tbody>
       </table>
@@ -170,13 +170,13 @@ window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'und
     <!-- randul de jos: recurente / alerte fleet / generator -->
     <div class="bento-row bento-3">
 
-      <!-- top masini recurente -->
+      <!-- masini in asteptare piese -->
       <div class="card">
         <div class="card-head">
-          <h2>Top mașini recurente</h2>
-          <p class="card-sub">Câte vizite în service</p>
+          <h2>Așteptare piese</h2>
+          <p class="card-sub">Mașini blocate după ultimul interval deschis</p>
         </div>
-        <ul class="alert-list" id="listRecurente"><!-- generat din JS --></ul>
+        <ul class="alert-list" id="listAsteptarePiese"><!-- generat din JS --></ul>
       </div>
 
       <!-- alerte fleet: ITP / RCA / Rovinieta -->
@@ -230,12 +230,12 @@ window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'und
 
     <div class="card table-card">
       <div class="card-head">
-        <h2>Retururi de plătit</h2>
-        <p class="card-sub">Cine trebuie rambursat, cât și de ce — bifează când e plătit</p>
+        <h2>Cereri de plată</h2>
+        <p class="card-sub">Cereri trimise spre plată și statusul lor curent</p>
       </div>
       <table class="data-table" id="tablePlati">
         <thead>
-          <tr><th>Nume</th><th>IBAN</th><th>Sumă</th><th>Motiv</th><th>Status</th></tr>
+          <tr><th>Beneficiar</th><th>IBAN</th><th>Sumă</th><th>Motiv</th><th>Status</th><th>Data</th><th>Acțiuni</th></tr>
         </thead>
         <tbody><!-- randurile se genereaza din JS --></tbody>
       </table>
