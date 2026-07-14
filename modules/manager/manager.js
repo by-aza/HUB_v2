@@ -390,12 +390,63 @@ async function initFinanciar(){
 // TAB 2: PERFORMANTA DEPARTAMENTE
 // ============================================================
 
-// -- date fictive: numar masini intrate pe departament / luna --
-const dateDepartamente = {
-  luni: ['Apr','Mai','Iun','Iul'],
-  detailing:  [8, 11, 9, 14],
-  constatari: [15, 18, 16, 21],
-};
+async function fetchDateDepartamente(){
+  const ultimele4Luni = getUltimele4Luni();
+  const zeroDepartamente = {
+    luni: ultimele4Luni.map(l=>l.eticheta),
+    detailing: [0, 0, 0, 0],
+    constatari: [0, 0, 0, 0],
+  };
+
+  try{
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(1);
+    start.setMonth(start.getMonth() - 3);
+    const startDataProgramare = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const startIso = start.toISOString();
+
+    const [{ data: detailing, error: detailingError }, { data: constatari, error: constatariError }] = await Promise.all([
+      sb
+        .from('detailing')
+        .select('id, data_programare')
+        .gte('data_programare', startDataProgramare),
+      sb
+        .from('constatari')
+        .select('id, created_at')
+        .gte('created_at', startIso),
+    ]);
+
+    if(detailingError) throw detailingError;
+    if(constatariError) throw constatariError;
+
+    const indexLuni = Object.fromEntries(ultimele4Luni.map((l, index)=>[l.cheie, index]));
+    const departamente = {
+      luni: ultimele4Luni.map(l=>l.eticheta),
+      detailing: [0, 0, 0, 0],
+      constatari: [0, 0, 0, 0],
+    };
+
+    (Array.isArray(detailing) ? detailing : []).forEach(x=>{
+      const dataProgramare = parseDataFlex(x.data_programare);
+      if(!dataProgramare) return;
+      const cheie = `${dataProgramare.getFullYear()}-${dataProgramare.getMonth()}`;
+      if(cheie in indexLuni) departamente.detailing[indexLuni[cheie]] += 1;
+    });
+
+    (Array.isArray(constatari) ? constatari : []).forEach(x=>{
+      const dataCreare = parseDataFlex(x.created_at);
+      if(!dataCreare) return;
+      const cheie = `${dataCreare.getFullYear()}-${dataCreare.getMonth()}`;
+      if(cheie in indexLuni) departamente.constatari[indexLuni[cheie]] += 1;
+    });
+
+    return departamente;
+  } catch(error){
+    console.error('Eroare date departamente:', error);
+    return zeroDepartamente;
+  }
+}
 
 // -- date fictive: inlocuieste cu SELECT + GROUP BY nr_inmatriculare din istoricul de vizite --
 const dateRecurente = [
@@ -405,13 +456,44 @@ const dateRecurente = [
   { nrInmatriculare:'CT11DEF', vizite:2 },
 ];
 
-// -- date fictive: inlocuieste cu SELECT din tabelul masini_in_lucru / constatari --
-const dateMasiniLucru = [
-  { nr:'CT11ABC', dataIntrare:'11.07.2026', status:'În lucru',      mecanic:'Andrei P.' },
-  { nr:'CJ45XYZ', dataIntrare:'12.07.2026', status:'Așteaptă piese', mecanic:'Mihai T.'  },
-  { nr:'CT24ABC', dataIntrare:'09.07.2026', status:'Finalizat',      mecanic:'Andrei P.' },
-  { nr:'CJ88DEF', dataIntrare:'13.07.2026', status:'Diagnoză',       mecanic:'Vlad R.'   },
-];
+let dateMasiniLucru = [];
+
+function formatDataTabelMasini(value){
+  const d = parseDataFlex(value);
+  if(!d) return '—';
+  return d.toLocaleDateString('ro-RO', { day:'2-digit', month:'2-digit', year:'numeric' }).replace(/\//g, '.');
+}
+
+async function fetchDateMasiniLucru(){
+  try{
+    const { data, error } = await sb
+      .from('constatari')
+      .select('id, nr_inmatriculare, created_at, data_finalizarii, status')
+      .neq('status', 'Arhivat')
+      .order('created_at', { ascending:false });
+
+    if(error) throw error;
+
+    return (Array.isArray(data) ? data : [])
+      .sort((a, b)=>{
+        const aFinalizat = a.status === 'Finalizat' ? 1 : 0;
+        const bFinalizat = b.status === 'Finalizat' ? 1 : 0;
+        if(aFinalizat !== bFinalizat) return aFinalizat - bFinalizat;
+        return (parseDataFlex(b.created_at)?.getTime() || 0) - (parseDataFlex(a.created_at)?.getTime() || 0);
+      })
+      .map(row=>({
+        id: row.id,
+        nr: row.nr_inmatriculare || '—',
+        dataIntrare: formatDataTabelMasini(row.created_at),
+        dataFinalizare: formatDataTabelMasini(row.data_finalizarii),
+        status: row.status || '—',
+        mecanic: '—'
+      }));
+  } catch(error){
+    console.error('Eroare masini in lucru din constatari:', error);
+    return [];
+  }
+}
 
 // -- date fictive: inlocuieste cu SELECT din tabelul masini firma --
 const dateFleet = [
@@ -420,10 +502,116 @@ const dateFleet = [
   { masina:'Ford Transit - CJ 88 DEF', tip:'Rovinieta', zileRamase:12 },
 ];
 
-// -- date fictive: inlocuieste cu SELECT din tabelul generator --
-const dateGenerator = { oreFunctionare:26, motorinaLitri:18, porniri:6, pragMaintenance:100 };
+function parseGeneratorDate(value){
+  if(!value) return null;
+  const d = new Date(String(value).includes('Z') || String(value).includes('+') ? value : `${value}Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
 
-function initPerformanta(){
+function formatGeneratorNumber(value){
+  const rounded = Math.round((Number(value) || 0) * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function formatGeneratorElapsed(start){
+  const startDate = parseGeneratorDate(start);
+  if(!startDate) return '0h 0m';
+  const totalMinute = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 60000));
+  const ore = Math.floor(totalMinute / 60);
+  const minute = totalMinute % 60;
+  return `${ore}h ${minute}m`;
+}
+
+let generatorLiveTimer = null;
+
+function updateGeneratorLiveStatus(activeStart){
+  const card = document.getElementById('genOre')?.closest('.card');
+  const subtitle = card?.querySelector('.card-sub');
+  if(!subtitle) return;
+
+  if(generatorLiveTimer){
+    clearInterval(generatorLiveTimer);
+    generatorLiveTimer = null;
+  }
+
+  if(activeStart){
+    card?.classList.add('generator-running');
+    const renderLive = () => {
+      subtitle.textContent = `Luna curentă • Generator pornit • ${formatGeneratorElapsed(activeStart)}`;
+    };
+    renderLive();
+    generatorLiveTimer = setInterval(renderLive, 60000);
+  } else {
+    card?.classList.remove('generator-running');
+    subtitle.textContent = 'Luna curentă • Generator oprit';
+  }
+}
+
+async function fetchDateGenerator(){
+  const zeroGenerator = { oreFunctionare:0, motorinaLitri:0, porniri:0, oreMaintenance:0, pragMaintenance:100, activeStart:null };
+
+  try{
+    const acum = new Date();
+    const startLuna = new Date(acum.getFullYear(), acum.getMonth(), 1);
+
+    const { data, error } = await sb
+      .from('generator_logs')
+      .select('id, ora_start, ora_stop, litri_motorina, observatii')
+      .order('id', { ascending:false });
+
+    if(error) throw error;
+
+    let totalMs = 0;
+    let totalMotorina = 0;
+    let porniri = 0;
+    let totalMinsMaintenance = 0;
+    const logs = Array.isArray(data) ? data : [];
+    const sesiuneActiva = logs.find(log=>log.ora_start && !log.ora_stop && !String(log.observatii || '').includes('Alimentare'));
+
+    logs.forEach(log=>{
+      const esteAlimentare = String(log.observatii || '').includes('Alimentare');
+      const start = parseGeneratorDate(log.ora_start);
+      const stop = parseGeneratorDate(log.ora_stop) || acum;
+      const esteInLunaCurenta = start && start >= startLuna && start <= acum;
+
+      if(log.ora_start && log.ora_stop && !String(log.observatii || '').includes('Alimentare')){
+        totalMinsMaintenance += Math.floor((parseGeneratorDate(log.ora_stop) - parseGeneratorDate(log.ora_start)) / 60000);
+      }
+
+      if(esteAlimentare){
+        if(esteInLunaCurenta) totalMotorina += Number(log.litri_motorina) || 0;
+        return;
+      }
+
+      if(start){
+        if(esteInLunaCurenta) porniri += 1;
+        const intervalStart = start < startLuna ? startLuna : start;
+        totalMs += Math.max(0, stop - intervalStart);
+      }
+    });
+
+    return {
+      oreFunctionare: Number((totalMs / 3600000).toFixed(1)),
+      motorinaLitri: Number(totalMotorina.toFixed(2)),
+      porniri,
+      oreMaintenance: Number((totalMinsMaintenance / 60).toFixed(1)),
+      pragMaintenance:100,
+      activeStart: sesiuneActiva?.ora_start || null
+    };
+  } catch(error){
+    console.error('Eroare generator_logs:', error);
+    return zeroGenerator;
+  }
+}
+
+async function initPerformanta(){
+  const [dateDepartamente, dateGenerator, masiniLucru] = await Promise.all([
+    fetchDateDepartamente(),
+    fetchDateGenerator(),
+    fetchDateMasiniLucru(),
+  ]);
+  dateMasiniLucru = masiniLucru;
+
   // grafic bare: nr masini intrate pe departamente
   const ctx = document.getElementById('chartDepartamente');
   new Chart(ctx, {
@@ -441,13 +629,13 @@ function initPerformanta(){
   // tabel masini in lucru + buton spre constatari
   const tbodyLucru = document.querySelector('#tableMasiniLucru tbody');
   tbodyLucru.innerHTML = dateMasiniLucru.map(x=>{
-    const clasaStatus = x.status==='Finalizat' ? 'status-livrat' : x.status==='Așteaptă piese' ? 'status-retur' : 'status-lucru';
+    const clasaStatus = x.status==='Finalizat' ? 'status-livrat' : x.status==='Asteptare piese' ? 'status-retur' : 'status-lucru';
     return `<tr>
       <td>${x.nr}</td>
       <td>${x.dataIntrare}</td>
+      <td>${x.dataFinalizare}</td>
       <td><span class="status-pill-sm ${clasaStatus}">${x.status}</span></td>
       <td>${x.mecanic}</td>
-      <td><a class="btn-link" href="constatari.html?nr=${x.nr}">→ Constatări</a></td>
     </tr>`;
   }).join('');
 
@@ -478,18 +666,17 @@ function initPerformanta(){
   }).join('');
 
   // widget generator: valori simple in DOM
-  document.getElementById('genOre').textContent = dateGenerator.oreFunctionare;
-  document.getElementById('genMotorina').textContent = dateGenerator.motorinaLitri + ' L';
+  document.getElementById('genOre').textContent = formatGeneratorNumber(dateGenerator.oreFunctionare);
+  document.getElementById('genMotorina').textContent = formatGeneratorNumber(dateGenerator.motorinaLitri) + ' L';
   document.getElementById('genPorniri').textContent = dateGenerator.porniri;
+  updateGeneratorLiveStatus(dateGenerator.activeStart);
 
   // bara de progres maintenance la 100h
-  const procentMentenanta = Math.min(100, (dateGenerator.oreFunctionare / dateGenerator.pragMaintenance) * 100);
+  const procentMentenanta = Math.min(100, (dateGenerator.oreMaintenance / dateGenerator.pragMaintenance) * 100);
   const fillEl = document.getElementById('maintenanceFill');
   fillEl.style.width = procentMentenanta + '%';
   fillEl.classList.remove('warning','danger');
-  if(procentMentenanta >= 90) fillEl.classList.add('danger');        // aproape/depasit pragul
-  else if(procentMentenanta >= 70) fillEl.classList.add('warning');  // se apropie de prag
-  document.getElementById('maintenanceText').textContent = `${dateGenerator.oreFunctionare} / ${dateGenerator.pragMaintenance}h`;
+  document.getElementById('maintenanceText').textContent = `${Math.max(0, dateGenerator.pragMaintenance - dateGenerator.oreMaintenance).toFixed(1)}h`;
 }
 
 // ============================================================
@@ -669,7 +856,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     porniceasLive();
     initTabs();
     await initFinanciar();      // acum face fetch real din Supabase, asteptam sa termine
-    initPerformanta();
+    await initPerformanta();
     initPlati();
     initCautareGlobala();
   } catch (error) {
