@@ -175,6 +175,63 @@
             border-color: rgba(45, 212, 207, 0.35);
             box-shadow: inset 0 0 0 1px rgba(45, 212, 207, 0.12);
         }
+        /* Aici se modifică layout-ul secțiunii Echipe */
+        #sectiune-echipe .echipe-toolbar {
+            display: grid;
+            gap: 1rem;
+        }
+        #sectiune-echipe .echipe-form-grid {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.5fr) auto;
+            align-items: end;
+        }
+        #sectiune-echipe .echipe-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        #sectiune-echipe .echipe-status-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        #sectiune-echipe .echipe-status-pill.is-active {
+            background: rgba(16, 185, 129, 0.12);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.24);
+        }
+        #sectiune-echipe .echipe-status-pill.is-inactive {
+            background: rgba(244, 63, 94, 0.08);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+        #sectiune-echipe .echipe-inline-input {
+            width: 100%;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(2, 6, 23, 0.82);
+            padding: 0.55rem 0.75rem;
+            font-size: 0.875rem;
+            color: #f8fafc;
+            outline: none;
+        }
+        #sectiune-echipe .echipe-inline-input:focus {
+            border-color: rgba(34, 211, 238, 0.55);
+        }
+        @media (max-width: 767px) {
+            #sectiune-echipe .echipe-form-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            #sectiune-echipe .echipe-actions {
+                justify-content: flex-start;
+            }
+        }
         /* Aici se modifică dimensiunea vizuală și rotunjirea cardurilor principale */
         body .glass-panel {
             background: linear-gradient(135deg, rgba(27, 30, 38, 0.8), rgba(26, 29, 36, 0.62));
@@ -1246,6 +1303,9 @@
             <button id="tab-consumabile" onclick="schimbaTab('sectiune-consumabile', 'tab-consumabile')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>📦</span> Consumabile
             </button>
+            <button id="tab-echipe" onclick="schimbaTab('sectiune-echipe', 'tab-echipe')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>🧰</span> Echipe &amp; Departamente
+            </button>
             <button id="tab-audit-log" onclick="schimbaTab('sectiune-audit-log', 'tab-audit-log')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>📋</span> Audit Log
             </button>
@@ -1529,6 +1589,57 @@
                 </div>
             </div>
 
+            <!-- ===== ECHIPE & DEPARTAMENTE ===== -->
+            <div id="sectiune-echipe" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <div class="glass-panel p-4 flex-shrink-0">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Echipe &amp; Departamente</h2>
+                                <p class="mt-1 text-sm text-slate-400">Administrează rapid personalul activ și arhivat pe departamente.</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button id="echipe-tab-mecanica" type="button" data-echipe-tab="echipe-tab-mecanica" class="consumabile-subtab-btn echipe-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Mecanică</button>
+                            <button id="echipe-tab-electrica" type="button" data-echipe-tab="echipe-tab-electrica" class="consumabile-subtab-btn echipe-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Electrică</button>
+                            <button id="echipe-tab-vopsitorie" type="button" data-echipe-tab="echipe-tab-vopsitorie" class="consumabile-subtab-btn echipe-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Vopsitorie</button>
+                            <button id="echipe-tab-detailing" type="button" data-echipe-tab="echipe-tab-detailing" class="consumabile-subtab-btn echipe-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Detailing</button>
+                            <button id="echipe-tab-tinichigerie" type="button" data-echipe-tab="echipe-tab-tinichigerie" class="consumabile-subtab-btn echipe-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Tinichigerie / Pregătire</button>
+                        </div>
+                        <div id="echipe-status" class="mt-3 min-h-6 text-sm text-slate-400"></div>
+                    </div>
+
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <form id="service-personal-form" class="echipe-form-grid">
+                                <label class="text-sm text-slate-300">
+                                    <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Nume persoană</span>
+                                    <input id="service-personal-name" type="text" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none" placeholder="Ex: Andrei Popescu">
+                                </label>
+                                <label class="text-sm text-slate-300">
+                                    <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Ordine</span>
+                                    <input id="service-personal-order" type="number" class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none" placeholder="0">
+                                </label>
+                                <button id="service-personal-add-btn" type="submit" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-sm font-bold text-white transition-colors">Adaugă</button>
+                            </form>
+                        </div>
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Nume</th>
+                                        <th class="px-4 py-3 text-left">Ordine</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="service-personal-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== AUDIT LOG ===== -->
             <div id="sectiune-audit-log" class="admin-page hidden admin-fixed-section">
                 <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
@@ -1740,6 +1851,7 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_devize" class="rounded border-slate-600 bg-slate-900"> Gestiune Devize</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_consumabile" class="rounded border-slate-600 bg-slate-900"> Administrare Consumabile</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_audit" class="rounded border-slate-600 bg-slate-900"> Audit Log</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_echipe" class="rounded border-slate-600 bg-slate-900"> Echipe &amp; Departamente</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_useri" class="rounded border-slate-600 bg-slate-900"> Gestionare Utilizatori</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_manager_dashboard" class="rounded border-slate-600 bg-slate-900"> Dashboard Manager</label>
                                             </div>
@@ -1805,6 +1917,272 @@
             document.querySelectorAll('.consumabile-subtab-panel').forEach((panel) => {
                 panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
             });
+        }
+
+        const servicePersonalDepartmentTabs = {
+            'echipe-tab-mecanica': { label: 'Mecanică', value: 'Mecanica' },
+            'echipe-tab-electrica': { label: 'Electrică', value: 'Electrica' },
+            'echipe-tab-vopsitorie': { label: 'Vopsitorie', value: 'Vopsitorie' },
+            'echipe-tab-detailing': { label: 'Detailing', value: 'Detailing' },
+            'echipe-tab-tinichigerie': { label: 'Tinichigerie / Pregătire', value: 'Tinichigerie/Pregatire' }
+        };
+        let servicePersonalRows = [];
+        let activeServicePersonalTab = 'echipe-tab-mecanica';
+        let servicePersonalEditingId = null;
+
+        function getActiveServicePersonalDepartment() {
+            return servicePersonalDepartmentTabs[activeServicePersonalTab] || servicePersonalDepartmentTabs['echipe-tab-mecanica'];
+        }
+
+        function setEchipeStatus(message, type = 'info') {
+            const el = document.getElementById('echipe-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'mt-3 min-h-6 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'mt-3 min-h-6 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'mt-3 min-h-6 text-sm text-slate-400';
+        }
+
+        function normalizeServicePersonalOrder(value) {
+            const raw = String(value ?? '').trim();
+            if (raw === '') return null;
+            const parsed = Number(raw);
+            return Number.isFinite(parsed) ? parsed : NaN;
+        }
+
+        function sortServicePersonalRows(rows) {
+            return [...rows].sort((a, b) => {
+                const orderA = Number.isFinite(Number(a?.ordine)) ? Number(a.ordine) : Number.MAX_SAFE_INTEGER;
+                const orderB = Number.isFinite(Number(b?.ordine)) ? Number(b.ordine) : Number.MAX_SAFE_INTEGER;
+                if (orderA !== orderB) return orderA - orderB;
+                return String(a?.nume || '').localeCompare(String(b?.nume || ''), 'ro', { sensitivity: 'base' });
+            });
+        }
+
+        function switchEchipeTab(tabId) {
+            if (!servicePersonalDepartmentTabs[tabId]) return;
+            activeServicePersonalTab = tabId;
+            servicePersonalEditingId = null;
+            document.querySelectorAll('#sectiune-echipe [data-echipe-tab]').forEach((btn) => {
+                btn.classList.toggle('active', btn.getAttribute('data-echipe-tab') === tabId);
+            });
+            renderServicePersonalRows();
+        }
+
+        function renderServicePersonalRows() {
+            const tbody = document.getElementById('service-personal-body');
+            if (!tbody) return;
+
+            const currentDepartment = getActiveServicePersonalDepartment();
+            const rows = sortServicePersonalRows(
+                servicePersonalRows.filter((row) => row?.departament === currentDepartment.value)
+            );
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Nu există persoane în departamentul selectat.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const rowId = escapeHtml(row.id);
+                const isActive = row.activ !== false;
+                const isEditing = String(servicePersonalEditingId) === String(row.id);
+                const statusHtml = isActive
+                    ? '<span class="echipe-status-pill is-active">Activ</span>'
+                    : '<span class="echipe-status-pill is-inactive">Arhivat</span>';
+                const actionButton = isActive
+                    ? `<button type="button" data-archive-service-person="${rowId}" class="rounded-xl bg-rose-600 hover:bg-rose-500 px-3 py-2 text-xs font-bold text-white transition-colors">Arhivează</button>`
+                    : `<button type="button" data-reactivate-service-person="${rowId}" class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white transition-colors">Reactivează</button>`;
+
+                if (isEditing) {
+                    return `
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-service-person-row="${rowId}">
+                            <td class="px-4 py-3">
+                                <input type="text" value="${escapeHtml(row.nume || '')}" data-service-person-name-input class="echipe-inline-input">
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="number" value="${escapeHtml(row.ordine ?? '')}" data-service-person-order-input class="echipe-inline-input">
+                            </td>
+                            <td class="px-4 py-3">${statusHtml}</td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="echipe-actions">
+                                    <button type="button" data-save-service-person="${rowId}" class="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-bold text-white transition-colors">Salvează</button>
+                                    <button type="button" data-cancel-service-person="${rowId}" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-3 py-2 text-xs font-bold text-slate-100 transition-colors">Anulează</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 text-slate-100 font-medium">${escapeHtml(row.nume || '—')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row.ordine ?? '—')}</td>
+                        <td class="px-4 py-3">${statusHtml}</td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="echipe-actions">
+                                <button type="button" data-edit-service-person="${rowId}" class="rounded-xl border border-slate-700 bg-cyan-600/15 hover:bg-cyan-600/25 px-3 py-2 text-xs font-bold text-cyan-300 transition-colors">Editează</button>
+                                ${actionButton}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function getCurrentSessionUserId() {
+            const { data: { session } = {}, error } = await sb.auth.getSession();
+            if (error) throw error;
+            return session?.user?.id || null;
+        }
+
+        // Încărcare personal pe toate departamentele
+        async function loadServicePersonalRows() {
+            const tbody = document.getElementById('service-personal-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Se încarcă personalul...</td></tr>';
+            setEchipeStatus('Se încarcă personalul...');
+
+            try {
+                const { data, error } = await sb
+                    .from('service_personal')
+                    .select('id, nume, departament, activ, ordine, user_id, created_at, updated_at');
+
+                if (error) throw error;
+
+                servicePersonalRows = Array.isArray(data) ? data : [];
+                renderServicePersonalRows();
+                const currentDepartment = getActiveServicePersonalDepartment();
+                const visibleCount = servicePersonalRows.filter((row) => row?.departament === currentDepartment.value).length;
+                setEchipeStatus(`Au fost încărcate ${visibleCount} persoane pentru ${currentDepartment.label}.`, 'success');
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca persoanele.')}</td></tr>`;
+                setEchipeStatus(error.message || 'Nu s-au putut încărca persoanele.', 'error');
+            }
+        }
+
+        // Adăugare persoană în departamentul activ
+        async function addServicePerson(event) {
+            event?.preventDefault?.();
+            const nameInput = document.getElementById('service-personal-name');
+            const orderInput = document.getElementById('service-personal-order');
+            const addButton = document.getElementById('service-personal-add-btn');
+            const nume = nameInput?.value?.trim() || '';
+            const ordine = normalizeServicePersonalOrder(orderInput?.value);
+
+            if (!nume) {
+                setEchipeStatus('Numele este obligatoriu.', 'error');
+                return;
+            }
+            if (Number.isNaN(ordine)) {
+                setEchipeStatus('Ordinea trebuie să fie numerică.', 'error');
+                return;
+            }
+
+            try {
+                if (addButton) addButton.disabled = true;
+                const currentDepartment = getActiveServicePersonalDepartment();
+                const userId = await getCurrentSessionUserId();
+                const { error } = await sb
+                    .from('service_personal')
+                    .insert({
+                        nume,
+                        departament: currentDepartment.value,
+                        activ: true,
+                        ordine,
+                        user_id: userId
+                    });
+
+                if (error) throw error;
+
+                if (nameInput) nameInput.value = '';
+                if (orderInput) orderInput.value = '';
+                servicePersonalEditingId = null;
+                await loadServicePersonalRows();
+                setEchipeStatus(`Persoana a fost adăugată în ${currentDepartment.label}.`, 'success');
+            } catch (error) {
+                console.error(error);
+                setEchipeStatus(error.message || 'Nu s-a putut adăuga persoana.', 'error');
+            } finally {
+                if (addButton) addButton.disabled = false;
+            }
+        }
+
+        function activateServicePersonEditor(personId) {
+            servicePersonalEditingId = personId;
+            renderServicePersonalRows();
+        }
+
+        function cancelServicePersonEditor() {
+            servicePersonalEditingId = null;
+            renderServicePersonalRows();
+        }
+
+        // Editare persoană și ordine
+        async function saveServicePersonEditor(personId) {
+            const row = document.querySelector(`[data-service-person-row="${CSS.escape(String(personId))}"]`);
+            if (!row) return;
+
+            const nameInput = row.querySelector('[data-service-person-name-input]');
+            const orderInput = row.querySelector('[data-service-person-order-input]');
+            const nume = nameInput?.value?.trim() || '';
+            const ordine = normalizeServicePersonalOrder(orderInput?.value);
+
+            if (!nume) {
+                setEchipeStatus('Numele este obligatoriu.', 'error');
+                return;
+            }
+            if (Number.isNaN(ordine)) {
+                setEchipeStatus('Ordinea trebuie să fie numerică.', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await sb
+                    .from('service_personal')
+                    .update({
+                        nume,
+                        ordine,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', personId);
+
+                if (error) throw error;
+
+                servicePersonalEditingId = null;
+                await loadServicePersonalRows();
+                setEchipeStatus('Persoana a fost actualizată.', 'success');
+            } catch (error) {
+                console.error(error);
+                setEchipeStatus(error.message || 'Nu s-a putut actualiza persoana.', 'error');
+            }
+        }
+
+        // Arhivare sau reactivare fără ștergere
+        async function setServicePersonActive(personId, activ) {
+            try {
+                const { error } = await sb
+                    .from('service_personal')
+                    .update({ activ })
+                    .eq('id', personId);
+
+                if (error) throw error;
+
+                servicePersonalEditingId = null;
+                await loadServicePersonalRows();
+                setEchipeStatus(activ ? 'Persoana a fost reactivată.' : 'Persoana a fost arhivată.', 'success');
+            } catch (error) {
+                console.error(error);
+                setEchipeStatus(error.message || 'Nu s-a putut actualiza statusul persoanei.', 'error');
+            }
         }
 
         function getCreatorLabelFromRow(row, creatorsById = new Map()) {
@@ -2107,6 +2485,7 @@
             'tab-alerte': 'admin_alerte',
             'tab-devize': 'admin_devize',
             'tab-consumabile': 'admin_consumabile',
+            'tab-echipe': 'admin_echipe',
             'tab-audit-log': 'admin_audit',
             'tab-useri': 'admin_useri'
         };
@@ -2115,6 +2494,7 @@
             'tab-alerte': 'sectiune-alerte',
             'tab-devize': 'sectiune-devize',
             'tab-consumabile': 'sectiune-consumabile',
+            'tab-echipe': 'sectiune-echipe',
             'tab-audit-log': 'sectiune-audit-log',
             'tab-useri': 'sectiune-useri'
         };
@@ -2123,6 +2503,7 @@
             'sectiune-alerte': 'Configurare Alerte & Flotă',
             'sectiune-devize': 'Gestiune Devize',
             'sectiune-consumabile': 'Consumabile',
+            'sectiune-echipe': 'Echipe & Departamente',
             'sectiune-audit-log': 'Audit Log',
             'sectiune-useri': 'Gestionare Useri'
         };
@@ -2147,6 +2528,7 @@
             ['perm_admin_devize', 'admin_devize'],
             ['perm_admin_consumabile', 'admin_consumabile'],
             ['perm_admin_audit', 'admin_audit'],
+            ['perm_admin_echipe', 'admin_echipe'],
             ['perm_admin_useri', 'admin_useri'],
             ['perm_manager_dashboard', 'manager_dashboard']
         ];
@@ -2170,6 +2552,7 @@
             admin_devize: 'Admin Gestiune Devize',
             admin_consumabile: 'Admin Consumabile',
             admin_audit: 'Admin Audit Log',
+            admin_echipe: 'Admin Echipe & Departamente',
             admin_useri: 'Admin Gestionare Utilizatori',
             manager_dashboard: 'Dashboard Manager'
         };
@@ -2256,6 +2639,25 @@
             if (state) state.classList.add('hidden');
         }
 
+        function showAdminRestrictedNotice(message) {
+            if (!contentArea) return;
+            const noticeId = 'admin-access-restricted-notice';
+            let notice = document.getElementById(noticeId);
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = noticeId;
+                notice.className = 'glass-panel max-w-7xl mx-auto mb-4 px-4 py-3 text-sm text-rose-300 border border-rose-500/20';
+                contentArea.prepend(notice);
+            }
+            notice.textContent = message || 'Acces restricționat.';
+            notice.classList.remove('hidden');
+        }
+
+        function hideAdminRestrictedNotice() {
+            const notice = document.getElementById('admin-access-restricted-notice');
+            if (notice) notice.classList.add('hidden');
+        }
+
         async function applyAdminTabPermissions() {
             try {
                 const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
@@ -2315,14 +2717,17 @@
             try {
                 const permissionKey = adminTabPermissionMap[butonId];
                 if (!hasAdminTabPermission(permissionKey)) {
-                    console.warn(`Acces interzis la secțiunea: ${sectiuneId}`);
-                    if (!options.silentDenied) {
-                        alert('Nu ai acces la această secțiune.');
+                    const firstTabId = await applyAdminTabPermissions();
+                    const redirectedSectionId = firstTabId ? adminTabSectionMap[firstTabId] : null;
+                    if (redirectedSectionId && firstTabId) {
+                        await schimbaTab(redirectedSectionId, firstTabId, { silentDenied: true });
                     }
+                    showAdminRestrictedNotice('Acces restricționat la secțiunea cerută. Ai fost redirecționat către prima secțiune Admin permisă.');
                     return false;
                 }
 
                 hideNoAdminAccessState();
+                hideAdminRestrictedNotice();
                 document.querySelectorAll('.admin-page').forEach((page) => {
                     page.classList.add('hidden');
                 });
@@ -2365,6 +2770,10 @@
                     loadStockProductsAdmin();
                     loadStockMovementsAdmin();
                     loadStockProductsManagement();
+                }
+                if (sectiuneId === 'sectiune-echipe') {
+                    switchEchipeTab(activeServicePersonalTab);
+                    loadServicePersonalRows();
                 }
                 if (sectiuneId === 'sectiune-audit-log' && typeof loadAuditLogs === 'function') {
                     loadAuditLogs();
@@ -2563,6 +2972,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             resetUserForm();
+            document.getElementById('service-personal-form')?.addEventListener('submit', addServicePerson);
             document.getElementById('mobile-back-to-users')?.addEventListener('click', () => {
                 document.getElementById('sectiune-useri')?.classList.remove('user-mobile-editing');
                 document.getElementById('sectiune-useri')?.scrollIntoView({ block: 'start' });
@@ -2760,6 +3170,12 @@
                 return;
             }
 
+            const echipeTabButton = event.target.closest('[data-echipe-tab]');
+            if (echipeTabButton) {
+                switchEchipeTab(echipeTabButton.getAttribute('data-echipe-tab'));
+                return;
+            }
+
             const consumabileSection = event.target.closest('#sectiune-consumabile');
             if (consumabileSection) {
                 const editStockBtn = event.target.closest('[data-edit-stock-product]');
@@ -2789,6 +3205,39 @@
                     } catch (error) {
                         console.error(error);
                     }
+                    return;
+                }
+            }
+
+            const echipeSection = event.target.closest('#sectiune-echipe');
+            if (echipeSection) {
+                const editServicePersonBtn = event.target.closest('[data-edit-service-person]');
+                if (editServicePersonBtn) {
+                    activateServicePersonEditor(editServicePersonBtn.getAttribute('data-edit-service-person'));
+                    return;
+                }
+
+                const saveServicePersonBtn = event.target.closest('[data-save-service-person]');
+                if (saveServicePersonBtn) {
+                    await saveServicePersonEditor(saveServicePersonBtn.getAttribute('data-save-service-person'));
+                    return;
+                }
+
+                const cancelServicePersonBtn = event.target.closest('[data-cancel-service-person]');
+                if (cancelServicePersonBtn) {
+                    cancelServicePersonEditor();
+                    return;
+                }
+
+                const archiveServicePersonBtn = event.target.closest('[data-archive-service-person]');
+                if (archiveServicePersonBtn) {
+                    await setServicePersonActive(archiveServicePersonBtn.getAttribute('data-archive-service-person'), false);
+                    return;
+                }
+
+                const reactivateServicePersonBtn = event.target.closest('[data-reactivate-service-person]');
+                if (reactivateServicePersonBtn) {
+                    await setServicePersonActive(reactivateServicePersonBtn.getAttribute('data-reactivate-service-person'), true);
                     return;
                 }
             }

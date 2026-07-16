@@ -176,24 +176,34 @@
     display: flex; align-items: center; gap: 6px;
   }
 
+  /* Antet card pe 3 coloane */
   .card-head {
-    padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: flex-start; gap: 8px;
+    padding: 12px 16px 9px; border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .9fr); gap: 12px;
+    align-items: start;
   }
+  .card-head-col { min-width: 0; }
+  .card-head-col.right { text-align: right; }
   .plate { font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: .07em; }
-  .model { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .model { font-size: 10px; color: #8993a4; margin-top: 2px; font-family: var(--mono); }
   .vin-badge {
     font-size: 9px; font-family: var(--mono); color: var(--purple);
     background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25);
-    border-radius: 4px; padding: 2px 6px; margin-top: 4px; display: inline-block;
+    border-radius: 4px; padding: 2px 6px; margin-top: 3px; display: inline-block;
   }
-  .card-meta { margin-left: auto; text-align: right; flex-shrink: 0; }
-  .meta-date { font-size: 11px; color: var(--muted); }
-  .meta-km { font-family: var(--mono); font-size: 12px; color: var(--cyan); margin-top: 2px; }
+  .head-client { font-size: 11px; font-weight: 600; color: #C0C9D8; margin-top: 5px; }
+  .head-status { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .head-meta-list { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+  .head-meta-row { font-size: 11px; color: var(--muted); line-height: 1.35; }
+  .head-meta-row strong { color: #C0C9D8; font-weight: 500; }
+  .head-meta-row.value-only strong { font-weight: 500; }
+  .head-meta-row.finalized strong { color: var(--green); }
+  .head-meta-row.km-out strong { color: var(--green); font-family: var(--mono); }
+  .head-meta-row.km-in strong { color: var(--cyan); font-family: var(--mono); }
   .status-pill {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 10px; font-weight: 600; letter-spacing: .05em;
-    padding: 3px 8px; border-radius: 20px; margin-top: 6px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; text-transform: uppercase; margin: 0;
   }
   .pill-lucru     { background:rgba(0,212,255,.1);  color:var(--cyan);   border:1px solid rgba(0,212,255,.2); }
   .pill-asteptare { background:rgba(245,158,11,.1); color:var(--yellow); border:1px solid rgba(245,158,11,.2); }
@@ -250,8 +260,10 @@
   .drawer.open { transform: translateX(0); }
   .drawer-head {
     padding: 18px 22px 16px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: flex-start; gap: 12px;
   }
+  .drawer-head-main { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+  .drawer-head-text { flex: 1; min-width: 0; }
   .drawer-icon {
     width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
     background: rgba(0,212,255,.1); border: 1px solid rgba(0,212,255,.2);
@@ -259,6 +271,41 @@
   }
   .drawer-title { font-size: 15px; font-weight: 600; }
   .drawer-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .responsabili-dropdown { position: relative; width: 230px; flex: 0 0 230px; margin-left: auto; }
+  .responsabili-trigger {
+    width: 100%; min-height: 38px; text-align: left; background: var(--card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text);
+    font-size: 13px; padding: 8px 34px 8px 12px; position: relative; cursor: pointer;
+    transition: border-color .18s, background .18s;
+  }
+  .responsabili-trigger:hover, .responsabili-trigger.open { border-color: var(--cyan); }
+  .responsabili-trigger::after {
+    content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 11px;
+  }
+  .responsabili-trigger-text {
+    display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .responsabili-panel {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 8;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: 0 14px 34px rgba(0,0,0,.35); padding: 8px; display: none;
+  }
+  .responsabili-panel.open { display: block; }
+  .responsabili-list { max-height: 240px; overflow-y: auto; padding-right: 2px; }
+  .responsabili-list::-webkit-scrollbar { width: 4px; }
+  .responsabili-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .responsabili-group + .responsabili-group { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .responsabili-group-title { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .responsabili-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; color: var(--text);
+  }
+  .responsabili-item:hover { background: rgba(255,255,255,.03); }
+  .responsabili-item input { accent-color: #2dd4cf; }
+  .responsabili-item-name { flex: 1; min-width: 0; }
+  .responsabili-empty { padding: 8px 4px; font-size: 12px; color: var(--muted); }
+  .responsabili-error { color: var(--red); }
   .close-btn {
     margin-left: auto; background: transparent; border: none; color: var(--muted);
     cursor: pointer; padding: 6px; border-radius: var(--radius-sm); transition: all .15s;
@@ -496,9 +543,21 @@
     <div class="drawer-icon">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     </div>
-    <div>
-      <div class="drawer-title" id="drawerTitle">Mașină Nouă</div>
-      <div class="drawer-sub" id="drawerSub">Completează datele de constatare</div>
+    <div class="drawer-head-main">
+      <div class="drawer-head-text">
+        <div class="drawer-title" id="drawerTitle">Mașină Nouă</div>
+        <div class="drawer-sub" id="drawerSub">Completează datele de constatare</div>
+      </div>
+      <div class="responsabili-dropdown" id="responsabiliDropdown">
+        <button type="button" class="responsabili-trigger" id="responsabiliTrigger" onclick="toggleResponsabiliDropdown()">
+          <span class="responsabili-trigger-text" id="responsabiliTriggerText">👥 Responsabili</span>
+        </button>
+        <div class="responsabili-panel" id="responsabiliPanel">
+          <div class="responsabili-list" id="responsabiliList">
+            <div class="responsabili-empty">Se încarcă personalul...</div>
+          </div>
+        </div>
+      </div>
     </div>
     <button class="close-btn" onclick="closeDrawer()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -728,6 +787,7 @@ function fromSB(row) {
     vin:           row.serie_vin || '',
     km:            row.kilometraj || null,
     km_iesire:     row.km_iesire || null,
+    responsabili:  row.responsabili || '',
     client_desc:   row.defectiuni_client || '',
     mechanic_desc: row.defectiuni_mecanic || '',
     parts,
@@ -750,6 +810,7 @@ function toSB(c) {
     serie_vin:          c.vin,
     kilometraj:         c.km ? parseInt(c.km) : null,
     km_iesire:          c.km_iesire ? parseInt(c.km_iesire) : null,
+    responsabili:       c.responsabili || '',
     defectiuni_client:  c.client_desc,
     defectiuni_mecanic: c.mechanic_desc,
     piese_utilizate:    c.parts.join(' | '),
@@ -771,6 +832,143 @@ let statusTargetId = null;
 let selectedStatus = null;
 let photoTargetId = null;
 let auditActorPromise = null;
+let servicePersonalOptions = [];
+let servicePersonalLoaded = false;
+let servicePersonalLoadFailed = false;
+let selectedResponsabili = [];
+
+const SERVICE_DEPARTMENT_LABELS = {
+  Mecanica: 'Mecanică',
+  Electrica: 'Electrică',
+  Vopsitorie: 'Vopsitorie',
+  Detailing: 'Detailing',
+  'Tinichigerie/Pregatire': 'Tinichigerie / Pregătire'
+};
+
+function getResponsabilDisplay(person) {
+  if (person?.display) return String(person.display).trim();
+  const label = SERVICE_DEPARTMENT_LABELS[person?.departament] || person?.departament || '';
+  return [String(person?.nume || '').trim(), label].filter(Boolean).join(' · ');
+}
+
+function getSelectedResponsabiliValue() {
+  return selectedResponsabili.map(getResponsabilDisplay).join(' | ');
+}
+
+function updateResponsabiliTrigger() {
+  const el = document.getElementById('responsabiliTriggerText');
+  if (!el) return;
+  if (!selectedResponsabili.length) {
+    el.textContent = '👥 Responsabili';
+    return;
+  }
+  const firstName = String(selectedResponsabili[0]?.nume || selectedResponsabili[0]?.display || '')
+    .split('·')[0]
+    .trim();
+  const extraCount = selectedResponsabili.length - 1;
+  el.textContent = extraCount > 0 ? `👥 ${firstName} (+${extraCount})` : `👥 ${firstName}`;
+}
+
+function renderResponsabiliDropdown() {
+  const list = document.getElementById('responsabiliList');
+  if (!list) return;
+
+  if (servicePersonalLoadFailed) {
+    list.innerHTML = '<div class="responsabili-empty responsabili-error">Nu s-a putut încărca personalul.</div>';
+    return;
+  }
+
+  if (!servicePersonalOptions.length) {
+    list.innerHTML = `<div class="responsabili-empty">${servicePersonalLoaded ? 'Nu există personal activ.' : 'Se încarcă personalul...'}</div>`;
+    return;
+  }
+
+  const grouped = servicePersonalOptions.reduce((acc, person) => {
+    const department = person.departament || 'Alt departament';
+    if (!acc[department]) acc[department] = [];
+    acc[department].push(person);
+    return acc;
+  }, {});
+
+  list.innerHTML = Object.keys(grouped).map((department) => {
+    const title = SERVICE_DEPARTMENT_LABELS[department] || department;
+    const items = grouped[department].map((person) => {
+      const checked = selectedResponsabili.some((selected) => String(selected.id) === String(person.id)) ? 'checked' : '';
+      return `
+        <label class="responsabili-item">
+          <input type="checkbox" data-responsabil-id="${esc(person.id)}" ${checked}>
+          <span class="responsabili-item-name">${esc(person.nume || '—')}</span>
+        </label>
+      `;
+    }).join('');
+
+    return `
+      <div class="responsabili-group">
+        <div class="responsabili-group-title">${esc(title)}</div>
+        ${items}
+      </div>
+    `;
+  }).join('');
+}
+
+// Încarcă personalul activ pentru dropdown
+async function loadServicePersonalOptions() {
+  try {
+    const { data, error } = await sb
+      .from('service_personal')
+      .select('id, nume, departament, ordine')
+      .eq('activ', true)
+      .order('departament', { ascending: true })
+      .order('ordine', { ascending: true })
+      .order('nume', { ascending: true });
+    if (error) throw error;
+    servicePersonalOptions = data || [];
+    servicePersonalLoaded = true;
+    servicePersonalLoadFailed = false;
+  } catch (error) {
+    console.error(error);
+    servicePersonalOptions = [];
+    servicePersonalLoaded = true;
+    servicePersonalLoadFailed = true;
+  }
+  renderResponsabiliDropdown();
+  updateResponsabiliTrigger();
+}
+
+// Deschide sau închide dropdown-ul de responsabili
+function toggleResponsabiliDropdown(forceOpen) {
+  const trigger = document.getElementById('responsabiliTrigger');
+  const panel = document.getElementById('responsabiliPanel');
+  if (!trigger || !panel) return;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !panel.classList.contains('open');
+  panel.classList.toggle('open', shouldOpen);
+  trigger.classList.toggle('open', shouldOpen);
+  if (shouldOpen) renderResponsabiliDropdown();
+}
+
+// Salvează selecția curentă a responsabililor
+function saveResponsabiliSelection() {
+  const list = document.getElementById('responsabiliList');
+  if (!list) return;
+  const selectedIds = Array.from(list.querySelectorAll('input[type="checkbox"]:checked'))
+    .map((input) => input.getAttribute('data-responsabil-id'));
+  selectedResponsabili = servicePersonalOptions.filter((person) => selectedIds.includes(String(person.id)));
+  updateResponsabiliTrigger();
+}
+
+// Restaurează selecția din textul deja salvat
+function restoreResponsabiliSelection(savedValue) {
+  const entries = String(savedValue || '')
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  selectedResponsabili = entries.map((entry) => {
+    return servicePersonalOptions.find((person) => getResponsabilDisplay(person) === entry)
+      || { id: `saved-${entry}`, display: entry };
+  });
+  renderResponsabiliDropdown();
+  updateResponsabiliTrigger();
+}
 
 async function getAuditActor() {
   if (!auditActorPromise) {
@@ -1015,8 +1213,7 @@ function calcTimpuriConstatare(c) {
 
   return {
     durataTotala: formatDuration(durataTotalaMs),
-    asteptarePiese: formatDuration(asteptareMs),
-    lucruEfectiv: formatDuration(Math.max(0, durataTotalaMs - asteptareMs))
+    asteptarePiese: formatDuration(asteptareMs)
   };
 }
 
@@ -1063,7 +1260,34 @@ function renderCards() {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
     if (q && !`${c.plate} ${c.model} ${c.vin} ${c.client} ${c.telefon} ${c.nr_fisa}`.toLowerCase().includes(q)) return false;
     return true;
+  }).sort((a, b) => {
+    const getTime = (card) => {
+      if (card.status === 'Finalizat') return new Date(card.data_finalizarii || card.created_at || card.date || 0).getTime();
+      return new Date(card.created_at || card.date || 0).getTime();
+    };
+
+    if (filterStatus === 'all') {
+      const statusPriority = {
+        'In lucru': 1,
+        'Asteptare piese': 2,
+        'Finalizat': 3
+      };
+      // Statusul are prioritate față de marcajul Urgent
+      const statusA = statusPriority[a.status] ?? 99;
+      const statusB = statusPriority[b.status] ?? 99;
+      if (statusA !== statusB) return statusA - statusB;
+      const urgentA = a.urgent ? 0 : 1;
+      const urgentB = b.urgent ? 0 : 1;
+      if (urgentA !== urgentB) return urgentA - urgentB;
+    } else if (filterStatus === 'Finalizat') {
+      const urgentA = a.urgent ? 0 : 1;
+      const urgentB = b.urgent ? 0 : 1;
+      if (urgentA !== urgentB) return urgentA - urgentB;
+    }
+
+    return getTime(b) - getTime(a);
   });
+  // Finalizatele apar ultimele în lista Toate
   document.getElementById('countNum').textContent = visible.length;
 
   if (!visible.length) {
@@ -1082,22 +1306,45 @@ function renderCards() {
       : '<span style="color:var(--muted);font-size:12px">—</span>';
     const fisaText = c.nr_fisa ? `Fișa ${esc(c.nr_fisa)}` : '';
     const dateText = formatDateRO(c.created_at || c.date);
-    const metaLines = [fisaText, dateText, c.client ? esc(c.client) : ''].filter(Boolean).join('<br>');
     const timpuri = calcTimpuriConstatare(c);
+    const finalizareText = c.data_finalizarii ? formatDateRO(c.data_finalizarii) : '—';
+    const kmIesireText = c.km_iesire ? `${Number(c.km_iesire).toLocaleString('ro-RO')} km` : '—';
+    const kmIntrareText = c.km ? `${Number(c.km).toLocaleString('ro-RO')} km` : '—';
+    const responsabiliRaw = [c.responsabili, c.responsabil].find(v => String(v || '').trim());
+    const responsabiliText = responsabiliRaw
+      ? responsabiliRaw.split('|').map(item => esc(item.trim())).filter(Boolean).join('<br>')
+      : '—';
+    // Eliminat timpul efectiv deoarece era redundant.
     return `
     <article class="card" data-status="${esc(c.status)}" data-id="${c.id}">
       ${c.urgent ? `<div class="urgent-ribbon">🚨 URGENT</div>` : ''}
+      <!-- Coloana stânga -->
       <div class="card-head">
-        <div>
+        <div class="card-head-col">
           <div class="plate">${esc(c.plate)}</div>
           <div class="model">${esc(c.model||'—')}</div>
-          ${c.vin ? `<div class="vin-badge">${esc(c.vin)}</div>` : ''}
+          <div class="vin-badge">${esc(c.vin || '—')}</div>
+          <div class="head-client">${esc(c.client || '—')}</div>
         </div>
-        <div class="card-meta">
-          <div class="meta-date">${metaLines}</div>
-          ${c.km ? `<div class="meta-km">${Number(c.km).toLocaleString('ro-RO')} km</div>` : ''}
-          <div class="status-pill ${sv.pill}">
-            <div class="dot" style="background:${sv.color}"></div>${esc(sv.label)}
+        <!-- Coloana mijloc -->
+        <div class="card-head-col">
+          <div class="head-status">
+            <div class="status-pill ${sv.pill}">
+              <div class="dot" style="background:${sv.color}"></div>${esc(sv.label)}
+            </div>
+            <div class="head-meta-list">
+              <div class="head-meta-row value-only ${c.status === 'Finalizat' ? 'finalized' : ''}"><strong>${esc(finalizareText)}</strong></div>
+              <div class="head-meta-row value-only km-out ${c.status === 'Finalizat' ? 'finalized' : ''}"><strong>${esc(kmIesireText)}</strong></div>
+              <div class="head-meta-row value-only"><strong>${responsabiliText}</strong></div>
+            </div>
+          </div>
+        </div>
+        <!-- Coloana dreapta -->
+        <div class="card-head-col right">
+          <div class="head-meta-list">
+            <div class="head-meta-row value-only"><strong>${fisaText || '—'}</strong></div>
+            <div class="head-meta-row value-only"><strong>${esc(dateText || '—')}</strong></div>
+            <div class="head-meta-row value-only km-in"><strong>${esc(kmIntrareText)}</strong></div>
           </div>
         </div>
       </div>
@@ -1116,7 +1363,7 @@ function renderCards() {
         </div>
         <div>
           <div class="section-label">Timpi lucrare</div>
-          <div class="section-text">Durata totală: ${esc(timpuri.durataTotala)}<br>Total așteptare piese: ${esc(timpuri.asteptarePiese)}<br>Timp efectiv în lucru: ${esc(timpuri.lucruEfectiv)}</div>
+          <div class="section-text">Durata totală: ${esc(timpuri.durataTotala)}<br>Total așteptare piese: ${esc(timpuri.asteptarePiese)}</div>
         </div>
         ${c.obs ? `<div class="obs-text">📝 ${esc(c.obs)}</div>` : ''}
       </div>
@@ -1161,6 +1408,7 @@ function setFilter(s, btn) {
 // ═══════════════════════════════════════════════════════
 async function openDrawer() {
   editId = null; partsArr = []; isUrgent = false;
+  selectedResponsabili = [];
   document.getElementById('drawerTitle').textContent = 'Mașină Nouă';
   document.getElementById('drawerSub').textContent = 'Completează datele de constatare';
   const saveBtn = document.getElementById('saveBtn');
@@ -1170,10 +1418,13 @@ async function openDrawer() {
   document.getElementById('fStatus').value = 'In lucru';
   syncUrgentUI();
   renderPartsChips();
+  renderResponsabiliDropdown();
+  updateResponsabiliTrigger();
   document.getElementById('mainDrawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
   setTimeout(() => document.getElementById('fPlate').focus(), 280);
   try {
+    if (!servicePersonalLoaded) await loadServicePersonalOptions();
     document.getElementById('fNrFisa').value = await getNextNrFisa();
   } catch(e) {
     toast('Nu am putut genera nr. fișă: ' + (e.message || e), 'error');
@@ -1182,7 +1433,7 @@ async function openDrawer() {
   saveBtn.textContent = 'Salvează Constatarea';
 }
 
-function openEdit(id) {
+async function openEdit(id) {
   const c = cards.find(x => x.id === id);
   if (!c) return;
   editId = id;
@@ -1206,11 +1457,14 @@ function openEdit(id) {
   document.getElementById('fStatus').value = c.status;
   syncUrgentUI();
   renderPartsChips();
+  if (!servicePersonalLoaded) await loadServicePersonalOptions();
+  restoreResponsabiliSelection(c.responsabili);
   document.getElementById('mainDrawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
 }
 
 function closeDrawer() {
+  toggleResponsabiliDropdown(false);
   document.getElementById('mainDrawer').classList.remove('open');
   document.getElementById('drawerOverlay').classList.remove('open');
 }
@@ -1249,6 +1503,7 @@ async function saveCard() {
     km_iesire:     document.getElementById('fKmIesire').value || null,
     model:         document.getElementById('fModel').value.trim(),
     vin,
+    responsabili:  getSelectedResponsabiliValue(),
     client_desc:   document.getElementById('fClientDesc').value.trim(),
     mechanic_desc: document.getElementById('fMechanicDesc').value.trim(),
     parts:         partsArr,
@@ -1540,9 +1795,24 @@ function toast(msg, type = '') {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 320); }, 3500);
 }
 
+document.addEventListener('change', (event) => {
+  if (event.target.matches('#responsabiliList input[type="checkbox"]')) {
+    saveResponsabiliSelection();
+  }
+});
+
+document.addEventListener('click', (event) => {
+  const dropdown = document.getElementById('responsabiliDropdown');
+  if (!dropdown) return;
+  if (!dropdown.contains(event.target)) {
+    toggleResponsabiliDropdown(false);
+  }
+});
+
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+loadServicePersonalOptions();
 loadCards();
 </script>
 <!-- Autodeconectare după inactivitate -->
