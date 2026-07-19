@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constatări v2 — prototip</title>
+  <link rel="stylesheet" href="/css/constatari_v2.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><button class="back-btn" id="backBtn" type="button">← Înapoi</button>Constatări v2</div>
+    <div class="top-actions"><input id="search" class="search" placeholder="Caută după nr., fișă, client, mașină sau responsabil..."><button id="newBtn" class="btn btn-primary">＋ Mașină nouă</button></div>
+  </header>
+  <main class="workspace">
+    <section class="list-pane">
+      <div class="filters" id="filters">
+        <button class="filter active" data-filter="all">Toate <b>6</b></button><button class="filter" data-filter="work">În lucru <b>3</b></button><button class="filter" data-filter="wait">Așteptare piese <b>1</b></button><button class="filter" data-filter="done">Finalizate <b>2</b></button><button class="filter" data-filter="archived">Arhivate <b>0</b></button>
+      </div>
+      <div class="rows-head"><span>Mașină / client</span><span>Intrare / echipă</span><span style="text-align:right">Status</span></div>
+      <div class="vehicle-list" id="vehicleList"></div><div class="list-foot" id="listFoot"></div>
+    </section>
+    <section class="detail-pane" id="detailPane"></section>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/constatari_v2.js"></script>
+</body>
+</html>

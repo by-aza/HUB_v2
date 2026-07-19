@@ -278,6 +278,28 @@
       .animate-neon {
         animation: neon-pulse 2.4s ease-in-out infinite;
       }
+      @keyframes nav-new-pulse {
+        0%, 100% { box-shadow: 0 0 0 rgba(34, 211, 238, 0); }
+        50% { box-shadow: 0 0 14px rgba(34, 211, 238, 0.2); }
+      }
+      .nav-new-item {
+        color: #7dd3fc !important;
+        animation: nav-new-pulse 2.8s ease-in-out infinite;
+      }
+      .nav-new-item i {
+        color: #22d3ee;
+      }
+      .nav-new-badge {
+        margin-left: auto;
+        border: 1px solid rgba(34, 211, 238, 0.45);
+        border-radius: 999px;
+        padding: 1px 5px;
+        color: #67e8f9;
+        background: rgba(8, 145, 178, 0.16);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: .06em;
+      }
 
       /* Shimmer sweep on hover */
       @keyframes shimmer-sweep {
@@ -357,7 +379,8 @@
       #sidebar.collapsed .sidebar-label,
       #sidebar.collapsed .sidebar-section-title,
       #sidebar.collapsed .sidebar-brand-text,
-      #sidebar.collapsed .collapse-label {
+      #sidebar.collapsed .collapse-label,
+      #sidebar.collapsed .nav-new-badge {
         display: none;
       }
       #sidebar.collapsed .nav-btn {
@@ -883,6 +906,7 @@
           items: [
             { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "detailing" },
             { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html", permission: "constatari" },
+            { id: "constatari-v2", label: "Constatări v2", icon: "clipboard-check", url: "modules/formulare/constatari_v2.html", permission: "constatari", isNew: true },
           ],
         },
         {
@@ -1143,17 +1167,19 @@
                     const permissionFallbackAttr = item.permission && permissionFallbackMap[item.permission]
                       ? `data-permission-fallback="${permissionFallbackMap[item.permission]}"`
                       : '';
+                    const newClass = item.isNew ? 'nav-new-item' : '';
+                    const newBadge = item.isNew ? '<span class="nav-new-badge">NEW</span>' : '';
                     return `
                     <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
                       <a href="${item.url}" data-id="${item.id}" title="${item.label}"
-                        class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                        class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${newClass} ${
                           isActive
                             ? "bg-sidebar-accent text-sidebar-foreground"
                             : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                         }">
                         ${isActive ? `<span class="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_#2dd4cf]"></span>` : ""}
                         <i data-lucide="${item.icon}" class="size-[18px] shrink-0 ${isActive ? "text-primary" : ""}"></i>
-                        <span class="sidebar-label truncate">${item.label}</span>
+                        <span class="sidebar-label truncate">${item.label}</span>${newBadge}
                       </a>
                     </li>`;
                   })
@@ -2060,17 +2086,19 @@ function cereParolaAdmin() {
 */
 const SYSTEM_UPDATES = [
   {
-    id: 3, // <-- Schimbi ID-ul (ex: de la 1 la 2) ca să reapară bulina roșie la toată lumea
-    date: "2026-07-12",
-    title: "Versiune Nouă HUB v2.1",
-    // Folosim o listă de mesaje în loc de un singur text lung:
+    id: 4, // Schimbarea ID-ului face să reapară bulina roșie pentru toți utilizatorii
+    date: "2026-07-19",
+    title: "Constatări v2 — flux nou pentru service",
     description: [
-      "⚠️ Atenție: La prima autentificare folosiți User-ul primit și parola asociată. Pentru resetarea parolei, contactați administratorul.",
-      "Sistem nou de autentificare cu User și parolă pentru acces securizat în HUB.",
-      "Au fost introduse roluri și permisiuni individuale pentru fiecare utilizator și modul.",
-      "Activitatea utilizatorilor este înregistrată în Audit Log pentru o mai bună trasabilitate.",
-      "Sesiunea se închide automat după 30 de minute de inactivitate pentru un plus de securitate.",
-      "Au fost aduse numeroase optimizări și corecții pentru stabilitate și performanță."
+      "A fost introdusă noua pagină Constatări v2, disponibilă separat față de versiunea veche.",
+      "Mașinile pot fi repartizate pe departamente: Mecanică, Electrică, Vopsitorie și Pregătire.",
+      "Fiecare departament poate completa defectele constatate, lucrările efectuate și piesele sau materialele folosite.",
+      "Au fost introduse statusuri individuale pe departament: De făcut, În lucru, Așteptare piese și Finalizat.",
+      "Când toate departamentele repartizate termină lucrările, apare avertizarea „Gata de finalizare” pentru Birou.",
+      "Pagina afișează timpul real petrecut în service și timpul total de așteptare a pieselor.",
+      "Fișa RAR de intrare poate fi tipărită direct, cu datele clientului și ale mașinii completate automat.",
+      "Fișă tehnică electronică”: va fi disponibilă într-o etapă viitoare.",
+      "Versiunea veche rămâne disponibilă și funcționează în continuare."
     ]
   }
 ];
