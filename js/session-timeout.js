@@ -1,9 +1,9 @@
-
 (function () {
     'use strict';
 
-    // Durata de test: 30 minute
+    // Delogare după 30 de minute fără activitate
     const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+    const LAST_ACTIVITY_KEY = 'hub_last_activity';
 
     let inactivityTimer = null;
     let isLoggingOut = false;
@@ -37,42 +37,84 @@
         } catch (error) {
             console.error('Eroare autodeconectare:', error);
         } finally {
-            localStorage.removeItem('hub_last_activity');
+            localStorage.removeItem(LAST_ACTIVITY_KEY);
             window.location.replace('/modules/admin/login.html?reason=inactive');
         }
     }
 
-    // Pornește din nou timpul de inactivitate
-    function resetInactivityTimer() {
-        localStorage.setItem('hub_last_activity', String(Date.now()));
+    // Verifică timpul real trecut
+    function checkInactivity() {
+        const lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+
+        if (!lastActivity) {
+            registerActivity();
+            return;
+        }
+
+        const elapsedTime = Date.now() - lastActivity;
+        const remainingTime = SESSION_TIMEOUT_MS - elapsedTime;
 
         clearTimeout(inactivityTimer);
 
-        inactivityTimer = setTimeout(() => {
+        if (remainingTime <= 0) {
             logoutForInactivity();
-        }, SESSION_TIMEOUT_MS);
+            return;
+        }
+
+        inactivityTimer = setTimeout(
+            logoutForInactivity,
+            remainingTime
+        );
     }
 
-    // Activitate reală a utilizatorului
+    // Înregistrează activitatea utilizatorului
+    function registerActivity() {
+        localStorage.setItem(
+            LAST_ACTIVITY_KEY,
+            String(Date.now())
+        );
+
+        clearTimeout(inactivityTimer);
+
+        inactivityTimer = setTimeout(
+            logoutForInactivity,
+            SESSION_TIMEOUT_MS
+        );
+    }
+
+    // Activitate reală în HUB
     ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
-        window.addEventListener(eventName, resetInactivityTimer, {
+        window.addEventListener(eventName, registerActivity, {
             passive: true
         });
     });
 
-    // Sincronizare între taburi
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'hub_last_activity' && event.newValue) {
-            resetInactivityTimer();
+    // Verifică atunci când PWA revine în prim-plan
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            checkInactivity();
         }
     });
 
-    // Pornește sistemul imediat
-    resetInactivityTimer();
+    window.addEventListener('focus', checkInactivity);
+    window.addEventListener('pageshow', checkInactivity);
 
-    // Funcții disponibile pentru verificare
+    // Sincronizare între taburi
+    window.addEventListener('storage', (event) => {
+        if (event.key === LAST_ACTIVITY_KEY) {
+            checkInactivity();
+        }
+    });
+
+    // Verificare la încărcarea paginii
+    checkInactivity();
+
+    // Funcții disponibile pentru test
     window.HubSessionTimeout = {
-        reset: resetInactivityTimer,
-        logout: logoutForInactivity
+        reset: registerActivity,
+        check: checkInactivity,
+        logout: logoutForInactivity,
+        getLastActivity: () =>
+            Number(localStorage.getItem(LAST_ACTIVITY_KEY))
     };
 })();
