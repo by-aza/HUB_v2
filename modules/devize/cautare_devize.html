@@ -514,6 +514,22 @@
                 padding-right: 14px;
             }
         }
+
+        /* Scroll listă devize pe desktop */
+@media (min-width: 768px) {
+    .results-shell {
+        height: calc(100vh - 240px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    #results {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+}
+
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-200">
