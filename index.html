@@ -960,7 +960,7 @@
 
       const heroCards = [
         { id: "detailing-hero", permission: "detailing", url: "modules/formulare/detailing.html", variant: "detailing" },
-        { id: "constatari-hero", permission: "constatari", url: "modules/formulare/constatari.html", variant: "constatari" },
+        { id: "constatari-hero", permission: "constatari", url: "modules/formulare/constatari_v2.html", variant: "constatari" },
       ];
 
       const permissionFallbackMap = {
@@ -985,6 +985,8 @@
       let adminAnnouncementText = null;
       let detailingHeroMeta = "—";
       const alertMetrics = { contracte: 0, consumabile: 0, generatorState: "off", generatorStart: null, generatorDuration: null, generatorLitri: 0 };
+      const constatariBadges = { inLucru: null, asteptarePiese: null };
+      const padConstatariCount = (value) => value == null ? "—" : String(value).padStart(2, "0");
 
       const dbUrl = "https://xyovkxmtbvgcwavuyxxu.supabase.co";
       const dbKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5b3ZreG10YnZnY3dhdnV5eHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDI1ODMsImV4cCI6MjA5NTkxODU4M30.r-_Q0vTd4IdZrfJTwpsy8ptVp5krofFGKi4BqtHQl74";
@@ -1287,12 +1289,17 @@
               <span class="hero-card-icon grid size-12 place-items-center rounded-2xl bg-success text-success-foreground shadow-lg shadow-success/40 transition-transform group-hover:scale-110">
                 <i data-lucide="clipboard-list" class="size-6 animate-float"></i>
               </span>
-              <span class="rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
-                Recomandat
-              </span>
+              <div class="flex flex-col items-end gap-1.5">
+                <span id="badge-constatari-in-lucru" class="rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-[#00D4FF]/30 bg-[#00D4FF]/15 text-[#00D4FF]">
+                  În lucru: —
+                </span>
+                <span id="badge-constatari-asteptare-piese" class="rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-[#F59E0B]/30 bg-[#F59E0B]/15 text-[#F59E0B]">
+                  Așteptare piese: —
+                </span>
+              </div>
             </div>
             <div class="hero-card-content relative mt-6">
-              <h3 class="hero-card-title text-xl font-bold text-foreground">Constatări (old version)</h3>
+              <h3 class="hero-card-title text-xl font-bold text-foreground">Constatări</h3>
               <p class="hero-card-description mt-1 max-w-sm text-sm text-muted-foreground">
                 Documentează rapid starea vehiculului cu foto și note — esențial înainte de orice
                 intervenție.
@@ -1323,6 +1330,15 @@
           const detailingBadge = document.getElementById("badge-detailing");
           if (detailingBadge) {
             detailingBadge.innerHTML = `<i data-lucide="droplets" class="size-3.5"></i> ${detailingHeroMeta}`;
+          }
+
+          const badgeInLucru = document.getElementById("badge-constatari-in-lucru");
+          if (badgeInLucru) {
+            badgeInLucru.textContent = `În lucru: ${padConstatariCount(constatariBadges.inLucru)}`;
+          }
+          const badgeAsteptarePiese = document.getElementById("badge-constatari-asteptare-piese");
+          if (badgeAsteptarePiese) {
+            badgeAsteptarePiese.textContent = `Așteptare piese: ${padConstatariCount(constatariBadges.asteptarePiese)}`;
           }
 
           renderNav();
@@ -1740,6 +1756,33 @@
         detailingHeroMeta = delayed > 0 ? `⚠️ ${delayed} Întârzieri` : "La zi";
       }
 
+      async function loadConstatariBadges() {
+        try {
+          const [inLucruResult, asteptarePieseResult] = await Promise.all([
+            sb.from("constatari").select("*", { count: "exact", head: true }).eq("status", "In lucru"),
+            sb.from("constatari").select("*", { count: "exact", head: true }).eq("status", "Asteptare piese")
+          ]);
+
+          if (inLucruResult.error) {
+            console.warn("Constatări 'In lucru' count failed:", inLucruResult.error);
+            constatariBadges.inLucru = null;
+          } else {
+            constatariBadges.inLucru = inLucruResult.count ?? 0;
+          }
+
+          if (asteptarePieseResult.error) {
+            console.warn("Constatări 'Asteptare piese' count failed:", asteptarePieseResult.error);
+            constatariBadges.asteptarePiese = null;
+          } else {
+            constatariBadges.asteptarePiese = asteptarePieseResult.count ?? 0;
+          }
+        } catch (e) {
+          console.warn("loadConstatariBadges failed:", e);
+          constatariBadges.inLucru = null;
+          constatariBadges.asteptarePiese = null;
+        }
+      }
+
       async function loadAllBadges() {
         await Promise.all([
           loadAdminAnnouncement().catch(e => console.warn("loadAdminAnnouncement failed:", e)),
@@ -1754,6 +1797,7 @@
           loadMasiniBadge().catch(e => console.warn("loadMasiniBadge failed:", e)),
           loadDetailingBadge().catch(e => console.warn("loadDetailingBadge failed:", e)),
           loadUltimulDevizFinal().catch(e => console.warn("loadUltimulDevizFinal failed:", e)),
+          loadConstatariBadges().catch(e => console.warn("loadConstatariBadges failed:", e)),
         ]);
         try { rebuildAlerts(); } catch (e) { console.warn("rebuildAlerts failed:", e); }
         try { renderAll(); } catch (e) { console.warn("renderAll failed:", e); }
@@ -1805,8 +1849,8 @@
       const globalSearch = document.getElementById("globalSearch");
       const searchDropdown = document.getElementById("searchDropdown");
       let searchTimer = null;
+      let globalSearchRequestId = 0; /* contor protecție race-condition */
 
-      // Controlează căutarea globală pe mobile
       function openMobileSearch() {
         if (!mobileSidebarMedia.matches || !globalSearchContainer || !globalSearch) return;
         closeMobileSidebar();
@@ -1851,7 +1895,8 @@
           return;
         }
 
-        searchDropdown.innerHTML = groups
+        /* scroll vertical pe containerul de rezultate dacă depășește viewport-ul */
+        searchDropdown.innerHTML = `<div class="max-h-[70vh] overflow-y-auto custom-scrollbar">${groups
           .filter((g) => g.items.length)
           .map(
             (g) => `
@@ -1871,7 +1916,7 @@
                 .join("")}
             </div>`
           )
-          .join("");
+          .join("")}</div>`;
 
         searchDropdown.classList.remove("hidden");
         lucide.createIcons();
@@ -1887,11 +1932,50 @@
         })[ch]);
       }
 
+      /* formatează ID deviz final: DF-025 */
+      function formatDevizFinalId(id) {
+        const n = Number(id);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return `DF-${String(n).padStart(3, "0")}`;
+      }
+
+      /* extrage ID numeric din interogare pentru Devize Finale (25 / DF-025) */
+      function parseDevizFinalQuery(q) {
+        if (!q) return null;
+        const s = String(q).trim().toUpperCase();
+        const digitsOnly = s.replace(/\D/g, "");
+        if (!digitsOnly) return null;
+        const n = Number(digitsOnly);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return n;
+      }
+
+      /* variantă compactă de înmatriculare pentru căutare: uppercase, fără spații, fără cratime */
+      function compactRegistration(q) {
+        return String(q ?? "").toUpperCase().replace(/[\s-]/g, "");
+      }
+
+      /* construiește căile OR ilike sigure cu pattern și compact */
+      function buildOrClause(fields, pattern, compactPattern, compactFields) {
+        const parts = [];
+        const quotedPattern = `"${String(pattern).replace(/"/g, '\\"')}"`;
+        fields.forEach((f) => parts.push(`${f}.ilike.${quotedPattern}`));
+        if (compactPattern && compactFields && pattern !== compactPattern) {
+          const quotedCompact = `"${String(compactPattern).replace(/"/g, '\\"')}"`;
+          compactFields.forEach((f) => parts.push(`${f}.ilike.${quotedCompact}`));
+        }
+        return parts.join(",");
+      }
+
       async function runGlobalSearch(query) {
         const q = query.trim();
+        const myRequestId = ++globalSearchRequestId;
+
         if (!q) {
-          searchDropdown.classList.add("hidden");
-          searchDropdown.innerHTML = "";
+          if (myRequestId === globalSearchRequestId) {
+            searchDropdown.classList.add("hidden");
+            searchDropdown.innerHTML = "";
+          }
           return;
         }
 
@@ -1899,69 +1983,298 @@
         if (!safe) return;
 
         const pattern = `%${safe}%`;
-        const quoted = `"${pattern.replace(/"/g, '\\"')}"`;
+        const compactQ = compactRegistration(safe);
+        const compactPattern = compactQ ? `%${compactQ}%` : null;
+        const devizFinalNumericId = parseDevizFinalQuery(safe);
 
-        const [flotaRes, devizeRes, stocRes, avansRes] = await Promise.all([
-          sb
-            .from("flota_auto")
-            .select("id, nr_inmatriculare, vin, marca")
-            .or(`nr_inmatriculare.ilike.${quoted},vin.ilike.${quoted},marca.ilike.${quoted}`)
-            .limit(8),
-          sb
-            .from("devize")
-            .select("id_deviz, autovehicul, nr_inmatriculare")
-            .or(`id_deviz.ilike.${quoted},autovehicul.ilike.${quoted},nr_inmatriculare.ilike.${quoted}`)
-            .limit(8),
-          sb
-            .from("stoc_view_curent")
-            .select("id, cod_articol, denumire")
-            .or(`denumire.ilike.${quoted},cod_articol.ilike.${quoted}`)
-            .limit(8),
-          sb
-            .from("evidente_avansuri")
-            .select("id, model_masina, nr_inmatriculare, detalii_avans")
-            .or(`model_masina.ilike.${quoted},nr_inmatriculare.ilike.${quoted},detalii_avans.ilike.${quoted}`)
-            .limit(8),
-        ]);
+        /* configurarea surselor de căutare cu permisiuni */
+        const searchSources = [];
 
-        const groups = [
-          {
-            title: "Flotă Auto",
-            items: (flotaRes.data || []).map((r) => ({
-              label: r.nr_inmatriculare || r.marca || "Mașină",
-              detail: [r.marca, r.vin].filter(Boolean).join(" · ") || "VIN necunoscut",
-              url: "modules/flota/lista_masini.html",
-              icon: "car",
-            })),
-          },
-          {
-            title: "Devize",
-            items: (devizeRes.data || []).map((r) => ({
-              label: r.id_deviz || "Deviz",
-              detail: [r.autovehicul, r.nr_inmatriculare].filter(Boolean).join(" · ") || "—",
-              url: `modules/devize/deviz.html?id=${encodeURIComponent(r.id_deviz || "")}`,
-              icon: "file-text",
-            })),
-          },
-          {
-            title: "Stoc Consumabile",
-            items: (stocRes.data || []).map((r) => ({
-              label: r.denumire || r.cod_articol || "Produs",
-              detail: r.cod_articol ? `Cod: ${r.cod_articol}` : "Consumabil",
-              url: "modules/stocuri/consumabile.html",
-              icon: "boxes",
-            })),
-          },
-          {
+        /* 1. Constatări — permission: constatari (DOAR coloane TEXT verificate) */
+        if (hasPermission("constatari")) {
+          searchSources.push({
+            title: "Constatări",
+            icon: "clipboard-list",
+            runSearch: async () => {
+              /* ROOT CAUSE FIXED:
+                 - `nr_fisa` este INTEGER (js/constatari_v2.js:615-618 + project memory)
+                   → aplicarea .ilike pe integer cauzează eroare PostgREST → query eșuează → items: []
+                 - Se elimina `client`, `nr_fisa` din .select()/.or() până la verificare
+                 - Se folosesc DOAR coloanele confirmate ca TEXT: nr_inmatriculare, model_masina, status
+              */
+              const quotedPattern = `"${String(pattern).replace(/"/g, '\\"')}"`;
+              const orParts = [];
+              orParts.push(`nr_inmatriculare.ilike.${quotedPattern}`);
+              orParts.push(`model_masina.ilike.${quotedPattern}`);
+              /* variantă compactă (uppercase + fără spații/cratime) DOAR dacă diferă */
+              if (compactPattern && compactPattern !== pattern) {
+                const quotedCompact = `"${String(compactPattern).replace(/"/g, '\\"')}"`;
+                orParts.push(`nr_inmatriculare.ilike.${quotedCompact}`);
+              }
+              const orClause = orParts.join(",");
+
+              const { data, error } = await sb
+                .from("constatari")
+                .select("id, nr_inmatriculare, model_masina, status")
+                .or(orClause)
+                .limit(8);
+
+              if (error) {
+                console.warn("Constatări query FAILED:", {
+                  data,
+                  error: {
+                    message: error?.message,
+                    code: error?.code,
+                    details: error?.details,
+                    hint: error?.hint,
+                  },
+                  orClause,
+                });
+                throw error;
+              }
+
+              return (data || []).map((r) => {
+                const label = r.nr_inmatriculare || r.model_masina || "Constatare";
+                const detail = [r.model_masina, r.status]
+                  .filter(Boolean)
+                  .filter((v) => v !== label)
+                  .join(" · ") || "—";
+                return {
+                  label,
+                  detail,
+                  url: "modules/formulare/constatari_v2.html",
+                  icon: "clipboard-list",
+                };
+              });
+            },
+          });
+        }
+
+        /* 2. Detailing — permission: detailing */
+        if (hasPermission("detailing")) {
+          searchSources.push({
+            title: "Detailing",
+            icon: "sparkles",
+            runSearch: async () => {
+              const orClause = buildOrClause(
+                ["nr_inmatriculare", "autovehicul", "pachet", "telefon"],
+                pattern,
+                compactPattern,
+                ["nr_inmatriculare"]
+              );
+              const { data, error } = await sb
+                .from("detailing")
+                .select("id, nr_inmatriculare, autovehicul, pachet, status, telefon")
+                .or(orClause)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => {
+                const label = r.nr_inmatriculare || r.autovehicul || "Fișă detailing";
+                const detailParts = [];
+                if (r.autovehicul && r.autovehicul !== label) detailParts.push(r.autovehicul);
+                if (r.pachet && r.pachet !== r.autovehicul) detailParts.push(r.pachet);
+                if (r.status && r.status !== r.pachet) detailParts.push(r.status);
+                const seen = new Set();
+                const detail = detailParts.filter((v) => v && !seen.has(String(v).toLowerCase()) && (seen.add(String(v).toLowerCase()), true)).join(" · ") || "—";
+                return {
+                  label,
+                  detail,
+                  url: "modules/formulare/detailing.html",
+                  icon: "sparkles",
+                };
+              });
+            },
+          });
+        }
+
+        /* 3. Devize estimative — permission: deviz_estimativ (fallback devize) */
+        if (hasPermission("deviz_estimativ")) {
+          searchSources.push({
+            title: "Devize estimative",
+            icon: "file-text",
+            runSearch: async () => {
+              const orClause = buildOrClause(
+                ["id_deviz", "autovehicul", "nr_inmatriculare"],
+                pattern,
+                compactPattern,
+                ["nr_inmatriculare"]
+              );
+              const { data, error } = await sb
+                .from("devize")
+                .select("id_deviz, autovehicul, nr_inmatriculare")
+                .or(orClause)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => {
+                const label = r.nr_inmatriculare || r.id_deviz || "Deviz estimativ";
+                const detailParts = [];
+                if (r.id_deviz && r.id_deviz !== label) detailParts.push(r.id_deviz);
+                if (r.autovehicul && r.autovehicul !== label) detailParts.push(r.autovehicul);
+                const seen = new Set();
+                const detail = detailParts.filter((v) => v && !seen.has(String(v).toLowerCase()) && (seen.add(String(v).toLowerCase()), true)).join(" · ") || "—";
+                return {
+                  label,
+                  detail,
+                  url: `modules/devize/deviz.html?id=${encodeURIComponent(r.id_deviz || "")}`,
+                  icon: "file-text",
+                };
+              });
+            },
+          });
+        }
+
+        /* 4. Devize finale — permission: deviz_final */
+        if (hasPermission("deviz_final")) {
+          searchSources.push({
+            title: "Devize finale",
+            icon: "receipt-text",
+            runSearch: async () => {
+              const textFields = ["nr_inmatriculare", "auto", "client", "serie_vin"];
+              let orClause = buildOrClause(textFields, pattern, compactPattern, ["nr_inmatriculare", "serie_vin"]);
+              if (devizFinalNumericId != null) {
+                orClause = `${orClause},id_deviz_final.eq.${devizFinalNumericId}`;
+              }
+              const { data, error } = await sb
+                .from("deviz_final_header")
+                .select("id_deviz_final, data_deviz, client, auto, nr_inmatriculare, serie_vin, total_general")
+                .or(orClause)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => {
+                const formattedId = formatDevizFinalId(r.id_deviz_final);
+                const label = r.nr_inmatriculare || formattedId || "Deviz final";
+                const detailParts = [];
+                if (formattedId && formattedId !== label) detailParts.push(formattedId);
+                if (r.auto && r.auto !== label && r.auto !== formattedId) detailParts.push(r.auto);
+                if (r.client) detailParts.push(r.client);
+                if (r.data_deviz) detailParts.push(String(r.data_deviz).slice(0, 10));
+                if (r.total_general != null && Number.isFinite(Number(r.total_general))) {
+                  detailParts.push(`${formatLei(r.total_general)} RON`);
+                }
+                const seen = new Set();
+                const detail = detailParts.filter((v) => v && !seen.has(String(v).toLowerCase()) && (seen.add(String(v).toLowerCase()), true)).join(" · ") || "—";
+                return {
+                  label,
+                  detail,
+                  url: "modules/devize/deviz_final.html",
+                  icon: "receipt-text",
+                };
+              });
+            },
+          });
+        }
+
+        /* 5. Avansuri — permission: avansuri */
+        if (hasPermission("avansuri")) {
+          searchSources.push({
             title: "Avansuri",
-            items: (avansRes.data || []).map((r) => ({
-              label: r.model_masina || r.nr_inmatriculare || "Avans",
-              detail: r.detalii_avans || "—",
-              url: "modules/avansuri/evidente_avansuri.html",
-              icon: "wallet",
-            })),
-          },
-        ];
+            icon: "banknote",
+            runSearch: async () => {
+              const orClause = buildOrClause(
+                ["model_masina", "nr_inmatriculare", "detalii_avans"],
+                pattern,
+                compactPattern,
+                ["nr_inmatriculare"]
+              );
+              const { data, error } = await sb
+                .from("evidente_avansuri")
+                .select("id, model_masina, nr_inmatriculare, detalii_avans")
+                .or(orClause)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => ({
+                label: r.model_masina || r.nr_inmatriculare || "Avans",
+                detail: r.detalii_avans || "—",
+                url: "modules/devize/avans.html",
+                icon: "banknote",
+              }));
+            },
+          });
+        }
+
+        /* 6. Flotă Auto — permission: lista_masini (fallback flota) */
+        if (hasPermission("lista_masini")) {
+          searchSources.push({
+            title: "Flotă Auto",
+            icon: "car",
+            runSearch: async () => {
+              const orClause = buildOrClause(
+                ["nr_inmatriculare", "vin", "marca"],
+                pattern,
+                compactPattern,
+                ["nr_inmatriculare", "vin"]
+              );
+              const { data, error } = await sb
+                .from("flota_auto")
+                .select("id, nr_inmatriculare, vin, marca")
+                .or(orClause)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => {
+                const label = r.nr_inmatriculare || r.marca || "Mașină";
+                const detail = [r.marca, r.vin].filter(Boolean).filter((v) => v !== label).join(" · ") || "VIN necunoscut";
+                return {
+                  label,
+                  detail,
+                  url: "modules/flota/lista_masini.html",
+                  icon: "car",
+                };
+              });
+            },
+          });
+        }
+
+        /* 7. Stoc Consumabile — permission: consumabile */
+        if (hasPermission("consumabile")) {
+          searchSources.push({
+            title: "Stoc Consumabile",
+            icon: "boxes",
+            runSearch: async () => {
+              const quotedPattern = `"${pattern.replace(/"/g, '\\"')}"`;
+              const { data, error } = await sb
+                .from("stoc_view_curent")
+                .select("id, cod_articol, denumire")
+                .or(`denumire.ilike.${quotedPattern},cod_articol.ilike.${quotedPattern}`)
+                .limit(8);
+              if (error) throw error;
+              return (data || []).map((r) => ({
+                label: r.denumire || r.cod_articol || "Produs",
+                detail: r.cod_articol ? `Cod: ${r.cod_articol}` : "Consumabil",
+                url: "modules/stocuri/consumabile.html",
+                icon: "boxes",
+              }));
+            },
+          });
+        }
+
+        /* execută toate sursele cu izolare de erori per categorie */
+        const settled = await Promise.allSettled(
+          searchSources.map((src) =>
+            src.runSearch().then(
+              (items) => ({ title: src.title, icon: src.icon, items }),
+              (err) => {
+                console.warn(`Global Search: "${src.title}" a eșuat:`, err);
+                return { title: src.title, icon: src.icon, items: [] };
+              }
+            )
+          )
+        );
+
+        /* protecție race-condition: doar cel mai nou request poate randa */
+        if (myRequestId !== globalSearchRequestId) return;
+
+        /* dacă câmpul a fost golit între timp, nu randa nimic */
+        if (!globalSearch.value.trim()) {
+          searchDropdown.classList.add("hidden");
+          searchDropdown.innerHTML = "";
+          return;
+        }
+
+        const groups = settled.map((res, idx) => {
+          if (res.status === "fulfilled") return res.value;
+          console.warn(`Global Search: "${searchSources[idx]?.title}" settled rejected:`, res.reason);
+          return { title: searchSources[idx]?.title || "—", icon: searchSources[idx]?.icon || "circle-alert", items: [] };
+        });
 
         console.groupCollapsed(`%c🔍 Căutare HUB: "${q}"`, "color:#2dd4cf;font-weight:bold;font-size:13px");
         groups.forEach((g) => {
@@ -2038,6 +2351,7 @@
         .on("postgres_changes", { event: "*", schema: "public", table: "devize" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "flota_auto" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "stoc_view_curent" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "constatari" }, refreshDashboard)
         .subscribe();
 
       </script>

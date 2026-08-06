@@ -13,6 +13,12 @@ let constatariV2AccessGranted = false;
 let auditActorPromise = null;
 let refreshTimer = null;
 let localTimeTimer = null;
+let hasUnsavedChanges = false;
+let activeLoadCarsPromise = null;
+let loadCarsGeneration = 0;
+let _selectionInFlight = false;
+let _detailDirtyListenerAttached = false;
+let _beforeunloadHandler = null;
 const departmentRows = new Map();
 const departmentAssignments = new Map();
 const waitingIntervals = new Map();
@@ -120,6 +126,240 @@ function limitAuditText(value, max = 150) {
     .replace(/\s+/g, " ")
     .trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+/* config pentru textarea-urile cu linii multiple: placeholder cu \n pentru exemple vizibile */
+const MULTILINE_FIELD_CONFIG = {
+  complaint: {
+    placeholder:
+      "Introduceți fiecare defecțiune reclamată pe un rând separat:\n\nMotorul nu mai trage\nSe aude o bătaie pe față\nMartor motor aprins",
+  },
+  mechanic_constatari: {
+    placeholder:
+      "Introduceți fiecare defecțiune pe un rând separat:\n\nBucșă braț dreapta cu joc\nDPF colmatat\nPierdere ulei motor",
+  },
+  mechanic_lucrari: {
+    placeholder:
+      "Introduceți fiecare lucrare pe un rând separat:\n\nDPF demontat și trimis la curățat\nBucșă braț înlocuită\nRevizie motor efectuată",
+  },
+  mechanic_piese: {
+    placeholder:
+      "Introduceți fiecare piesă sau material pe un rând separat:\n\nBucșă braț dreapta\nUlei motor 5W30\nFiltru de ulei",
+  },
+  electric_constatari: {
+    placeholder:
+      "Introduceți fiecare defecțiune pe un rând separat:\n\nAlternatorul nu încarcă\nEroare senzor ABS dreapta\nBec poziție stânga nefuncțional",
+  },
+  electric_lucrari: {
+    placeholder:
+      "Introduceți fiecare lucrare pe un rând separat:\n\nAlternator verificat\nSenzor ABS înlocuit\nInstalație electrică reparată",
+  },
+  electric_piese: {
+    placeholder:
+      "Introduceți fiecare piesă sau material pe un rând separat:\n\nSenzor ABS dreapta\nBec poziție\nCablu electric",
+  },
+  paint_elemente: {
+    placeholder:
+      "Introduceți fiecare element sau lucrare pe un rând separat:\n\nAripă dreapta față îndoită\nBară față zgâriată\nPortieră stânga lovită",
+  },
+  paint_constatari: {
+    placeholder:
+      "Introduceți fiecare defecțiune pe un rând separat:\n\nAripă dreapta față îndoită\nBară față zgâriată\nPortieră stânga lovită",
+  },
+  paint_lucrari: {
+    placeholder:
+      "Introduceți fiecare lucrare pe un rând separat:\n\nAripă dreapta față îndreptată\nBară față vopsită\nPortieră stânga reparată",
+  },
+  paint_piese: {
+    placeholder:
+      "Introduceți fiecare piesă sau material pe un rând separat:\n\nChit auto\nGrund\nVopsea și lac",
+  },
+  prep_elemente: {
+    placeholder:
+      "Introduceți fiecare problemă pe un rând separat:\n\nSuprafață cu zgârieturi\nStrat vechi de vopsea deteriorat\nElement nepregătit pentru vopsire",
+  },
+  prep_constatari: {
+    placeholder:
+      "Introduceți fiecare problemă pe un rând separat:\n\nSuprafață cu zgârieturi\nStrat vechi de vopsea deteriorat\nElement nepregătit pentru vopsire",
+  },
+  prep_lucrari: {
+    placeholder:
+      "Introduceți fiecare operațiune pe un rând separat:\n\nSuprafață șlefuită\nGrund aplicat\nElement pregătit pentru vopsire",
+  },
+  prep_piese: {
+    placeholder:
+      "Introduceți fiecare material pe un rând separat:\n\nHârtie abrazivă\nGrund\nBandă de mascare",
+  },
+};
+
+/* normalizează liniile de text: trim, elimină markere listă, spații duplicate, uppercase ro-RO */
+function normalizeMultilineItems(value) {
+  const lines = String(value || "")
+    .split("\n")
+    .map((line) => {
+      let trimmed = line.trim();
+      /* elimină markere de listă de la începutul liniei: •, -, –, — */
+      trimmed = trimmed.replace(/^[\s•\-–—]+/, "");
+      /* elimină spațiile redundante în interiorul liniei */
+      trimmed = trimmed.replace(/\s+/g, " ").trim();
+      return trimmed;
+    })
+    .filter((line) => line.length > 0)
+    .map((line) => line.toLocaleUpperCase("ro-RO"));
+  return lines.join("\n");
+}
+
+/* generează doar containerul de avertisment pentru virgule (fără exemple permanente) */
+function buildMultilineHelperHtml(configKey) {
+  if (!configKey) return "";
+  return `<div class="multiline-comma-warning hidden" data-ml-warning="${configKey}">Dacă sunt poziții diferite, introduceți fiecare poziție pe un rând separat.</div>`;
+}
+
+/* verifică dacă există mai multe virgule pe același rând și arată/ascunde avertismentul */
+function checkCommaWarning(textareaEl, warningEl) {
+  if (!warningEl) return;
+  const lines = String(textareaEl.value || "").split("\n");
+  const hasMultipleCommas = lines.some(
+    (line) => (line.match(/,/g) || []).length >= 2,
+  );
+  warningEl.classList.toggle("hidden", !hasMultipleCommas);
+}
+
+/* atributează blur pentru normalizare și input pentru avertismentul de virgulă la un textarea */
+function attachMultilineListeners(textareaEl, configKey) {
+  if (!textareaEl) return;
+  const warningEl = document.querySelector(
+    `[data-ml-warning="${configKey}"]`,
+  );
+
+  /* avertisment virgule - la input */
+  textareaEl.addEventListener("input", () => {
+    checkCommaWarning(textareaEl, warningEl);
+  });
+  /* verificare inițială în cazul în care se încarcă date salvate cu virgule */
+  checkCommaWarning(textareaEl, warningEl);
+
+  /* normalizare la blur - fără a reseta dirty state */
+  textareaEl.addEventListener("blur", () => {
+    const original = textareaEl.value;
+    const normalized = normalizeMultilineItems(original);
+    if (original !== normalized) {
+      textareaEl.value = normalized;
+      checkCommaWarning(textareaEl, warningEl);
+    }
+  });
+}
+
+/* atașează listeneri pentru toate textarea-urile cu linii multiple din panoul de detalii */
+function attachAllMultilineListeners() {
+  const pane = document.querySelector("#detailPane");
+  if (!pane) return;
+
+  /* sesizarea clientului - tab general */
+  const complaintTa = pane.querySelector('[data-key="complaint"]');
+  if (complaintTa) attachMultilineListeners(complaintTa, "complaint");
+
+  /* departamente - în funcție de tabul activ (incl. piese_materiale acum) */
+  const deptKeyMap = {
+    mechanic: {
+      constatari: "mechanic_constatari",
+      lucrari: "mechanic_lucrari",
+      piese: "mechanic_piese",
+    },
+    electric: {
+      constatari: "electric_constatari",
+      lucrari: "electric_lucrari",
+      piese: "electric_piese",
+    },
+    paint: {
+      elemente: "paint_elemente",
+      constatari: "paint_constatari",
+      lucrari: "paint_lucrari",
+      piese: "paint_piese",
+    },
+    prep: {
+      elemente: "prep_elemente",
+      constatari: "prep_constatari",
+      lucrari: "prep_lucrari",
+      piese: "prep_piese",
+    },
+  };
+
+  if (deptKeyMap[activeTab]) {
+    const map = deptKeyMap[activeTab];
+    const constatariTa = pane.querySelector('[data-dept-key="constatari"]');
+    const lucrariTa = pane.querySelector('[data-dept-key="lucrari_efectuate"]');
+    const elementeTa = pane.querySelector(
+      '[data-dept-key="elemente_lucrate"]',
+    );
+    const pieseTa = pane.querySelector('[data-dept-key="piese_materiale"]');
+
+    if (map.constatari && constatariTa)
+      attachMultilineListeners(constatariTa, map.constatari);
+    if (map.lucrari && lucrariTa)
+      attachMultilineListeners(lucrariTa, map.lucrari);
+    if (map.elemente && elementeTa)
+      attachMultilineListeners(elementeTa, map.elemente);
+    if (map.piese && pieseTa)
+      attachMultilineListeners(pieseTa, map.piese);
+  }
+}
+
+const CONFIRM_DIRTY_MESSAGE = "Există modificări nesalvate. Doriți să renunțați la ele?";
+function confirmDiscardUnsaved() {
+  if (!hasUnsavedChanges) return true;
+  return window.confirm(CONFIRM_DIRTY_MESSAGE);
+}
+function removeBeforeunload() {
+  if (_beforeunloadHandler) {
+    window.removeEventListener("beforeunload", _beforeunloadHandler);
+    _beforeunloadHandler = null;
+  }
+}
+function ensureBeforeunload() {
+  if (!_beforeunloadHandler) {
+    _beforeunloadHandler = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", _beforeunloadHandler);
+  }
+}
+function updateDirtyUI() {
+  const label = document.getElementById("dirtyLabel");
+  if (label) {
+    label.classList.toggle("hidden", !hasUnsavedChanges);
+  }
+  if (hasUnsavedChanges) {
+    ensureBeforeunload();
+  } else {
+    removeBeforeunload();
+  }
+}
+function markDirty() {
+  if (hasUnsavedChanges) return;
+  hasUnsavedChanges = true;
+  updateDirtyUI();
+}
+function clearDirtyState() {
+  hasUnsavedChanges = false;
+  updateDirtyUI();
+}
+function attachDirtyListener() {
+  if (_detailDirtyListenerAttached) return;
+  const pane = document.querySelector("#detailPane");
+  if (!pane) return;
+  _detailDirtyListenerAttached = true;
+  const handler = (event) => {
+    const target = event.target;
+    if (!target || typeof target.matches !== "function") return;
+    if (!target.matches("input, textarea, select")) return;
+    if (!event.isTrusted) return;
+    if (target.closest(".permission-gated"));
+    markDirty();
+  };
+  pane.addEventListener("input", handler);
+  pane.addEventListener("change", handler);
 }
 async function getAuditActor() {
   if (!auditActorPromise) {
@@ -334,6 +574,14 @@ function getEditableCarPayload(options = {}) {
     return element ? element.value.trim() : fallback;
   };
   const normalizedPlate = normalizePlate(getValue("plate"));
+  /* normalizează câmpul complaint la salvare și actualizează textarea-ul vizibil */
+  const complaintEl = document.querySelector('[data-key="complaint"]');
+  const normalizedComplaint = normalizeMultilineItems(
+    complaintEl ? complaintEl.value : getValue("complaint"),
+  );
+  if (complaintEl && complaintEl.value !== normalizedComplaint) {
+    complaintEl.value = normalizedComplaint;
+  }
   const payload = {
     nr_inmatriculare: normalizedPlate,
     model_masina: normalizeUpperTrim(getValue("model")),
@@ -345,7 +593,7 @@ function getEditableCarPayload(options = {}) {
     este_urgent: !!document.querySelector('.check-line input[type="checkbox"]')
       ?.checked,
     responsabili: buildResponsabiliValue(),
-    defectiuni_client: getValue("complaint"),
+    defectiuni_client: normalizedComplaint || null,
     defectiuni_mecanic: getValue("mechanicDefects", currentCar.mechanicDefects || ""),
     observatii: getValue("observations"),
   };
@@ -466,16 +714,28 @@ function getEditableDepartmentPayload(constatareId, key) {
   const status = mapDepartmentStatusToDb(
     document.querySelector("#deptStatus")?.value || "",
   );
-  const getValue = (field) =>
-    document.querySelector(`[data-dept-key="${field}"]`)?.value.trim() || null;
+  /* normalizează și actualizează vizual TOATE câmpurile țintite (incl. piese_materiale) */
+  const normalizeAndSync = (field) => {
+    const el = document.querySelector(`[data-dept-key="${field}"]`);
+    const raw = el ? el.value : "";
+    const normalized = normalizeMultilineItems(raw);
+    if (el && el.value !== normalized) {
+      el.value = normalized;
+    }
+    return normalized || null;
+  };
+  const constatariVal = normalizeAndSync("constatari");
+  const lucrariVal = normalizeAndSync("lucrari_efectuate");
+  const elementeVal = dept.hasElements ? normalizeAndSync("elemente_lucrate") : null;
+  const pieseVal = normalizeAndSync("piese_materiale");
   const nowIso = new Date().toISOString();
   return {
     constatare_id: constatareId,
     departament: dept.db,
-    constatari: getValue("constatari"),
-    lucrari_efectuate: getValue("lucrari_efectuate"),
-    piese_materiale: getValue("piese_materiale"),
-    elemente_lucrate: dept.hasElements ? getValue("elemente_lucrate") : null,
+    constatari: constatariVal,
+    lucrari_efectuate: lucrariVal,
+    piese_materiale: pieseVal,
+    elemente_lucrate: elementeVal,
     status,
     updated_at: nowIso,
     finalizat_la: status === "Finalizat" ? nowIso : null,
@@ -652,12 +912,27 @@ function renderList() {
     `Afișate ${shown.length} din ${cars.length} mașini`;
   document.querySelectorAll(".vehicle-row").forEach(
     (r) =>
-      (r.onclick = () => {
-        selectedId = +r.dataset.id;
-        creating = false;
-        editing = false;
-        activeTab = "general";
-        render();
+      (r.onclick = async () => {
+        const nextId = +r.dataset.id;
+        if (nextId === selectedId && !creating) return;
+        if (_selectionInFlight) return;
+        if (!confirmDiscardUnsaved()) return;
+        _selectionInFlight = true;
+        try {
+          clearDirtyState();
+          selectedId = nextId;
+          creating = false;
+          editing = false;
+          activeTab = "general";
+          try {
+            await loadAuditLogsForCar(selectedId);
+          } catch (error) {
+            console.error(error);
+          }
+          render();
+        } finally {
+          _selectionInFlight = false;
+        }
       }),
   );
 }
@@ -666,7 +941,12 @@ function generalContent(c, isNew = false) {
   const selectedAssignments = parseResponsabiliAssignments(c.responsabili);
   const val = (label, key, type = "input", extra = "") =>
     `<div class="field ${extra}"><label>${label}</label>${type === "textarea" ? `<textarea class="control" data-key="${key}" ${disabled}>${isNew ? "" : c[key] || ""}</textarea>` : `<input class="control" data-key="${key}" value="${isNew ? "" : c[key] || ""}" ${disabled}>`}</div>`;
-  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div></div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${val("Defecțiuni reclamate", "complaint", "textarea", "full")}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
+
+  /* textarea special pentru complaint cu placeholder + helper + warning */
+  const complaintPlaceholder = MULTILINE_FIELD_CONFIG.complaint.placeholder;
+  const complaintFieldHtml = `<div class="field full"><label>Defecțiuni reclamate</label><textarea class="control" data-key="complaint" placeholder="${escapeHtml(complaintPlaceholder)}" ${disabled}>${isNew ? "" : c.complaint || ""}</textarea>${buildMultilineHelperHtml("complaint")}</div>`;
+
+  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div></div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
 }
 function deptContent(key, c) {
   const d = deptData[key];
@@ -677,8 +957,43 @@ function deptContent(key, c) {
     detailMessage && detailMessage.constatareId === c.id && detailMessage.tab === key
       ? `<div class="dept-note">${escapeHtml(detailMessage.text)}</div>`
       : "";
-  const field = (label, dataKey, extra = "") =>
-    `<div class="field ${extra}"><label>${label}</label><textarea class="control" data-dept-key="${dataKey}">${escapeHtml(row[dataKey] || "")}</textarea></div>`;
+
+  /* mapare câmp → config key pentru MULTILINE_FIELD_CONFIG (incl. piese_materiale acum) */
+  const deptFieldConfigMap = {
+    mechanic: {
+      constatari: "mechanic_constatari",
+      lucrari_efectuate: "mechanic_lucrari",
+      piese_materiale: "mechanic_piese",
+    },
+    electric: {
+      constatari: "electric_constatari",
+      lucrari_efectuate: "electric_lucrari",
+      piese_materiale: "electric_piese",
+    },
+    paint: {
+      elemente_lucrate: "paint_elemente",
+      constatari: "paint_constatari",
+      lucrari_efectuate: "paint_lucrari",
+      piese_materiale: "paint_piese",
+    },
+    prep: {
+      elemente_lucrate: "prep_elemente",
+      constatari: "prep_constatari",
+      lucrari_efectuate: "prep_lucrari",
+      piese_materiale: "prep_piese",
+    },
+  };
+  const fieldConfig = deptFieldConfigMap[key] || {};
+
+  /* generează field cu multiline placeholder + helper + warning dacă e țintit */
+  const field = (label, dataKey, extra = "") => {
+    const cfgKey = fieldConfig[dataKey];
+    const cfg = cfgKey ? MULTILINE_FIELD_CONFIG[cfgKey] : null;
+    const placeholderAttr = cfg ? ` placeholder="${escapeHtml(cfg.placeholder)}"` : "";
+    const helperHtml = cfgKey ? buildMultilineHelperHtml(cfgKey) : "";
+    return `<div class="field ${extra}"><label>${label}</label><textarea class="control" data-dept-key="${dataKey}"${placeholderAttr}>${escapeHtml(row[dataKey] || "")}</textarea>${helperHtml}</div>`;
+  };
+
   const fields = d.hasElements
     ? `${field("Elemente lucrate", "elemente_lucrate")}${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale")}`
     : `${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale", "parts-half")}`;
@@ -708,8 +1023,10 @@ function departmentTabClass(constatareId, key) {
 function renderDetail() {
   const pane = document.querySelector("#detailPane");
   if (creating) {
-    pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">Mașină nouă</div><div class="vehicle-summary">Completează datele de recepție și repartizarea inițială</div></div></div></div><div class="content">${generalContent({ status: "work" }, true)}<div class="form-actions"><button class="btn btn-ghost" id="cancelBtn">Anulează</button><button class="btn btn-primary" id="createBtn">Salvează mașina</button></div></div>`;
+    pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">Mașină nouă</div><div class="vehicle-summary">Completează datele de recepție și repartizarea inițială</div></div></div></div><div class="content">${generalContent({ status: "work" }, true)}<div class="form-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span><button class="btn btn-ghost" id="cancelBtn">Anulează</button><button class="btn btn-primary" id="createBtn">Salvează mașina</button></div></div>`;
     document.querySelector("#cancelBtn").onclick = () => {
+      if (!confirmDiscardUnsaved()) return;
+      clearDirtyState();
       creating = false;
       render();
     };
@@ -740,6 +1057,7 @@ function renderDetail() {
             `Repartizare: ${payload.responsabili}`,
           );
         }
+        clearDirtyState();
         creating = false;
         editing = false;
         activeTab = "general";
@@ -766,7 +1084,7 @@ function renderDetail() {
     ["prep", "Pregătire"],
     ["history", "Istoric"],
   ];
-  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools"><div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions">${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
+  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools"><div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
   const printBtn = document.querySelector("#printMenuBtn");
   const printMenu = document.querySelector("#printMenu");
   if (printBtn && printMenu) {
@@ -794,6 +1112,9 @@ function renderDetail() {
   document.querySelectorAll(".tab").forEach(
     (t) =>
       (t.onclick = async () => {
+        if (t.dataset.tab === activeTab) return;
+        if (!confirmDiscardUnsaved()) return;
+        clearDirtyState();
         activeTab = t.dataset.tab;
         editing = false;
         if (activeTab === "history") {
@@ -815,6 +1136,8 @@ function renderDetail() {
   const ce = document.querySelector("#cancelEdit");
   if (ce)
     ce.onclick = () => {
+      if (!confirmDiscardUnsaved()) return;
+      clearDirtyState();
       editing = false;
       renderDetail();
     };
@@ -873,6 +1196,7 @@ function renderDetail() {
             `Repartizare: ${repartizare}`,
           );
         }
+        clearDirtyState();
         editing = false;
         await loadCars(currentId);
       } catch (error) {
@@ -897,18 +1221,19 @@ function renderDetail() {
           tab: currentTab,
           text: "Salvat.",
         };
+        clearDirtyState();
         activeTab = currentTab;
         await loadCars(currentId);
       } catch (error) {
         console.error("Salvare departament:", error);
-        detailMessage = {
-          constatareId: currentId,
-          tab: currentTab,
-          text: "Nu s-a putut salva departamentul.",
-        };
-        renderDetail();
+        alert("Nu s-a putut salva departamentul.");
+        sd.disabled = false;
+        sd.textContent = originalText;
       }
     };
+
+  /* atașează listeneri pentru normalizare și avertismente virgule */
+  attachAllMultilineListeners();
 }
 function render() {
   updateFilterCounts();
@@ -985,37 +1310,70 @@ async function loadAuditLogsForCar(constatareId) {
 }
 async function loadCars(preferredSelectedId = null, options = {}) {
   const { preserveActiveInput = false } = options;
-  listErrorMessage = "";
-  try {
-    const { data, error } = await supabaseClient
-      .from("constatari")
-      .select("id, created_at, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    const rows = data || [];
-    const constatareIds = rows.map((row) => row.id);
-    await loadDepartmentRows(constatareIds);
-    await loadDepartmentAssignments(constatareIds);
-    await loadWaitingIntervals(constatareIds);
-    cars.length = 0;
-    rows.forEach((row) => cars.push(mapCar(row)));
-    selectedId =
-      cars.find((row) => row.id === preferredSelectedId)?.id || cars[0]?.id || null;
-    await loadAuditLogsForCar(selectedId);
-    updateFilterCounts();
-    if (preserveActiveInput && isTextEntryActive()) {
-      renderList();
-      return;
+  const myGeneration = ++loadCarsGeneration;
+  if (activeLoadCarsPromise) return activeLoadCarsPromise;
+  const run = (async () => {
+    listErrorMessage = "";
+    try {
+      const { data, error } = await supabaseClient
+        .from("constatari")
+        .select("id, created_at, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
+        .order("created_at", { ascending: false });
+      if (myGeneration !== loadCarsGeneration) return;
+      if (error) throw error;
+      const rows = data || [];
+      const constatareIds = rows.map((row) => row.id);
+      await loadDepartmentRows(constatareIds);
+      await loadDepartmentAssignments(constatareIds);
+      await loadWaitingIntervals(constatareIds);
+      cars.length = 0;
+      rows.forEach((row) => cars.push(mapCar(row)));
+
+      const anchorId = preferredSelectedId != null ? preferredSelectedId : selectedId;
+      const stillExists = cars.find((row) => row.id === anchorId);
+      if (hasUnsavedChanges) {
+        if (anchorId != null && !stillExists) {
+          console.warn(`Constatări loadCars: vehiculul selectat (id=${anchorId}) nu mai există în lista nouă, dar formularul are modificări nesalvate. Păstrăm selecția.`);
+        }
+      } else {
+        selectedId = stillExists?.id || cars[0]?.id || null;
+        try {
+          await loadAuditLogsForCar(selectedId);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      updateFilterCounts();
+      if (hasUnsavedChanges) {
+        renderList();
+        return;
+      }
+      if (preserveActiveInput && isTextEntryActive()) {
+        renderList();
+        return;
+      }
+      if (myGeneration !== loadCarsGeneration) return;
+      render();
+    } catch (error) {
+      console.error(error);
+      if (hasUnsavedChanges) {
+        listErrorMessage = "Eroare la încărcarea constatărilor";
+        updateFilterCounts();
+        try { renderList(); } catch (_) {}
+        return;
+      }
+      cars.length = 0;
+      selectedId = null;
+      listErrorMessage = "Eroare la încărcarea constatărilor";
+      updateFilterCounts();
+      render();
     }
-    render();
-  } catch (error) {
-    console.error(error);
-    cars.length = 0;
-    selectedId = null;
-    listErrorMessage = "Eroare la încărcarea constatărilor";
-    updateFilterCounts();
-    render();
-  }
+  })();
+  activeLoadCarsPromise = run;
+  run.finally(() => {
+    if (activeLoadCarsPromise === run) activeLoadCarsPromise = null;
+  });
+  return run;
 }
 async function loadServicePeople() {
   try {
@@ -1035,6 +1393,10 @@ async function loadServicePeople() {
     servicePeopleLoaded = true;
     servicePeopleError = true;
   }
+  if (hasUnsavedChanges) {
+    updateDirtyUI();
+    return;
+  }
   if (creating || (editing && activeTab === "general")) {
     renderDetail();
   }
@@ -1044,12 +1406,14 @@ function refreshLocalTimes() {
     car.days = formatServiceDuration(car.created_at, car.completed_at);
   });
   renderList();
+  if (hasUnsavedChanges) return;
   if (activeTab === "history" && !isTextEntryActive()) renderDetail();
 }
 function startPeriodicRefresh() {
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
       if (creating) return;
+      if (activeLoadCarsPromise) return;
       loadCars(selectedId, { preserveActiveInput: true });
     }, 15000);
   }
@@ -1097,9 +1461,11 @@ async function bootstrapConstatariV2() {
     const allowed = await ensureConstatariV2Access();
     if (!allowed) return;
     constatariV2AccessGranted = true;
+    attachDirtyListener();
     loadServicePeople();
     setupPrintMenuClose();
     await loadCars();
+    updateDirtyUI();
     startPeriodicRefresh();
   } catch (error) {
     console.error(error);
@@ -1109,6 +1475,8 @@ async function bootstrapConstatariV2() {
 document.querySelector("#search").addEventListener("input", renderList);
 document.querySelector("#newBtn").onclick = () => {
   if (!constatariV2AccessGranted) return;
+  if (!confirmDiscardUnsaved()) return;
+  clearDirtyState();
   if (!servicePeopleLoaded) loadServicePeople();
   creating = true;
   editing = false;
@@ -1124,7 +1492,12 @@ document.querySelectorAll(".filter").forEach(
       renderList();
     }),
 );
-document.querySelector("#backBtn")?.addEventListener("click", () => {
+document.querySelector("#backBtn")?.addEventListener("click", (event) => {
+  if (!confirmDiscardUnsaved()) {
+    event.preventDefault();
+    return;
+  }
+  clearDirtyState();
   window.location.href = "../../index.html";
 });
 bootstrapConstatariV2();
