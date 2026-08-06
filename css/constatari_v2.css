@@ -1,3 +1,4 @@
+/* culorile principale ale interfetei */
 :root {
     --bg: #070c14;
     --panel: #0c1421;
@@ -13,10 +14,12 @@
     --violet: #8b5cf6
 }
 
+/* reset simplu pentru dimensiuni predictibile */
 * {
     box-sizing: border-box
 }
 
+/* fundalul general, culoarea textului si fontul aplicatiei */
 body {
     margin: 0;
     background: radial-gradient(circle at 40% 5%, #102431 0, transparent 28%), var(--bg);
@@ -36,12 +39,14 @@ button {
     cursor: pointer
 }
 
+/* layoutul principal pe inaltimea ecranului */
 .app {
     height: 100vh;
     display: flex;
     flex-direction: column
 }
 
+/* bara de sus cu brand, cautare si actiuni */
 .topbar {
     height: 72px;
     display: flex;
@@ -56,7 +61,7 @@ button {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 24px;
+    font-size: 24px; /* marimea titlului din header */
     font-weight: 800;
     white-space: nowrap
 }
@@ -78,7 +83,7 @@ button {
 }
 
 .search {
-    width: 330px;
+    width: 330px; /* latimea campului de cautare */
     height: 40px;
     padding: 0 14px;
     border: 1px solid var(--line);
@@ -92,6 +97,7 @@ button {
     border-color: var(--cyan)
 }
 
+/* stilul de baza pentru butoane */
 .btn {
     height: 38px;
     padding: 0 15px;
@@ -137,15 +143,17 @@ button {
     background: #881337
 }
 
+/* imparte ecranul intre lista masini si detalii */
 .workspace {
     min-height: 0;
     height: 100%;
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(460px, 42fr) minmax(650px, 58fr);
+    grid-template-columns: minmax(460px, 42fr) minmax(650px, 58fr); /* latimile minime ale celor doua panouri */
     overflow: hidden
 }
 
+/* panoul din stanga cu lista de vehicule */
 .list-pane {
     min-width: 0;
     min-height: 0;
@@ -156,6 +164,7 @@ button {
     overflow: hidden
 }
 
+/* filtrele de status deasupra listei */
 .filters {
     display: flex;
     gap: 7px;
@@ -186,7 +195,7 @@ button {
 
 .rows-head {
     display: grid;
-    grid-template-columns: 1.45fr .85fr .8fr;
+    grid-template-columns: 1.45fr .85fr .8fr; /* aceleasi coloane ca randurile din lista */
     padding: 0 12px 8px;
     color: #7588a4;
     font-size: 11px;
@@ -195,6 +204,7 @@ button {
     letter-spacing: .06em
 }
 
+/* lista scrollabila de vehicule */
 .vehicle-list {
     min-height: 0;
     flex: 1;
@@ -203,11 +213,12 @@ button {
     padding-right: 5px
 }
 
+/* cardul fiecarui vehicul din lista */
 .vehicle-row {
     position: relative;
     display: grid;
-    grid-template-columns: 1.45fr .85fr .8fr;
-    min-height: 84px;
+    grid-template-columns: 1.45fr .85fr .8fr; /* coloane: masina, data/echipa, status */
+    min-height: 84px; /* inaltimea minima a randului */
     margin-bottom: 7px;
     padding: 12px;
     border: 1px solid #17263a;
@@ -233,11 +244,11 @@ button {
     inset: 8px auto 8px 0;
     width: 3px;
     border-radius: 4px;
-    background: var(--rose)
+    background: var(--rose) /* bara rosie pentru urgente */
 }
 
 .plate {
-    font-size: 18px;
+    font-size: 18px; /* marimea numarului de inmatriculare */
     font-weight: 850;
     letter-spacing: .04em
 }
@@ -275,6 +286,7 @@ button {
     gap: 8px
 }
 
+/* badge-urile colorate pentru status */
 .status {
     display: inline-flex;
     align-items: center;
@@ -294,6 +306,7 @@ button {
     background: currentColor
 }
 
+/* culori pentru fiecare stare */
 .work {
     color: #60a5fa;
     border-color: #1d4ed866;
@@ -329,6 +342,7 @@ button {
     font-size: 12px
 }
 
+/* panoul din dreapta cu detaliile vehiculului */
 .detail-pane {
     min-width: 0;
     min-height: 0;
@@ -339,6 +353,7 @@ button {
     overflow: hidden
 }
 
+/* antetul detaliilor masinii */
 .detail-header {
     padding: 15px 18px 12px;
     border-bottom: 1px solid var(--line)
@@ -351,7 +366,7 @@ button {
 }
 
 .vehicle-title {
-    font-size: 20px;
+    font-size: 20px; /* marimea titlului vehiculului selectat */
     font-weight: 850
 }
 
@@ -367,6 +382,7 @@ button {
     margin-left: auto
 }
 
+/* taburile pentru sectiunile constatarii */
 .tabs {
     display: flex;
     gap: 3px;
@@ -413,6 +429,7 @@ button {
     font-size: 18px
 }
 
+/* zona scrollabila cu formulare si informatii */
 .content {
     min-height: 0;
     height: 100%;
@@ -429,6 +446,7 @@ button {
     padding: 5px 0 4px
 }
 
+/* cardurile de continut pentru sectiuni */
 .section {
     margin-bottom: 13px;
     padding: 14px;
@@ -450,10 +468,11 @@ button {
     height: 32px
 }
 
+/* grila principala a campurilor */
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 11px
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* numarul de coloane pe desktop */
+    gap: 11px /* spatiul dintre campuri */
 }
 
 .grid.two {
@@ -468,6 +487,7 @@ button {
     font-weight: 750
 }
 
+/* campuri afisate si controale editabile */
 .value,
 .control {
     width: 100%;
@@ -493,7 +513,7 @@ button {
 }
 
 textarea.control {
-    min-height: 94px;
+    min-height: 150px; /* inaltime minima pentru placeholder cu exemple pe mai multe linii */
     resize: vertical
 }
 
@@ -527,6 +547,7 @@ textarea.control {
     font-size: 12px
 }
 
+/* notita evidentiata pentru departamente */
 .dept-note {
     padding: 10px 12px;
     border-left: 3px solid var(--cyan);
@@ -536,6 +557,7 @@ textarea.control {
     font-size: 12px
 }
 
+/* placeholder-ele pentru fotografii */
 .photos {
     display: flex;
     gap: 8px
@@ -553,6 +575,7 @@ textarea.control {
     font-size: 11px
 }
 
+/* linia de timp pentru istoricul constatarii */
 .timeline {
     position: relative;
     margin-left: 5px;
@@ -573,7 +596,7 @@ textarea.control {
     height: 9px;
     border: 2px solid #0c1522;
     border-radius: 50%;
-    background: var(--cyan);
+    background: var(--cyan); /* punctul evenimentului */
     box-shadow: 0 0 0 1px var(--cyan)
 }
 
@@ -595,6 +618,7 @@ textarea.control {
     color: var(--muted)
 }
 
+/* mesajul afisat cand nu exista selectie sau date */
 .empty {
     height: 100%;
     display: grid;
@@ -610,10 +634,12 @@ textarea.control {
     font-size: 18px
 }
 
+/* clasa utilitara pentru ascundere fortata */
 .hidden {
     display: none !important
 }
 
+/* adaptare pentru ecrane medii: panourile se aseaza unul sub altul */
 @media(max-width:1050px) {
     body {
         overflow: auto
@@ -629,7 +655,7 @@ textarea.control {
     }
 
     .list-pane {
-        height: 48vh;
+        height: 48vh; /* inaltimea listei pe tableta/mobil */
         border-right: 0;
         border-bottom: 1px solid var(--line)
     }
@@ -647,7 +673,7 @@ textarea.control {
     }
 }
 
-/* Statusurile sunt ușor de recunoscut și prin contur. */
+/* contururi rapide pentru filtrele de status */
 .filter[data-filter="all"] {
     border-color: var(--cyan)
 }
@@ -698,6 +724,7 @@ textarea.control {
     font-size: 9px
 }
 
+/* butonul de intoarcere catre pagina anterioara */
 .back-btn {
     display: inline-flex;
     align-items: center;
@@ -736,6 +763,7 @@ textarea.control {
     min-height: 64px
 }
 
+/* actiunile finale din partea de jos */
 .footer-actions {
     display: flex;
     justify-content: flex-end;
@@ -743,9 +771,10 @@ textarea.control {
     padding: 14px 18px 16px
 }
 
+/* partea de sus a tabului general: date masina + client */
 .general-top-grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+    grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); /* raportul dintre cardul principal si cel secundar */
     gap: 13px;
     align-items: start
 }
@@ -780,12 +809,13 @@ textarea.control {
     position: relative
 }
 
+/* meniul derulant pentru printare */
 .print-menu {
     position: absolute;
     right: 0;
     top: calc(100% + 6px);
     z-index: 20;
-    min-width: 220px;
+    min-width: 220px; /* latimea minima a meniului */
     padding: 6px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -824,6 +854,7 @@ textarea.control {
     white-space: nowrap
 }
 
+/* rezumatul istoricului in trei coloane */
 .history-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -854,13 +885,14 @@ textarea.control {
     opacity: .62
 }
 
+/* antet compact pentru fiecare departament */
 .dept-header-section {
     padding: 10px 12px
 }
 
 .dept-header-row {
     display: grid;
-    grid-template-columns: max-content minmax(180px, 1fr) max-content;
+    grid-template-columns: max-content minmax(180px, 1fr) max-content; /* titlu, responsabili, status */
     align-items: center;
     gap: 12px
 }
@@ -888,11 +920,12 @@ textarea.control {
 }
 
 .dept-status-select {
-    width: 170px;
+    width: 170px; /* latimea selectorului de status */
     min-height: 34px;
     padding: 7px 9px
 }
 
+/* campurile specifice departamentelor */
 .dept-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -903,6 +936,7 @@ textarea.control {
     grid-column: 1/2
 }
 
+/* randul compact pentru sectiunea foto */
 .photos-row {
     display: grid;
     grid-template-columns: max-content minmax(120px, 1fr) max-content;
@@ -922,6 +956,7 @@ textarea.control {
     text-align: center
 }
 
+/* badge animat pentru sectiuni finalizate */
 .ready-badge {
     display: inline-flex;
     width: max-content;
@@ -935,6 +970,7 @@ textarea.control {
     animation: readyPulse 1.35s ease-in-out infinite
 }
 
+/* animatia discreta a badge-ului finalizat */
 @keyframes readyPulse {
 
     0%,
@@ -947,6 +983,7 @@ textarea.control {
     }
 }
 
+/* pe ecrane inguste, zona generala devine o singura coloana */
 @media(max-width:1100px) {
     .general-top-grid {
         grid-template-columns: 1fr
@@ -957,6 +994,7 @@ textarea.control {
     }
 }
 
+/* adaptare pentru mobil: formularele si antetele devin pe o coloana */
 @media(max-width:720px) {
 
     .dept-header-row,
@@ -990,4 +1028,30 @@ textarea.control {
     .dept-fields .parts-half {
         grid-column: auto
     }
+}
+
+/* eticheta pentru modificari nesalvate */
+.dirty-label {
+    margin-right: auto;
+    align-self: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f59e0b;
+    padding: 4px 9px;
+    border: 1px solid #f59e0b33;
+    border-radius: 6px;
+    background: #f59e0b12;
+}
+
+/* helper permanent cu exemple sub textarea-urile cu linii multiple - ELIMINAT (exemplele sunt acum in placeholder) */
+
+/* avertisment discret pentru virgule pe acelasi rand */
+.multiline-comma-warning {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #fbbf24cc;
+}
+
+.multiline-comma-warning.hidden {
+    display: none;
 }
