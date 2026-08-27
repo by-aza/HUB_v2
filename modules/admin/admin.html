@@ -224,6 +224,111 @@
         #sectiune-echipe .echipe-inline-input:focus {
             border-color: rgba(34, 211, 238, 0.55);
         }
+        /* container compact pentru sectiunea TODO */
+        #sectiune-todo .todo-shell { width: min(100%, 920px); margin: 0 auto; font-family: "Inter", sans-serif; }
+        /* antet TODO cu titlu, contor si buton */
+        #sectiune-todo .todo-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+        /* grup titlu si contor active */
+        #sectiune-todo .todo-title-row { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+        /* dimensiune titlu TODO */
+        #sectiune-todo .todo-title { font-size: 1.45rem; line-height: 1.2; font-weight: 800; color: #f8fafc; }
+        /* badge contor active */
+        #sectiune-todo .todo-active-count { display: inline-flex; align-items: center; height: 1.5rem; border-radius: 999px; border: 1px solid rgba(45, 212, 207, 0.24); background: rgba(45, 212, 207, 0.1); padding: 0 0.55rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: #67e8f9; white-space: nowrap; }
+        /* buton adaugare task */
+        #sectiune-todo .todo-add-btn { flex: 0 0 auto; border-radius: 0.65rem; border: 1px solid rgba(45, 212, 207, 0.34); background: rgba(8, 145, 178, 0.28); padding: 0.55rem 0.85rem; font-size: 0.8rem; font-weight: 800; color: #ecfeff; transition: background 160ms ease, border-color 160ms ease; }
+        #sectiune-todo .todo-add-btn:hover { border-color: rgba(45, 212, 207, 0.54); background: rgba(8, 145, 178, 0.38); }
+        /* formular compact pentru task nou */
+        #sectiune-todo .todo-form-panel { margin-bottom: 0.85rem; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 0.7rem; background: rgba(15, 23, 42, 0.68); padding: 0.9rem; }
+        /* grila campuri formular TODO */
+        #sectiune-todo .todo-form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 0.38fr) minmax(150px, 0.38fr); gap: 0.7rem; }
+        /* etichete formular TODO */
+        #sectiune-todo .todo-form-label { display: grid; gap: 0.28rem; min-width: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
+        /* inputuri formular TODO */
+        #sectiune-todo .todo-form-input, #sectiune-todo .todo-form-select, #sectiune-todo .todo-form-textarea { width: 100%; border-radius: 0.58rem; border: 1px solid rgba(148, 163, 184, 0.18); background: rgba(2, 6, 23, 0.76); padding: 0.55rem 0.65rem; font-size: 0.84rem; font-weight: 500; letter-spacing: 0; color: #f8fafc; outline: none; }
+        #sectiune-todo .todo-form-input:focus, #sectiune-todo .todo-form-select:focus, #sectiune-todo .todo-form-textarea:focus { border-color: rgba(45, 212, 207, 0.5); }
+        /* textarea formular TODO */
+        #sectiune-todo .todo-form-textarea { min-height: 4.7rem; resize: vertical; }
+        /* camp lat pe toata grila */
+        #sectiune-todo .todo-form-wide { grid-column: 1 / -1; }
+        /* footer formular TODO */
+        #sectiune-todo .todo-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; margin-top: 0.8rem; }
+        /* mesaj formular TODO */
+        #sectiune-todo .todo-form-message { min-height: 1.1rem; font-size: 0.8rem; font-weight: 700; color: #94a3b8; }
+        #sectiune-todo .todo-form-message.is-error { color: #fb7185; }
+        #sectiune-todo .todo-form-message.is-success { color: #5eead4; }
+        /* actiuni formular TODO */
+        #sectiune-todo .todo-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.45rem; }
+        /* butoane formular TODO */
+        #sectiune-todo .todo-form-btn { border-radius: 0.58rem; border: 1px solid rgba(148, 163, 184, 0.18); padding: 0.5rem 0.75rem; font-size: 0.78rem; font-weight: 850; transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease; }
+        #sectiune-todo .todo-form-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+        #sectiune-todo .todo-form-btn-secondary { background: rgba(30, 41, 59, 0.7); color: #cbd5e1; }
+        #sectiune-todo .todo-form-btn-secondary:hover { border-color: rgba(148, 163, 184, 0.28); background: rgba(51, 65, 85, 0.72); }
+        #sectiune-todo .todo-form-btn-primary { border-color: rgba(45, 212, 207, 0.34); background: rgba(8, 145, 178, 0.32); color: #ecfeff; }
+        #sectiune-todo .todo-form-btn-primary:hover { border-color: rgba(45, 212, 207, 0.54); background: rgba(8, 145, 178, 0.44); }
+        /* lista carduri TODO */
+        #sectiune-todo .todo-list { display: grid; gap: 0.55rem; }
+        /* card compact task */
+        #sectiune-todo .todo-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.9rem; align-items: start; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 0.7rem; background: rgba(15, 23, 42, 0.58); padding: 0.85rem; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+        #sectiune-todo .todo-card:hover { border-color: rgba(45, 212, 207, 0.24); background: rgba(15, 23, 42, 0.72); transform: translateY(-1px); }
+        /* partea stanga card TODO */
+        #sectiune-todo .todo-main { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem; min-width: 0; }
+        /* checkbox task TODO */
+        #sectiune-todo .todo-checkbox { width: 1.05rem; height: 1.05rem; margin-top: 0.15rem; border-radius: 0.35rem; border: 1px solid rgba(148, 163, 184, 0.36); background: rgba(2, 6, 23, 0.72); opacity: 0.9; cursor: pointer; }
+        #sectiune-todo .todo-checkbox:disabled { cursor: not-allowed; opacity: 0.55; }
+        /* corp card TODO */
+        #sectiune-todo .todo-body { min-width: 0; }
+        /* rand titlu card TODO */
+        #sectiune-todo .todo-card-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; min-width: 0; }
+        /* titlu card TODO */
+        #sectiune-todo .todo-card-title { min-width: 0; overflow-wrap: anywhere; font-size: 0.96rem; font-weight: 750; color: #f8fafc; }
+        /* badge categorie TODO */
+        #sectiune-todo .todo-category { display: inline-flex; max-width: 100%; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.18); background: rgba(30, 41, 59, 0.78); padding: 0.13rem 0.45rem; font-size: 0.66rem; font-weight: 800; color: #cbd5e1; overflow-wrap: anywhere; }
+        /* descriere si data TODO */
+        #sectiune-todo .todo-description { margin-top: 0.35rem; font-size: 0.82rem; line-height: 1.45; color: #a8b3c2; overflow-wrap: anywhere; }
+        /* buton detalii TODO */
+        #sectiune-todo .todo-details-btn { margin-top: 0.55rem; font-size: 0.75rem; font-weight: 800; color: #67e8f9; transition: color 160ms ease; }
+        #sectiune-todo .todo-details-btn:hover { color: #a5f3fc; }
+        /* zona detalii TODO */
+        #sectiune-todo .todo-details { margin-top: 0.65rem; border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 0.65rem; font-size: 0.76rem; line-height: 1.5; color: #94a3b8; }
+        /* formular inline pentru editarea detaliilor TODO */
+        #sectiune-todo .todo-edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 0.34fr) minmax(120px, 0.34fr); gap: 0.55rem; margin-top: 0.65rem; }
+        /* rand lat in formularul de editare TODO */
+        #sectiune-todo .todo-edit-wide { grid-column: 1 / -1; }
+        /* mesaj de validare pentru editare TODO */
+        #sectiune-todo .todo-edit-message { min-height: 1rem; margin-top: 0.55rem; font-size: 0.76rem; font-weight: 800; color: #94a3b8; }
+        #sectiune-todo .todo-edit-message.is-error { color: #fb7185; }
+        /* butoane compacte pentru editare TODO */
+        #sectiune-todo .todo-edit-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.45rem; margin-top: 0.65rem; }
+        /* zona badge-uri TODO */
+        #sectiune-todo .todo-meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
+        /* badge compact TODO */
+        #sectiune-todo .todo-badge { display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid transparent; padding: 0.18rem 0.5rem; font-size: 0.65rem; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+        /* culori prioritate TODO */
+        #sectiune-todo .todo-priority-high { border-color: rgba(248, 113, 113, 0.28); background: rgba(127, 29, 29, 0.28); color: #fca5a5; }
+        #sectiune-todo .todo-priority-medium { border-color: rgba(250, 204, 21, 0.26); background: rgba(113, 63, 18, 0.26); color: #fde68a; }
+        #sectiune-todo .todo-priority-low { border-color: rgba(96, 165, 250, 0.26); background: rgba(30, 64, 175, 0.24); color: #93c5fd; }
+        /* culori status TODO */
+        #sectiune-todo .todo-status-todo { border-color: rgba(148, 163, 184, 0.22); background: rgba(51, 65, 85, 0.38); color: #cbd5e1; }
+        #sectiune-todo .todo-status-in_progress { border-color: rgba(34, 211, 238, 0.28); background: rgba(8, 145, 178, 0.22); color: #67e8f9; }
+        #sectiune-todo .todo-status-done { border-color: rgba(16, 185, 129, 0.26); background: rgba(6, 95, 70, 0.22); color: #86efac; }
+        /* mesaje stare TODO */
+        #sectiune-todo .todo-state { border: 1px dashed rgba(148, 163, 184, 0.18); border-radius: 0.7rem; background: rgba(15, 23, 42, 0.38); padding: 1rem; text-align: center; font-size: 0.88rem; color: #94a3b8; }
+        #sectiune-todo .todo-state.is-success { border-color: rgba(45, 212, 207, 0.24); color: #5eead4; }
+        #sectiune-todo .todo-state.is-error { border-color: rgba(244, 63, 94, 0.24); color: #fb7185; }
+        /* zona taskuri finalizate */
+        #sectiune-todo .todo-completed { margin-top: 1rem; border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 0.65rem; }
+        /* header clickabil pentru taskuri finalizate */
+        #sectiune-todo .todo-completed-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 0.7rem; border: 0; border-radius: 0.55rem; background: transparent; padding: 0.35rem 0; text-align: left; cursor: pointer; transition: color 160ms ease; }
+        #sectiune-todo .todo-completed-toggle:hover .todo-completed-title { color: #cbd5e1; }
+        /* titlu taskuri finalizate */
+        #sectiune-todo .todo-completed-title { font-size: 0.78rem; font-weight: 850; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; }
+        /* contor si sageata finalizate */
+        #sectiune-todo .todo-completed-meta { display: inline-flex; align-items: center; gap: 0.45rem; color: #94a3b8; font-size: 0.72rem; font-weight: 850; letter-spacing: 0.08em; }
+        /* sageata pentru deschidere finalizate */
+        #sectiune-todo .todo-completed-chevron { display: inline-flex; transform: rotate(0deg); transition: transform 180ms ease; }
+        #sectiune-todo .todo-completed-chevron.is-open { transform: rotate(90deg); }
+        /* lista colapsabila de taskuri finalizate */
+        #sectiune-todo #todo-completed-list { margin-top: 0.65rem; }
         @media (max-width: 767px) {
             #sectiune-echipe .echipe-form-grid {
                 grid-template-columns: minmax(0, 1fr);
@@ -231,6 +336,14 @@
             #sectiune-echipe .echipe-actions {
                 justify-content: flex-start;
             }
+            #sectiune-todo .todo-header { align-items: flex-start; flex-direction: column; }
+            #sectiune-todo .todo-card { grid-template-columns: minmax(0, 1fr); }
+            #sectiune-todo .todo-meta { justify-content: flex-start; padding-left: 1.75rem; }
+            #sectiune-todo .todo-form-grid { grid-template-columns: minmax(0, 1fr); }
+            #sectiune-todo .todo-form-footer { align-items: flex-start; flex-direction: column; }
+            #sectiune-todo .todo-form-actions { width: 100%; justify-content: flex-start; }
+            #sectiune-todo .todo-edit-grid { grid-template-columns: minmax(0, 1fr); }
+            #sectiune-todo .todo-edit-actions { justify-content: flex-start; }
         }
         /* Aici se modifică dimensiunea vizuală și rotunjirea cardurilor principale */
         body .glass-panel {
@@ -1312,6 +1425,9 @@
             <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>👤</span> Gestionare Useri
             </button>
+            <button id="tab-todo" onclick="schimbaTab('sectiune-todo', 'tab-todo')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>☑️</span> TODO
+            </button>
         </nav>
 
         <div class="p-4 border-t border-slate-800/60">
@@ -1870,6 +1986,84 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ===== TODO ===== -->
+            <section id="sectiune-todo" class="admin-page hidden">
+                <!-- Aici se modifică lățimea maximă și alinierea zonei TODO -->
+                <div class="todo-shell">
+                    <!-- Antet compact pentru lista TODO -->
+                    <div class="todo-header">
+                        <div class="todo-title-row">
+                            <h2 class="todo-title">TODO</h2>
+                            <span id="todo-active-count" class="todo-active-count">0 ACTIVE</span>
+                        </div>
+                        <button id="todo-open-form-btn" type="button" class="todo-add-btn">+ Adaugă task</button>
+                    </div>
+
+                    <!-- Formular compact pentru adăugarea unui task nou -->
+                    <form id="todo-add-form" class="todo-form-panel hidden" novalidate>
+                        <div class="todo-form-grid">
+                            <label class="todo-form-label todo-form-wide" for="todo-title-input">
+                                Titlu
+                                <input id="todo-title-input" type="text" class="todo-form-input" autocomplete="off">
+                            </label>
+                            <label class="todo-form-label" for="todo-category-input">
+                                Categorie
+                                <input id="todo-category-input" type="text" class="todo-form-input" autocomplete="off">
+                            </label>
+                            <label class="todo-form-label" for="todo-priority-select">
+                                Prioritate
+                                <select id="todo-priority-select" class="todo-form-select">
+                                    <option value="low">low</option>
+                                    <option value="medium" selected>medium</option>
+                                    <option value="high">high</option>
+                                </select>
+                            </label>
+                            <label class="todo-form-label" for="todo-status-select">
+                                Status
+                                <select id="todo-status-select" class="todo-form-select">
+                                    <option value="todo" selected>todo</option>
+                                    <option value="in_progress">in_progress</option>
+                                </select>
+                            </label>
+                            <label class="todo-form-label todo-form-wide" for="todo-description-input">
+                                Descriere
+                                <textarea id="todo-description-input" class="todo-form-textarea"></textarea>
+                            </label>
+                            <label class="todo-form-label todo-form-wide" for="todo-notes-input">
+                                Notes / Observații
+                                <textarea id="todo-notes-input" class="todo-form-textarea"></textarea>
+                            </label>
+                        </div>
+                        <div class="todo-form-footer">
+                            <div id="todo-form-message" class="todo-form-message" aria-live="polite"></div>
+                            <div class="todo-form-actions">
+                                <button id="todo-cancel-form-btn" type="button" class="todo-form-btn todo-form-btn-secondary">Anulează</button>
+                                <button id="todo-save-form-btn" type="submit" class="todo-form-btn todo-form-btn-primary">Salvează</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Mesaj de eroare sau stare pentru încărcare TODO -->
+                    <div id="todo-load-message" class="todo-state hidden"></div>
+
+                    <!-- Lista taskurilor active -->
+                    <div id="todo-active-list" class="todo-list"></div>
+
+                    <!-- Zona secundară colapsabilă pentru taskuri finalizate -->
+                    <div class="todo-completed">
+                        <button id="todo-completed-toggle" type="button" class="todo-completed-toggle" aria-expanded="false" aria-controls="todo-completed-list">
+                            <span class="todo-completed-title">FINALIZATE RECENT</span>
+                            <span class="todo-completed-meta">
+                                <span id="todo-completed-count">0</span>
+                                <span id="todo-completed-chevron" class="todo-completed-chevron" aria-hidden="true">›</span>
+                            </span>
+                        </button>
+                        <div id="todo-completed-list" class="todo-list hidden"></div>
+                    </div>
+                </div>
+            </section>
+
         </div>
     </main>
 
@@ -2496,7 +2690,8 @@
             'tab-consumabile': 'sectiune-consumabile',
             'tab-echipe': 'sectiune-echipe',
             'tab-audit-log': 'sectiune-audit-log',
-            'tab-useri': 'sectiune-useri'
+            'tab-useri': 'sectiune-useri',
+            'tab-todo': 'sectiune-todo'
         };
         const adminSectionTitleMap = {
             'sectiune-megafon': 'Megafon (Anunțuri Interne)',
@@ -2505,7 +2700,8 @@
             'sectiune-consumabile': 'Consumabile',
             'sectiune-echipe': 'Echipe & Departamente',
             'sectiune-audit-log': 'Audit Log',
-            'sectiune-useri': 'Gestionare Useri'
+            'sectiune-useri': 'Gestionare Useri',
+            'sectiune-todo': 'TODO'
         };
         const userPermissionFields = [
             ['perm_deviz_estimativ', 'deviz_estimativ'],
@@ -2762,6 +2958,9 @@
                 if (sectiuneId === 'sectiune-useri') {
                     initUserManagement();
                 }
+                if (sectiuneId === 'sectiune-todo') {
+                    incarcaTodoTasks();
+                }
                 if (sectiuneId === 'sectiune-devize') {
                     loadDevizeSections();
                 }
@@ -2784,6 +2983,460 @@
                 console.error(error);
                 alert(error.message || 'Eroare la schimbarea secțiunii administrative.');
                 return false;
+            }
+        }
+
+
+        // normalizează prioritatea taskului pentru culori și sortare
+        function normalizeTodoPriority(value) {
+            const priority = String(value || '').toLowerCase().trim();
+            return ['high', 'medium', 'low'].includes(priority) ? priority : 'low';
+        }
+
+        // normalizează statusul taskului pentru badge
+        function normalizeTodoStatus(value) {
+            const status = String(value || '').toLowerCase().trim();
+            return ['todo', 'in_progress', 'done'].includes(status) ? status : 'todo';
+        }
+
+        // formatează datele afișate în detaliile taskului
+        function formatTodoDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            const pad = (part) => String(part).padStart(2, '0');
+            return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        // sortează taskurile active după prioritate și dată
+        function sortTodoActiveTasks(tasks) {
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            return [...tasks].sort((a, b) => {
+                const priorityA = priorityOrder[normalizeTodoPriority(a?.prioritate)] ?? 3;
+                const priorityB = priorityOrder[normalizeTodoPriority(b?.prioritate)] ?? 3;
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime();
+            });
+        }
+
+        // construiește cardul compact pentru fiecare task
+        function renderTodoTaskCard(task, options = {}) {
+            const taskId = escapeHtml(task?.id);
+            const priority = normalizeTodoPriority(task?.prioritate);
+            const status = normalizeTodoStatus(task?.status);
+            const isCompleted = task?.completat === true;
+            const readOnly = options.readOnly === true;
+            const rawTitle = task?.titlu || 'Task fără titlu';
+            const rawCategory = task?.categorie || '';
+            const rawDescription = task?.descriere || '';
+            const rawNotes = task?.notes || '';
+            const title = escapeHtml(rawTitle);
+            const category = rawCategory ? `<span class="todo-category">${escapeHtml(rawCategory)}</span>` : '';
+            const description = escapeHtml(rawDescription || 'Fără descriere.');
+            const createdAt = escapeHtml(formatTodoDate(task?.created_at));
+            const updatedAt = escapeHtml(formatTodoDate(task?.updated_at));
+            const checkboxHtml = readOnly
+                ? `<input type="checkbox" class="todo-checkbox" ${isCompleted ? 'checked' : ''} disabled aria-label="Task completat">`
+                : `<input type="checkbox" class="todo-checkbox" data-complete-todo="${taskId}" aria-label="Finalizează task">`;
+            const completedActionsHtml = readOnly
+                ? `
+                    <div class="todo-edit-actions" data-completed-todo-actions="${taskId}">
+                        <button type="button" class="todo-form-btn todo-form-btn-secondary" data-reopen-todo="${taskId}">Redeschide</button>
+                        <button type="button" class="todo-form-btn todo-form-btn-primary" data-delete-completed-todo="${taskId}">Șterge</button>
+                    </div>`
+                : '';
+            const detailsHtml = readOnly
+                ? `<p class="todo-description">Actualizat: ${updatedAt}</p>${completedActionsHtml}`
+                : `
+                            <p class="todo-description">${description}</p>
+                            <button type="button" class="todo-details-btn" data-toggle-todo-details="${taskId}" aria-expanded="false">Detalii</button>
+                            <div class="todo-details hidden" id="todo-details-${taskId}">
+                                <div class="todo-edit-grid">
+                                    <label class="todo-form-label todo-edit-wide">Titlu
+                                        <input type="text" class="todo-form-input" data-todo-edit-field="titlu" value="${escapeHtml(rawTitle)}">
+                                    </label>
+                                    <label class="todo-form-label">Categorie
+                                        <input type="text" class="todo-form-input" data-todo-edit-field="categorie" value="${escapeHtml(rawCategory)}">
+                                    </label>
+                                    <label class="todo-form-label">Prioritate
+                                        <select class="todo-form-select" data-todo-edit-field="prioritate">
+                                            <option value="low" ${priority === 'low' ? 'selected' : ''}>low</option>
+                                            <option value="medium" ${priority === 'medium' ? 'selected' : ''}>medium</option>
+                                            <option value="high" ${priority === 'high' ? 'selected' : ''}>high</option>
+                                        </select>
+                                    </label>
+                                    <label class="todo-form-label">Status
+                                        <select class="todo-form-select" data-todo-edit-field="status">
+                                            <option value="todo" ${status === 'todo' ? 'selected' : ''}>todo</option>
+                                            <option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>in_progress</option>
+                                        </select>
+                                    </label>
+                                    <label class="todo-form-label todo-edit-wide">Descriere
+                                        <textarea class="todo-form-textarea" data-todo-edit-field="descriere">${escapeHtml(rawDescription)}</textarea>
+                                    </label>
+                                    <label class="todo-form-label todo-edit-wide">Observații / Notes
+                                        <textarea class="todo-form-textarea" data-todo-edit-field="notes">${escapeHtml(rawNotes)}</textarea>
+                                    </label>
+                                </div>
+                                <div class="todo-edit-message" data-todo-edit-message></div>
+                                <div class="todo-edit-actions">
+                                    <button type="button" class="todo-form-btn todo-form-btn-secondary" data-cancel-todo-edit="${taskId}">Anulează</button>
+                                    <button type="button" class="todo-form-btn todo-form-btn-primary" data-save-todo-edit="${taskId}">Salvează modificările</button>
+                                </div>
+                                <div class="mt-2">Creat: ${createdAt}</div>
+                                <div>Actualizat: ${updatedAt}</div>
+                            </div>`;
+            const metaHtml = readOnly
+                ? '<span class="todo-badge todo-status-done">DONE</span>'
+                : `
+                        <span class="todo-badge todo-priority-${priority}">${priority}</span>
+                        <span class="todo-badge todo-status-${status}">${status.replace('_', ' ')}</span>`;
+
+            return `
+                <article class="todo-card" data-todo-card="${taskId}">
+                    <div class="todo-main">
+                        ${checkboxHtml}
+                        <div class="todo-body">
+                            <div class="todo-card-title-row">
+                                <h3 class="todo-card-title">${title}</h3>
+                                ${category}
+                            </div>${detailsHtml}
+                        </div>
+                    </div>
+                    <div class="todo-meta">${metaHtml}
+                    </div>
+                </article>
+            `;
+        }
+
+        // afișează lista TODO sau mesajul gol
+        function renderTodoList(container, tasks, emptyMessage, options = {}) {
+            if (!container) return;
+            if (!tasks.length) {
+                container.innerHTML = `<div class="todo-state">${escapeHtml(emptyMessage)}</div>`;
+                return;
+            }
+            container.innerHTML = tasks.map((task) => renderTodoTaskCard(task, options)).join('');
+        }
+
+        function setTodoFormMessage(message, type = 'info') {
+            const messageEl = document.getElementById('todo-form-message');
+            if (!messageEl) return;
+            messageEl.textContent = message || '';
+            messageEl.classList.toggle('is-error', type === 'error');
+            messageEl.classList.toggle('is-success', type === 'success');
+        }
+
+        function setTodoSectionMessage(message, type = 'info') {
+            const messageEl = document.getElementById('todo-load-message');
+            if (!messageEl) return;
+            messageEl.textContent = message || '';
+            messageEl.classList.toggle('hidden', !message);
+            messageEl.classList.toggle('is-error', type === 'error');
+            messageEl.classList.toggle('is-success', type === 'success');
+        }
+
+        let todoCompletedOpen = false;
+
+        function setTodoCompletedOpen(isOpen) {
+            todoCompletedOpen = Boolean(isOpen);
+            const list = document.getElementById('todo-completed-list');
+            const toggle = document.getElementById('todo-completed-toggle');
+            const chevron = document.getElementById('todo-completed-chevron');
+            if (list) list.classList.toggle('hidden', !todoCompletedOpen);
+            if (toggle) toggle.setAttribute('aria-expanded', String(todoCompletedOpen));
+            if (chevron) chevron.classList.toggle('is-open', todoCompletedOpen);
+        }
+
+        // resetează câmpurile formularului TODO
+        function resetTodoAddForm() {
+            const form = document.getElementById('todo-add-form');
+            if (form) form.reset();
+            const prioritySelect = document.getElementById('todo-priority-select');
+            const statusSelect = document.getElementById('todo-status-select');
+            if (prioritySelect) prioritySelect.value = 'medium';
+            if (statusSelect) statusSelect.value = 'todo';
+            setTodoFormMessage('');
+        }
+
+        // afișează sau ascunde formularul TODO
+        function setTodoAddFormVisible(isVisible) {
+            const form = document.getElementById('todo-add-form');
+            if (!form) return;
+            form.classList.toggle('hidden', !isVisible);
+            if (isVisible) {
+                document.getElementById('todo-title-input')?.focus();
+            }
+        }
+
+        const todoCompletionRequests = new Set();
+        const todoCompletedActionRequests = new Set();
+
+        function setCompletedTodoActionsDisabled(taskId, disabled) {
+            const actions = document.querySelector(`[data-completed-todo-actions="${CSS.escape(String(taskId))}"]`);
+            actions?.querySelectorAll('button').forEach((button) => {
+                button.disabled = disabled;
+            });
+        }
+
+        // redeschide un task finalizat și îl mută în lista activă
+        async function redeschideTodoTask(taskId) {
+            const cleanTaskId = String(taskId || '').trim();
+            if (!cleanTaskId || todoCompletedActionRequests.has(cleanTaskId)) return;
+
+            todoCompletedActionRequests.add(cleanTaskId);
+            setCompletedTodoActionsDisabled(cleanTaskId, true);
+
+            try {
+                const { error } = await sb
+                    .schema('public')
+                    .from('todo_tasks')
+                    .update({
+                        completat: false,
+                        status: 'todo',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', cleanTaskId);
+
+                if (error) throw error;
+
+                await incarcaTodoTasks();
+                setTodoSectionMessage('Task redeschis.', 'success');
+            } catch (error) {
+                console.error('Eroare redeschidere TODO:', error);
+                setCompletedTodoActionsDisabled(cleanTaskId, false);
+                setTodoSectionMessage('Task-ul nu a putut fi redeschis.', 'error');
+            } finally {
+                todoCompletedActionRequests.delete(cleanTaskId);
+            }
+        }
+
+        // șterge definitiv un task finalizat după confirmare
+        async function stergeTodoTaskFinalizat(taskId) {
+            const cleanTaskId = String(taskId || '').trim();
+            if (!cleanTaskId || todoCompletedActionRequests.has(cleanTaskId)) return;
+            if (!window.confirm('Sigur vrei să ștergi definitiv acest task?')) return;
+
+            todoCompletedActionRequests.add(cleanTaskId);
+            setCompletedTodoActionsDisabled(cleanTaskId, true);
+
+            try {
+                const { error } = await sb
+                    .schema('public')
+                    .from('todo_tasks')
+                    .delete()
+                    .eq('id', cleanTaskId);
+
+                if (error) throw error;
+
+                await incarcaTodoTasks();
+                setTodoSectionMessage('Task șters.', 'success');
+            } catch (error) {
+                console.error('Eroare ștergere TODO:', error);
+                setCompletedTodoActionsDisabled(cleanTaskId, false);
+                setTodoSectionMessage('Task-ul nu a putut fi șters.', 'error');
+            } finally {
+                todoCompletedActionRequests.delete(cleanTaskId);
+            }
+        }
+
+        // finalizează taskul bifat și persistă statusul în Supabase
+        async function finalizeazaTodoTask(taskId, checkbox) {
+            const cleanTaskId = String(taskId || '').trim();
+            if (!cleanTaskId || todoCompletionRequests.has(cleanTaskId)) return;
+
+            todoCompletionRequests.add(cleanTaskId);
+            if (checkbox) checkbox.disabled = true;
+
+            try {
+                const { error } = await sb
+                    .schema('public')
+                    .from('todo_tasks')
+                    .update({
+                        completat: true,
+                        status: 'done',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', cleanTaskId);
+
+                if (error) throw error;
+
+                await incarcaTodoTasks();
+                setTodoSectionMessage('Task finalizat.', 'success');
+            } catch (error) {
+                console.error('Eroare finalizare TODO:', error);
+                if (checkbox) {
+                    checkbox.checked = false;
+                    checkbox.disabled = false;
+                }
+                setTodoSectionMessage('Task-ul nu a putut fi finalizat.', 'error');
+            } finally {
+                todoCompletionRequests.delete(cleanTaskId);
+            }
+        }
+
+        function setTodoEditMessage(card, message, type = 'info') {
+            const messageEl = card?.querySelector('[data-todo-edit-message]');
+            if (!messageEl) return;
+            messageEl.textContent = message || '';
+            messageEl.classList.toggle('is-error', type === 'error');
+        }
+
+        function getTodoEditValue(card, fieldName) {
+            return card?.querySelector(`[data-todo-edit-field="${fieldName}"]`)?.value.trim() || '';
+        }
+
+        // salvează modificările din zona Detalii a taskului activ
+        async function salveazaTodoEdit(taskId, button) {
+            const cleanTaskId = String(taskId || '').trim();
+            const card = button?.closest('[data-todo-card]');
+            if (!cleanTaskId || !card) return;
+
+            const titlu = getTodoEditValue(card, 'titlu');
+            const categorie = getTodoEditValue(card, 'categorie');
+            const descriere = getTodoEditValue(card, 'descriere');
+            const prioritate = normalizeTodoPriority(getTodoEditValue(card, 'prioritate'));
+            const statusValue = getTodoEditValue(card, 'status');
+            const status = ['todo', 'in_progress'].includes(statusValue) ? statusValue : 'todo';
+            const notes = getTodoEditValue(card, 'notes');
+
+            if (!titlu) {
+                setTodoEditMessage(card, 'Titlul este obligatoriu.', 'error');
+                card.querySelector('[data-todo-edit-field="titlu"]')?.focus();
+                return;
+            }
+
+            try {
+                if (button) button.disabled = true;
+                setTodoEditMessage(card, 'Se salvează...');
+                const { error } = await sb
+                    .schema('public')
+                    .from('todo_tasks')
+                    .update({
+                        titlu,
+                        categorie,
+                        descriere,
+                        prioritate,
+                        status,
+                        notes,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', cleanTaskId);
+
+                if (error) throw error;
+
+                await incarcaTodoTasks();
+                setTodoSectionMessage('Task actualizat.', 'success');
+            } catch (error) {
+                console.error('Eroare actualizare TODO:', error);
+                setTodoEditMessage(card, 'Task-ul nu a putut fi actualizat.', 'error');
+            } finally {
+                if (button) button.disabled = false;
+            }
+        }
+
+        // adaugă un task nou în public.todo_tasks
+        async function salveazaTodoTask(event) {
+            event?.preventDefault?.();
+            const titleInput = document.getElementById('todo-title-input');
+            const categoryInput = document.getElementById('todo-category-input');
+            const descriptionInput = document.getElementById('todo-description-input');
+            const prioritySelect = document.getElementById('todo-priority-select');
+            const statusSelect = document.getElementById('todo-status-select');
+            const notesInput = document.getElementById('todo-notes-input');
+            const saveButton = document.getElementById('todo-save-form-btn');
+
+            const titlu = titleInput?.value.trim() || '';
+            const categorie = categoryInput?.value.trim() || '';
+            const descriere = descriptionInput?.value.trim() || '';
+            const prioritate = normalizeTodoPriority(prioritySelect?.value || 'medium');
+            const status = ['todo', 'in_progress'].includes(statusSelect?.value) ? statusSelect.value : 'todo';
+            const notes = notesInput?.value.trim() || '';
+
+            if (!titlu) {
+                setTodoFormMessage('Titlul este obligatoriu.', 'error');
+                titleInput?.focus();
+                return;
+            }
+
+            try {
+                if (saveButton) saveButton.disabled = true;
+                setTodoFormMessage('Se salvează...');
+                const { error } = await sb
+                    .schema('public')
+                    .from('todo_tasks')
+                    .insert({
+                        id: crypto.randomUUID(),
+                        titlu,
+                        categorie,
+                        descriere,
+                        prioritate,
+                        status,
+                        completat: false,
+                        notes
+                    });
+
+                if (error) throw error;
+
+                resetTodoAddForm();
+                setTodoAddFormVisible(false);
+                await incarcaTodoTasks();
+                setTodoSectionMessage('Task adăugat.', 'success');
+            } catch (error) {
+                console.error('Eroare adăugare TODO:', error);
+                setTodoFormMessage('Task-ul nu a putut fi salvat.', 'error');
+            } finally {
+                if (saveButton) saveButton.disabled = false;
+            }
+        }
+
+        // preia taskurile din tabelul public.todo_tasks
+        async function incarcaTodoTasks() {
+            const activeList = document.getElementById('todo-active-list');
+            const completedList = document.getElementById('todo-completed-list');
+            const countBadge = document.getElementById('todo-active-count');
+            const completedCount = document.getElementById('todo-completed-count');
+            const message = document.getElementById('todo-load-message');
+            if (!activeList || !completedList || !countBadge) return;
+
+            activeList.innerHTML = '<div class="todo-state">Se încarcă task-urile...</div>';
+            completedList.innerHTML = '';
+            if (message) {
+                message.textContent = '';
+                message.classList.add('hidden');
+                message.classList.remove('is-error', 'is-success');
+            }
+
+            try {
+                const columns = 'id, titlu, categorie, descriere, prioritate, status, completat, created_at, updated_at, notes';
+                const [{ data: activeData, error: activeError }, { data: completedData, error: completedError }] = await Promise.all([
+                    sb.schema('public').from('todo_tasks').select(columns).eq('completat', false).order('created_at', { ascending: false }),
+                    sb.schema('public').from('todo_tasks').select(columns).eq('completat', true).order('updated_at', { ascending: false })
+                ]);
+
+                if (activeError) throw activeError;
+                if (completedError) throw completedError;
+
+                const activeTasks = sortTodoActiveTasks(Array.isArray(activeData) ? activeData : []);
+                const completedTasks = Array.isArray(completedData) ? completedData : [];
+
+                countBadge.textContent = `${activeTasks.length} ACTIVE`;
+                if (completedCount) completedCount.textContent = String(completedTasks.length);
+                renderTodoList(activeList, activeTasks, 'Nu există task-uri active.');
+                renderTodoList(completedList, completedTasks, 'Nu există task-uri finalizate.', { readOnly: true });
+                setTodoCompletedOpen(false);
+            } catch (error) {
+                console.error(error);
+                countBadge.textContent = '0 ACTIVE';
+                if (completedCount) completedCount.textContent = '0';
+                activeList.innerHTML = '';
+                completedList.innerHTML = '';
+                setTodoCompletedOpen(false);
+                if (message) {
+                    message.textContent = 'Nu s-au putut încărca task-urile.';
+                    message.classList.remove('hidden', 'is-success');
+                    message.classList.add('is-error');
+                }
             }
         }
 
@@ -2982,6 +3635,16 @@
                 input.value = normalizeUserValue(input.value);
             });
             document.getElementById('btn-refresh-users')?.addEventListener('click', initUserManagement);
+            document.getElementById('todo-open-form-btn')?.addEventListener('click', () => {
+                setTodoFormMessage('');
+                setTodoSectionMessage('');
+                setTodoAddFormVisible(true);
+            });
+            document.getElementById('todo-cancel-form-btn')?.addEventListener('click', () => {
+                resetTodoAddForm();
+                setTodoAddFormVisible(false);
+            });
+            document.getElementById('todo-add-form')?.addEventListener('submit', salveazaTodoTask);
             // Salvează modificările utilizatorului selectat
             document.getElementById('userForm')?.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -3150,8 +3813,60 @@
             });
         });
 
+        // Gestionează bifarea taskurilor active din TODO
+        document.addEventListener('change', async (event) => {
+            const todoCheckbox = event.target.closest('[data-complete-todo]');
+            if (!todoCheckbox || !todoCheckbox.checked) return;
+            await finalizeazaTodoTask(todoCheckbox.getAttribute('data-complete-todo'), todoCheckbox);
+        });
+
         // Aplică filtrele și acțiunile principale prin butoanele paginii
         document.addEventListener('click', async (event) => {
+            const completedToggle = event.target.closest('#todo-completed-toggle');
+            if (completedToggle) {
+                setTodoCompletedOpen(!todoCompletedOpen);
+                return;
+            }
+
+            const todoDetailsButton = event.target.closest('[data-toggle-todo-details]');
+            if (todoDetailsButton) {
+                const detailsId = `todo-details-${todoDetailsButton.getAttribute('data-toggle-todo-details')}`;
+                const details = document.getElementById(detailsId);
+                if (details) {
+                    const isHidden = details.classList.toggle('hidden');
+                    todoDetailsButton.setAttribute('aria-expanded', String(!isHidden));
+                }
+                return;
+            }
+
+            const cancelTodoEditButton = event.target.closest('[data-cancel-todo-edit]');
+            if (cancelTodoEditButton) {
+                const taskId = cancelTodoEditButton.getAttribute('data-cancel-todo-edit');
+                const details = document.getElementById(`todo-details-${taskId}`);
+                const toggle = document.querySelector(`[data-toggle-todo-details="${CSS.escape(taskId)}"]`);
+                if (details) details.classList.add('hidden');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            const saveTodoEditButton = event.target.closest('[data-save-todo-edit]');
+            if (saveTodoEditButton) {
+                await salveazaTodoEdit(saveTodoEditButton.getAttribute('data-save-todo-edit'), saveTodoEditButton);
+                return;
+            }
+
+            const reopenTodoButton = event.target.closest('[data-reopen-todo]');
+            if (reopenTodoButton) {
+                await redeschideTodoTask(reopenTodoButton.getAttribute('data-reopen-todo'));
+                return;
+            }
+
+            const deleteCompletedTodoButton = event.target.closest('[data-delete-completed-todo]');
+            if (deleteCompletedTodoButton) {
+                await stergeTodoTaskFinalizat(deleteCompletedTodoButton.getAttribute('data-delete-completed-todo'));
+                return;
+            }
+
             const deleteDevizEstimativBtn = event.target.closest('[data-delete-deviz-estimativ]');
             if (deleteDevizEstimativBtn) {
                 await deleteDevizEstimativ(deleteDevizEstimativBtn.getAttribute('data-delete-deviz-estimativ'), deleteDevizEstimativBtn);
