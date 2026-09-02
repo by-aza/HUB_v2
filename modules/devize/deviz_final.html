@@ -366,13 +366,22 @@
                     </div>
 
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <button
-                            id="btn-add-piesa-row"
-                            type="button"
-                            class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
-                        >
-                            + Adaugă piesă
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                id="btn-add-piesa-row"
+                                type="button"
+                                class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-500"
+                            >
+                                + Adaugă piesă
+                            </button>
+                            <button
+                                id="btn-importa-piese-sh"
+                                type="button"
+                                class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+                            >
+                                Importă Piese SH
+                            </button>
+                        </div>
 
                         <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5">
                             <div class="space-y-3 text-sm">
@@ -403,6 +412,36 @@
             </section>
         </div>
     </main>
+
+    <div id="piese-sh-import-modal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/80 p-4">
+        <div class="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 id="piese-sh-import-title" class="text-lg font-extrabold text-slate-100">Importă Piese SH</h2>
+                    <p id="piese-sh-import-message" class="mt-1 min-h-5 text-sm text-slate-400"></p>
+                </div>
+                <button
+                    id="btn-close-piese-sh-import"
+                    type="button"
+                    class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+                >
+                    Închide
+                </button>
+            </div>
+            <div id="piese-sh-import-list" class="flex-1 overflow-y-auto p-5"></div>
+            <div class="flex flex-col gap-3 border-t border-slate-800 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div id="piese-sh-import-footer-message" class="min-h-5 text-sm text-slate-400"></div>
+                <button
+                    id="btn-confirm-piese-sh-import"
+                    type="button"
+                    disabled
+                    class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-extrabold text-white opacity-60 transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed"
+                >
+                    Importă 0 piese
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const supabaseUrl = 'https://xyovkxmtbvgcwavuyxxu.supabase.co';
@@ -449,6 +488,7 @@
         };
         let currentDevizId = null;
         let auditActorPromise = null;
+        let pieseShImportOrders = [];
 
         const saveStatus = document.getElementById('save-status');
         const btnDevizNou = document.getElementById('btn-deviz-nou');
@@ -477,7 +517,15 @@
         const manoperaRowsBody = document.getElementById('manopera-rows-body');
         const manoperaTotalDisplay = document.getElementById('manopera-total-display');
         const btnAddPiesaRow = document.getElementById('btn-add-piesa-row');
+        const btnImportaPieseSh = document.getElementById('btn-importa-piese-sh');
         const pieseRowsBody = document.getElementById('piese-rows-body');
+        const pieseShImportModal = document.getElementById('piese-sh-import-modal');
+        const pieseShImportTitle = document.getElementById('piese-sh-import-title');
+        const pieseShImportMessage = document.getElementById('piese-sh-import-message');
+        const pieseShImportList = document.getElementById('piese-sh-import-list');
+        const pieseShImportFooterMessage = document.getElementById('piese-sh-import-footer-message');
+        const btnClosePieseShImport = document.getElementById('btn-close-piese-sh-import');
+        const btnConfirmPieseShImport = document.getElementById('btn-confirm-piese-sh-import');
         const summaryTotalManopera = document.getElementById('summary-total-manopera');
         const summaryTotalPieseBrut = document.getElementById('summary-total-piese-brut');
         const summaryTotalDiscount = document.getElementById('summary-total-discount');
@@ -915,13 +963,15 @@
                 cantitate: row.querySelector('.piesa-cantitate')?.value ?? '',
                 pretUnitar: row.querySelector('.piesa-pret')?.value ?? '',
                 aplicaDiscount: Boolean(row.querySelector('.piesa-apply-discount')?.checked),
-                valoare: row.querySelector('.piesa-valoare')?.value ?? ''
+                valoare: row.querySelector('.piesa-valoare')?.value ?? '',
+                comandaPiesaShId: row.dataset.comandaPiesaShId || null
             }));
         };
 
         const createPiesaRowElement = (item = {}) => {
             const tr = document.createElement('tr');
             tr.className = 'align-top';
+            tr.dataset.comandaPiesaShId = item.comandaPiesaShId ? String(item.comandaPiesaShId) : '';
             tr.innerHTML = `
                 <td class="px-3 py-3 text-slate-300">
                     <div class="piesa-index pt-2 font-bold">1</div>
@@ -1011,7 +1061,7 @@
             ensurePieseState();
             pieseRowsBody.innerHTML = '';
             if (!devizData.piese.length) {
-                devizData.piese = [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' }];
+                devizData.piese = [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '', comandaPiesaShId: null }];
             }
 
             devizData.piese.forEach((item) => {
@@ -1130,6 +1180,218 @@
             }
         }
 
+        const getImportedPieseShIds = () => {
+            ensurePieseState();
+            syncPieseState();
+            return new Set(
+                (devizData.piese || [])
+                    .map((item) => String(item?.comandaPiesaShId || '').trim())
+                    .filter(Boolean)
+            );
+        };
+
+        const getPieseShStatusLabel = (status) => {
+            const labels = {
+                comandata: 'Comandată',
+                in_tranzit: 'În tranzit',
+                ajunsa: 'Ajunsă',
+                montata: 'Montată',
+                nepotrivita: 'Nepotrivită',
+                returnata: 'Returnată',
+                pusa_la_vanzare: 'Pusă la vânzare',
+                anulata: 'Anulată'
+            };
+            return labels[String(status || '').toLowerCase()] || String(status || '—');
+        };
+
+        const setPieseShImportFooterState = () => {
+            const selectedRows = Array.from(pieseShImportList.querySelectorAll('.piese-sh-select:checked'))
+                .map((checkbox) => checkbox.closest('[data-sh-row]'))
+                .filter(Boolean);
+            const hasInvalidPrice = selectedRows.some((row) => toNumber(row.querySelector('.piese-sh-price')?.value) <= 0);
+            const count = selectedRows.length;
+            const canImport = count > 0 && !hasInvalidPrice;
+
+            btnConfirmPieseShImport.disabled = !canImport;
+            btnConfirmPieseShImport.classList.toggle('opacity-60', !canImport);
+            btnConfirmPieseShImport.textContent = `Importă ${count} ${count === 1 ? 'piesă' : 'piese'}`;
+            pieseShImportFooterMessage.textContent = hasInvalidPrice
+                ? 'Completează un preț în deviz valid pentru fiecare piesă selectată.'
+                : '';
+            pieseShImportFooterMessage.className = hasInvalidPrice
+                ? 'min-h-5 text-sm text-rose-400'
+                : 'min-h-5 text-sm text-slate-400';
+        };
+
+        const renderPieseShImportRows = (orders, plate) => {
+            const importedIds = getImportedPieseShIds();
+
+            if (!orders.length) {
+                pieseShImportList.innerHTML = `
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-300">
+                        Nu există comenzi Piese SH pentru ${escapeHtml(plate)}.
+                    </div>
+                `;
+                setPieseShImportFooterState();
+                return;
+            }
+
+            pieseShImportList.innerHTML = orders.map((order) => {
+                const id = String(order.id);
+                const status = String(order.status || '').toLowerCase();
+                const statusLabel = getPieseShStatusLabel(status);
+                const denumire = String(order.denumire_piesa || '');
+                const alreadyAdded = importedIds.has(id);
+                const isMounted = status === 'montata';
+                const costPiesa = toNumber(order.pret_piesa);
+                const transport = toNumber(order.pret_transport);
+                const totalCost = costPiesa + transport;
+
+                if (alreadyAdded) {
+                    return `
+                        <div data-sh-row data-sh-id="${escapeHtml(id)}" class="mb-3 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-100">${escapeHtml(denumire)}</div>
+                                    <div class="mt-1 text-sm text-slate-400">Status: ${escapeHtml(statusLabel)}</div>
+                                </div>
+                                <div class="text-sm font-bold text-emerald-300">✓ Deja adăugată în acest deviz</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (!isMounted) {
+                    return `
+                        <div data-sh-row data-sh-id="${escapeHtml(id)}" class="mb-3 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-100">${escapeHtml(denumire)}</div>
+                                    <div class="mt-1 text-sm text-slate-400">Status: ${escapeHtml(statusLabel)}</div>
+                                    <div class="mt-2 text-sm text-amber-300">
+                                        <div>Piesa nu este marcată ca Montată.</div>
+                                        <div>Actualizează statusul în Comenzi Piese SH pentru a o putea importa.</div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    data-open-piese-sh="${escapeHtml(plate)}"
+                                    class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+                                >
+                                    Deschide Piese SH
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div data-sh-row data-sh-id="${escapeHtml(id)}" data-sh-name="${escapeHtml(denumire)}" class="mb-3 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                        <div class="grid gap-3 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+                            <label class="inline-flex items-center gap-3 text-sm font-bold text-slate-200">
+                                <input type="checkbox" class="piese-sh-select h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/60">
+                                Selectează
+                            </label>
+                            <div>
+                                <div class="font-bold text-slate-100">${escapeHtml(denumire)}</div>
+                                <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
+                                    <span>Status: ${escapeHtml(statusLabel)}</span>
+                                    <span>Cost piesă: ${formatMoney(costPiesa)} Lei</span>
+                                    <span>Transport: ${formatMoney(transport)} Lei</span>
+                                    <span>Cost total: ${formatMoney(totalCost)} Lei</span>
+                                </div>
+                            </div>
+                            <label class="grid gap-1 text-sm font-semibold text-slate-300">
+                                <span>Preț în deviz</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                    class="piese-sh-price w-36 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
+                                    placeholder="0.00"
+                                >
+                            </label>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            setPieseShImportFooterState();
+        };
+
+        async function openPieseShImportModal() {
+            const plate = normalizePlate(inputNrInmatriculareDevizFinal?.value || devizData.nrInmatriculare);
+            if (!plate || plate === 'FaraNumar') {
+                setSaveStatus('Completează mai întâi nr. de înmatriculare în Antet.', 'error');
+                return;
+            }
+
+            pieseShImportOrders = [];
+            pieseShImportTitle.textContent = `Importă Piese SH — ${plate}`;
+            pieseShImportMessage.textContent = 'Se caută comenzile SH pentru mașina curentă...';
+            pieseShImportMessage.className = 'mt-1 min-h-5 text-sm text-slate-400';
+            pieseShImportList.innerHTML = '';
+            pieseShImportModal.classList.remove('hidden');
+            pieseShImportModal.classList.add('flex');
+            setPieseShImportFooterState();
+
+            try {
+                const { data, error } = await sb
+                    .from('comenzi_piese_sh')
+                    .select('id, denumire_piesa, nr_inmatriculare, status, pret_piesa, pret_transport, is_archived')
+                    .eq('nr_inmatriculare', plate)
+                    .order('data_comanda', { ascending: false });
+
+                if (error) throw error;
+
+                pieseShImportOrders = Array.isArray(data) ? data : [];
+                pieseShImportMessage.textContent = pieseShImportOrders.length
+                    ? `${pieseShImportOrders.length} comenzi găsite pentru ${plate}.`
+                    : '';
+                renderPieseShImportRows(pieseShImportOrders, plate);
+            } catch (error) {
+                console.error(error);
+                pieseShImportMessage.textContent = error?.message || 'Eroare la încărcarea comenzilor Piese SH.';
+                pieseShImportMessage.className = 'mt-1 min-h-5 text-sm text-rose-400';
+                pieseShImportList.innerHTML = '';
+                setPieseShImportFooterState();
+            }
+        }
+
+        function closePieseShImportModal() {
+            pieseShImportModal.classList.add('hidden');
+            pieseShImportModal.classList.remove('flex');
+            pieseShImportOrders = [];
+            pieseShImportList.innerHTML = '';
+            pieseShImportFooterMessage.textContent = '';
+        }
+
+        function importSelectedPieseSh() {
+            const selectedRows = Array.from(pieseShImportList.querySelectorAll('.piese-sh-select:checked'))
+                .map((checkbox) => checkbox.closest('[data-sh-row]'))
+                .filter(Boolean);
+
+            selectedRows.forEach((row) => {
+                const id = String(row.dataset.shId || '');
+                const order = pieseShImportOrders.find((item) => String(item.id) === id);
+                const price = toNumber(row.querySelector('.piese-sh-price')?.value);
+                if (!order || price <= 0) return;
+
+                addPiesaRow({
+                    denumire: order.denumire_piesa ?? '',
+                    um: 'buc',
+                    cantitate: 1,
+                    pretUnitar: price,
+                    aplicaDiscount: false,
+                    valoare: '',
+                    comandaPiesaShId: id
+                });
+            });
+
+            closePieseShImportModal();
+        }
+
         const freshDevizData = () => ({
             activeTab: 'tab-antet',
             idDevizEstimativ: '',
@@ -1151,7 +1413,7 @@
             },
             totalManopera: 0,
             discountGlobalPiese: '',
-            piese: [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' }],
+            piese: [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '', comandaPiesaShId: null }],
             totalPiese: {
                 brut: 0,
                 discount: 0,
@@ -1302,7 +1564,8 @@
                     cantitate: toNumber(item?.cantitate),
                     pret_unitar: toNumber(item?.pret ?? item?.pretUnitar),
                     discount: item?.aplicaDiscount ? 1 : 0,
-                    total: toNumber(item?.valoare)
+                    total: toNumber(item?.valoare),
+                    comanda_piesa_sh_id: item?.comandaPiesaShId || null
                 });
             });
 
@@ -1469,7 +1732,8 @@
                         cantitate: parseFloat(piesa?.cantitate) || 0,
                         pret_unitar: parseFloat(piesa?.pret ?? piesa?.pretUnitar) || 0,
                         discount: piesa?.aplicaDiscount ? 1 : 0,
-                        total: parseFloat(piesa?.valoare) || 0
+                        total: parseFloat(piesa?.valoare) || 0,
+                        comanda_piesa_sh_id: piesa?.comandaPiesaShId || null
                     });
                 });
 
@@ -1601,7 +1865,8 @@
                             cantitate: row.cantitate ?? '',
                             pretUnitar: row.pret_unitar ?? '',
                             aplicaDiscount: Number(row.discount) === 1,
-                            valoare: row.total ?? ''
+                            valoare: row.total ?? '',
+                            comandaPiesaShId: row.comanda_piesa_sh_id ?? null
                         });
                     }
                 });
@@ -1729,6 +1994,26 @@
         });
 
         btnImportaDate.addEventListener('click', importEstimatedDeviz);
+        btnImportaPieseSh.addEventListener('click', openPieseShImportModal);
+        btnClosePieseShImport.addEventListener('click', closePieseShImportModal);
+        btnConfirmPieseShImport.addEventListener('click', importSelectedPieseSh);
+        pieseShImportModal.addEventListener('click', (event) => {
+            if (event.target === pieseShImportModal) closePieseShImportModal();
+        });
+        pieseShImportList.addEventListener('input', (event) => {
+            if (event.target.matches('.piese-sh-price')) setPieseShImportFooterState();
+        });
+        pieseShImportList.addEventListener('change', (event) => {
+            if (event.target.matches('.piese-sh-select')) setPieseShImportFooterState();
+        });
+        pieseShImportList.addEventListener('click', (event) => {
+            const openButton = event.target.closest('[data-open-piese-sh]');
+            if (!openButton) return;
+            const row = openButton.closest('[data-sh-row]');
+            const plate = openButton.dataset.openPieseSh || '';
+            const partId = row?.dataset.shId || '';
+            window.open(`comenzi_piese_sh.html?search=${encodeURIComponent(plate)}&part=${encodeURIComponent(partId)}`, '_blank', 'noopener');
+        });
 
         function addLucrareRow(item = null) {
             ensureLucrariState();
@@ -1792,7 +2077,7 @@
 
         function addPiesaRow(item = null) {
             ensurePieseState();
-            const nextItem = item || { denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '' };
+            const nextItem = item || { denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '', comandaPiesaShId: null };
             devizData.piese.push(nextItem);
             pieseRowsBody.appendChild(createPiesaRowElement(nextItem));
             recalculatePieseNumbers();

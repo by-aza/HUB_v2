@@ -25,6 +25,10 @@ const purchaseDbByDisplay = {
 
 let parts = [];
 let currentUserId = null;
+let currentAuditUserName = "";
+let devizFinalPartIds = new Set();
+let initialPartIdFromUrl = "";
+let lastVehicleModelLookupPlate = "";
 
 /* stare locala pagina */
 let selectedPartId = null;
@@ -65,6 +69,10 @@ function isValidSupplierPhone(value) {
 
 function normalizeUpperText(value) {
     return String(value || "").trim().toLocaleUpperCase("ro-RO");
+}
+
+function hasText(value) {
+    return String(value || "").trim() !== "";
 }
 
 function nullableText(value) {
@@ -112,6 +120,24 @@ function formatShortDate(value) {
 
 function getSelectedPart() {
     return parts.find((part) => part.id === selectedPartId) || null;
+}
+
+async function writePartsAuditLog(action, order, description) {
+    try {
+        if (typeof window.addAuditLog !== "function" || !order?.id) return;
+
+        await window.addAuditLog({
+            modul: "Comenzi Piese SH",
+            actiune: action,
+            entitate: "comenzi_piese_sh",
+            entitate_id: String(order.id),
+            descriere: description,
+            user_id: currentUserId || undefined,
+            user_name: currentAuditUserName || undefined,
+        });
+    } catch (auditError) {
+        console.error("Eroare la auditarea Comenzi Piese SH:", auditError);
+    }
 }
 
 function mapDbPart(row) {
@@ -190,6 +216,7 @@ async function ensureComenziPieseShAccess() {
     }
 
     currentUserId = user.id;
+    currentAuditUserName = user.email || "";
     return true;
 }
 
@@ -304,7 +331,9 @@ async function loadPartsFromSupabase() {
         if (error) throw error;
 
         parts = (data || []).map(mapDbPart);
+        await loadDevizFinalPartLinks();
         selectedPartId = parts.some((part) => part.id === selectedPartId) ? selectedPartId : null;
+        applyInitialPartSelectionFromUrl();
         refreshUi();
     } catch (error) {
         console.error("Eroare la încărcarea comenzilor din Supabase:", error);
@@ -312,6 +341,165 @@ async function loadPartsFromSupabase() {
         refreshUi();
         showToast("Nu s-au putut încărca piesele din Supabase.", "error");
         elements.partsStatusMessage.textContent = "Eroare la încărcarea datelor.";
+    }
+}
+
+async function loadDevizFinalPartLinks() {
+    try {
+        const { data, error } = await supabaseClient
+            .from("deviz_final_linii")
+            .select("comanda_piesa_sh_id")
+            .not("comanda_piesa_sh_id", "is", null);
+
+        if (error) throw error;
+
+        devizFinalPartIds = new Set(
+            (data || [])
+                .map((row) => String(row.comanda_piesa_sh_id || "").trim())
+                .filter(Boolean)
+        );
+    } catch (error) {
+        console.error("Eroare la verificarea pieselor salvate în Deviz Final:", error);
+        devizFinalPartIds = new Set();
+        showToast("Nu s-au putut verifica piesele din Deviz Final.", "error");
+    }
+}
+
+function applyInitialSearchFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const initialSearch = normalizeRegistration(params.get("search"));
+    initialPartIdFromUrl = String(params.get("part") || "").trim();
+    if (!initialSearch) return;
+
+    searchQuery = initialSearch;
+    currentPage = 1;
+    if (elements.partsSearchInput) {
+        elements.partsSearchInput.value = initialSearch;
+    }
+}
+
+function syncActiveStatusFilterButton() {
+    elements.statusFilterGroup.querySelectorAll(".parts-filter-btn").forEach((item) => {
+        item.classList.toggle("is-active", item.dataset.filter === activeStatusFilter);
+    });
+}
+
+function applyInitialPartSelectionFromUrl() {
+    if (!initialPartIdFromUrl) return;
+
+    const requestedPart = parts.find((part) => part.id === initialPartIdFromUrl);
+    if (!requestedPart) return;
+
+    if (requestedPart.isArchived && activeStatusFilter !== "Arhivate") {
+        activeStatusFilter = "Arhivate";
+        syncActiveStatusFilterButton();
+    }
+
+    const filteredParts = getFilteredParts();
+    const partIndex = filteredParts.findIndex((part) => part.id === initialPartIdFromUrl);
+    if (partIndex === -1) return;
+
+    selectedPartId = initialPartIdFromUrl;
+    currentPage = Math.floor(partIndex / rowsPerPage) + 1;
+    initialPartIdFromUrl = "";
+}
+
+function getVehicleLookupSources() {
+    return [
+        {
+            table: "deviz_final_header",
+            select: "id_deviz_final, nr_inmatriculare, auto",
+            modelField: "auto",
+            orderField: "id_deviz_final",
+        },
+        {
+            table: "constatari",
+            select: "id, nr_inmatriculare, model_masina",
+            modelField: "model_masina",
+            orderField: "id",
+        },
+        {
+            table: "devize",
+            select: "id_deviz, nr_inmatriculare, autovehicul",
+            modelField: "autovehicul",
+            orderField: "id_deviz",
+        },
+        {
+            table: "detailing",
+            select: "id, nr_inmatriculare, autovehicul",
+            modelField: "autovehicul",
+            orderField: "id",
+        },
+        {
+            table: "evidente_avansuri",
+            select: "id, nr_inmatriculare, model_masina",
+            modelField: "model_masina",
+            orderField: "id",
+        },
+    ];
+}
+
+function findModelInRows(rows, modelField, plate) {
+    return (rows || []).find((row) =>
+        normalizeRegistration(row.nr_inmatriculare) === plate && hasText(row[modelField])
+    )?.[modelField] || "";
+}
+
+function sortRowsByHighestId(rows, orderField) {
+    return [...(rows || [])].sort((a, b) => {
+        const aValue = Number(String(a?.[orderField] ?? "").match(/\d+/)?.[0] || 0);
+        const bValue = Number(String(b?.[orderField] ?? "").match(/\d+/)?.[0] || 0);
+        return bValue - aValue;
+    });
+}
+
+async function findKnownVehicleModel(plate) {
+    for (const source of getVehicleLookupSources()) {
+        try {
+            const exactResult = await supabaseClient
+                .from(source.table)
+                .select(source.select)
+                .eq("nr_inmatriculare", plate)
+                .order(source.orderField, { ascending: false })
+                .limit(25);
+
+            if (exactResult.error) throw exactResult.error;
+
+            const exactModel = findModelInRows(sortRowsByHighestId(exactResult.data, source.orderField), source.modelField, plate);
+            if (hasText(exactModel)) return normalizeUpperText(exactModel);
+
+            const tolerantResult = await supabaseClient
+                .from(source.table)
+                .select(source.select)
+                .order(source.orderField, { ascending: false })
+                .limit(250);
+
+            if (tolerantResult.error) throw tolerantResult.error;
+
+            const tolerantModel = findModelInRows(sortRowsByHighestId(tolerantResult.data, source.orderField), source.modelField, plate);
+            if (hasText(tolerantModel)) return normalizeUpperText(tolerantModel);
+        } catch (error) {
+            console.error(`Eroare la căutarea modelului în ${source.table}:`, error);
+        }
+    }
+
+    return "";
+}
+
+async function autoFillVehicleModelFromRegistration() {
+    const plate = normalizeRegistration(elements.registrationInput.value);
+    elements.registrationInput.value = plate;
+
+    if (!plate || hasText(elements.vehicleModelInput.value) || plate === lastVehicleModelLookupPlate) return;
+    lastVehicleModelLookupPlate = plate;
+
+    try {
+        const model = await findKnownVehicleModel(plate);
+        if (model && !hasText(elements.vehicleModelInput.value)) {
+            elements.vehicleModelInput.value = model;
+        }
+    } catch (error) {
+        console.error("Eroare la căutarea modelului pentru nr. înmatriculare:", error);
     }
 }
 
@@ -335,11 +523,13 @@ function renderTable() {
         return;
     }
 
-    elements.partsTableBody.innerHTML = visibleParts.map((part, index) => `
+    elements.partsTableBody.innerHTML = visibleParts.map((part, index) => {
+        const isAddedToDevizFinal = devizFinalPartIds.has(String(part.id));
+        return `
         <tr class="parts-table-row ${part.id === selectedPartId ? "is-selected" : ""}" data-id="${escapeHtml(part.id)}">
             <td class="parts-row-number">${startIndex + index + 1}</td>
             <td>
-                <div class="parts-cell-main">${escapeHtml(part.denumirePiesa)}</div>
+                <div class="parts-cell-main ${isAddedToDevizFinal ? "parts-table-total" : ""}" ${isAddedToDevizFinal ? 'title="Adăugată în Deviz Final"' : ""}>${isAddedToDevizFinal ? "✓ " : ""}${escapeHtml(part.denumirePiesa)}</div>
                 <div class="parts-cell-muted parts-mono">${escapeHtml(part.codPiesa || "—")}</div>
             </td>
             <td>
@@ -357,7 +547,8 @@ function renderTable() {
                 </span>
             </td>
         </tr>
-    `).join("");
+    `;
+    }).join("");
 
     lucide.createIcons();
 }
@@ -515,6 +706,7 @@ function renderStatusActions(part) {
 function openAddModal() {
     editingPartId = null;
     formMode = "create";
+    lastVehicleModelLookupPlate = "";
     elements.partModalTitle.textContent = "Adaugă piesă SH comandată";
     elements.partForm.reset();
     elements.transportPriceInput.value = "0";
@@ -530,6 +722,7 @@ function openEditModal() {
 
     editingPartId = part.id;
     formMode = "edit";
+    lastVehicleModelLookupPlate = "";
     elements.partModalTitle.textContent = "Editează piesă SH comandată";
     populatePartForm(part);
     showModal(elements.partModal);
@@ -541,6 +734,7 @@ function openOrderAgainModal() {
 
     editingPartId = null;
     formMode = "orderAgain";
+    lastVehicleModelLookupPlate = "";
     elements.partModalTitle.textContent = "Comandă piesa din nou";
     populatePartForm(part);
     showModal(elements.partModal);
@@ -646,6 +840,8 @@ async function saveLocalPart(event) {
         clearFormState();
         if (!validatePartForm()) return;
 
+        const saveMode = formMode;
+
         const normalizedRegistration = normalizeRegistration(elements.registrationInput.value);
         if (!normalizedRegistration) {
             elements.registrationInput.classList.add("is-invalid");
@@ -684,11 +880,17 @@ async function saveLocalPart(event) {
 
             if (error) throw error;
 
-            parts = parts.map((part) => part.id === editingPartId ? mapDbPart(data) : part);
+            const updatedPart = mapDbPart(data);
+            parts = parts.map((part) => part.id === editingPartId ? updatedPart : part);
             closeAddModal();
             refreshUi();
             selectPart(editingPartId);
             showToast("Piesa a fost actualizată în Supabase.");
+            await writePartsAuditLog(
+                "UPDATE",
+                updatedPart,
+                `A modificat comanda pentru piesa ${updatedPart.denumirePiesa} / ${updatedPart.nrInmatriculare}`
+            );
             return;
         }
 
@@ -720,6 +922,13 @@ async function saveLocalPart(event) {
         refreshUi();
         selectPart(newPart.id, true);
         showToast("Piesa a fost salvată în Supabase.");
+        await writePartsAuditLog(
+            saveMode === "orderAgain" ? "REORDER" : "CREATE",
+            newPart,
+            saveMode === "orderAgain"
+                ? `A creat o comandă nouă pentru piesa ${newPart.denumirePiesa} / ${newPart.nrInmatriculare}`
+                : `A adăugat piesa ${newPart.denumirePiesa} pentru ${newPart.nrInmatriculare}`
+        );
     } catch (error) {
         console.error("Eroare la salvarea comenzii în Supabase:", error);
         showToast("A apărut o eroare la salvarea în Supabase.", "error");
@@ -757,6 +966,7 @@ async function transitionStatus(status, extras = {}) {
     if (!part) return;
 
     try {
+        const oldStatus = part.status;
         const dbStatus = statusDbByDisplay[status];
         if (!dbStatus) throw new Error(`Status necunoscut: ${status}`);
 
@@ -773,10 +983,16 @@ async function transitionStatus(status, extras = {}) {
 
         if (error) throw error;
 
-        parts = parts.map((item) => item.id === part.id ? mapDbPart(data) : item);
+        const updatedPart = mapDbPart(data);
+        parts = parts.map((item) => item.id === part.id ? updatedPart : item);
         refreshUi();
         selectPart(part.id);
         showToast("Statusul a fost actualizat în Supabase.");
+        await writePartsAuditLog(
+            "STATUS",
+            updatedPart,
+            `A schimbat statusul piesei ${updatedPart.denumirePiesa} din ${oldStatus} în ${updatedPart.status}`
+        );
     } catch (error) {
         console.error("Eroare la schimbarea statusului în Supabase:", error);
         showToast("A apărut o eroare la schimbarea statusului în Supabase.", "error");
@@ -802,7 +1018,8 @@ async function setArchiveState(shouldArchive) {
 
         if (error) throw error;
 
-        parts = parts.map((item) => item.id === part.id ? mapDbPart(data) : item);
+        const updatedPart = mapDbPart(data);
+        parts = parts.map((item) => item.id === part.id ? updatedPart : item);
         selectedPartId = part.id;
 
         if ((shouldArchive && activeStatusFilter !== "Arhivate") || (!shouldArchive && activeStatusFilter === "Arhivate")) {
@@ -811,6 +1028,13 @@ async function setArchiveState(shouldArchive) {
 
         refreshUi();
         showToast(shouldArchive ? "Comanda a fost arhivată." : "Comanda a fost restaurată.");
+        await writePartsAuditLog(
+            shouldArchive ? "ARCHIVE" : "RESTORE",
+            updatedPart,
+            shouldArchive
+                ? `A arhivat piesa ${updatedPart.denumirePiesa} / ${updatedPart.nrInmatriculare}`
+                : `A restaurat piesa ${updatedPart.denumirePiesa} / ${updatedPart.nrInmatriculare}`
+        );
     } catch (error) {
         console.error("Eroare la arhivarea/restaurarea comenzii:", error);
         showToast("A apărut o eroare la arhivare/restaurare.", "error");
@@ -954,9 +1178,8 @@ function bindEvents() {
     elements.departmentInput.addEventListener("change", () => updateRequestedByOptions());
     elements.partPriceInput.addEventListener("input", updateLiveTotal);
     elements.transportPriceInput.addEventListener("input", updateLiveTotal);
-    elements.registrationInput.addEventListener("blur", () => {
-        elements.registrationInput.value = normalizeRegistration(elements.registrationInput.value);
-    });
+    elements.registrationInput.addEventListener("blur", autoFillVehicleModelFromRegistration);
+    elements.registrationInput.addEventListener("change", autoFillVehicleModelFromRegistration);
     elements.supplierPhoneInput.addEventListener("blur", () => {
         elements.supplierPhoneInput.value = normalizePhone(elements.supplierPhoneInput.value);
     });
@@ -973,9 +1196,7 @@ function bindEvents() {
         if (!button) return;
         activeStatusFilter = button.dataset.filter;
         currentPage = 1;
-        elements.statusFilterGroup.querySelectorAll(".parts-filter-btn").forEach((item) => {
-            item.classList.toggle("is-active", item === button);
-        });
+        syncActiveStatusFilterButton();
         renderTable();
         renderSelectedPart();
     });
@@ -1071,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         collectElements();
         bindEvents();
+        applyInitialSearchFromUrl();
         updateRequestedByOptions();
         const allowed = await ensureComenziPieseShAccess();
         if (!allowed) return;
