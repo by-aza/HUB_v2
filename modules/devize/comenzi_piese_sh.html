@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/192x192.png">
+    <meta name="theme-color" content="#14161c">
+    <title>Comenzi Piese SH - HUB Service Auto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/config.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/comenzi_piese_sh.css">
+</head>
+<body class="text-slate-200 font-sans">
+    <header class="parts-page-shell parts-page-header">
+        <div class="parts-header-top">
+            <button type="button" id="backButton" class="parts-back-link justify-self-start inline-flex items-center gap-2 transition-all group">
+                <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+                <span class="font-bold uppercase tracking-wider text-xs">Înapoi</span>
+            </button>
+
+            <div class="parts-header-intro">
+                <h1>Piese SH Comandate</h1>
+                <p>Evidență piese second-hand comandate din alte părți</p>
+            </div>
+
+            <button type="button" id="openAddModalButton" class="parts-btn parts-btn-primary">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Adaugă piesă</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="parts-page-shell parts-main">
+        <section class="parts-kpi-grid" aria-label="Rezumat comenzi">
+            <article class="parts-kpi-card">
+                <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                <span>Comandate</span>
+                <strong id="kpiOrdered">0</strong>
+            </article>
+            <article class="parts-kpi-card">
+                <i data-lucide="truck" class="w-6 h-6"></i>
+                <span>În tranzit</span>
+                <strong id="kpiTransit">0</strong>
+            </article>
+            <article class="parts-kpi-card">
+                <i data-lucide="package-check" class="w-6 h-6"></i>
+                <span>Ajunse nemontate</span>
+                <strong id="kpiArrived">0</strong>
+            </article>
+            <article class="parts-kpi-card">
+                <i data-lucide="triangle-alert" class="w-6 h-6"></i>
+                <span>Probleme / retur</span>
+                <strong id="kpiProblems">0</strong>
+            </article>
+        </section>
+
+        <section class="parts-panel-card parts-table-panel">
+            <div class="parts-toolbar">
+                <label class="parts-search-box" for="partsSearchInput">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                    <input type="search" id="partsSearchInput" placeholder="Caută piesă, mașină, furnizor, AWB...">
+                </label>
+
+                <div class="parts-filter-group" id="statusFilterGroup" aria-label="Filtre status">
+                    <button type="button" class="parts-filter-btn is-active" data-filter="Toate">Toate</button>
+                    <button type="button" class="parts-filter-btn" data-filter="Comandate">Comandate</button>
+                    <button type="button" class="parts-filter-btn" data-filter="În tranzit">În tranzit</button>
+                    <button type="button" class="parts-filter-btn" data-filter="Ajunse">Ajunse</button>
+                    <button type="button" class="parts-filter-btn" data-filter="Montate">Montate</button>
+                    <button type="button" class="parts-filter-btn" data-filter="Probleme">Probleme</button>
+                    <button type="button" class="parts-filter-btn" data-filter="Arhivate">Arhivate</button>
+                </div>
+            </div>
+
+            <div class="parts-table-scroll custom-scrollbar">
+                <table class="parts-table">
+                    <thead>
+                        <tr>
+                            <th>Nr.</th>
+                            <th>Piesă</th>
+                            <th>Mașină</th>
+                            <th>Data comandă</th>
+                            <th class="parts-money-cell">Preț piesă</th>
+                            <th class="parts-money-cell">Transport</th>
+                            <th class="parts-money-cell">Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partsTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="parts-table-footer">
+                <span id="partsStatusMessage">Afișează 0 rezultate</span>
+                <div id="partsPagination" class="parts-pagination" aria-label="Paginare comenzi"></div>
+                <span>Total: <strong id="partsCount">0</strong></span>
+            </div>
+        </section>
+
+        <section id="selectedPartPanel" class="parts-panel-card parts-details-panel hidden" aria-live="polite"></section>
+    </main>
+
+    <div id="partModal" class="parts-modal hidden" aria-hidden="true">
+        <div class="parts-modal-card" role="dialog" aria-modal="true" aria-labelledby="partModalTitle">
+            <div class="parts-modal-header">
+                <h2 id="partModalTitle">Adaugă piesă SH comandată</h2>
+                <button type="button" id="closePartModalButton" class="parts-icon-btn" aria-label="Închide">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="partForm" class="parts-modal-form" novalidate autocomplete="off">
+                <div class="parts-modal-body custom-scrollbar">
+                    <section class="parts-form-section">
+                        <h3>Informații piesă</h3>
+                        <div class="parts-form-grid">
+                            <label class="parts-field">
+                                <span>Denumire piesă *</span>
+                                <input type="text" id="partNameInput" required>
+                            </label>
+                            <label class="parts-field">
+                                <span>Cod piesă</span>
+                                <input type="text" id="partCodeInput">
+                            </label>
+                            <label class="parts-field parts-field-wide">
+                                <span>Observații / descriere</span>
+                                <textarea id="partNotesInput" rows="3"></textarea>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="parts-form-section">
+                        <h3>Pentru ce mașină</h3>
+                        <div class="parts-form-grid">
+                            <label class="parts-field">
+                                <span>Nr. înmatriculare *</span>
+                                <input type="text" id="registrationInput" required>
+                            </label>
+                            <label class="parts-field">
+                                <span>Model mașină *</span>
+                                <input type="text" id="vehicleModelInput" required>
+                            </label>
+                            <label class="parts-field">
+                                <span>Departament *</span>
+                                <select id="departmentInput" required>
+                                    <option value="">Alege departamentul</option>
+                                    <option value="Mecanica">Mecanica</option>
+                                    <option value="Electrica">Electrica</option>
+                                    <option value="Vopsitorie">Vopsitorie</option>
+                                    <option value="Tinichigerie/Pregatire">Tinichigerie/Pregatire</option>
+                                    <option value="Detailing">Detailing</option>
+                                </select>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="parts-form-section">
+                        <h3>Furnizor & comandă</h3>
+                        <div class="parts-form-grid">
+                            <label class="parts-field">
+                                <span>Furnizor / vânzător *</span>
+                                <input type="text" id="supplierInput" required>
+                            </label>
+                            <label class="parts-field">
+                                <span>Telefon furnizor</span>
+                                <input type="tel" id="supplierPhoneInput" inputmode="tel" placeholder="0723456789" autocomplete="off">
+                            </label>
+                            <label class="parts-field">
+                                <span>Tip achiziție</span>
+                                <select id="purchaseTypeInput">
+                                    <option value="Firmă">Firmă</option>
+                                    <option value="Persoană fizică">Persoană fizică</option>
+                                </select>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="parts-form-section">
+                        <h3>Financiar</h3>
+                        <div class="parts-form-grid">
+                            <label class="parts-field">
+                                <span>Preț piesă *</span>
+                                <input type="number" id="partPriceInput" min="0" step="0.01" required>
+                            </label>
+                            <label class="parts-field">
+                                <span>Transport</span>
+                                <input type="number" id="transportPriceInput" min="0" step="0.01" value="0">
+                            </label>
+                            <div class="parts-field parts-total-preview">
+                                <span>Total</span>
+                                <strong id="liveTotalValue">0 RON</strong>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="parts-modal-footer">
+                    <p id="partFormMessage" class="parts-form-message"></p>
+                    <div class="parts-modal-actions">
+                        <button type="button" id="cancelPartModalButton" class="parts-btn parts-btn-secondary">Anulează</button>
+                        <button type="submit" class="parts-btn parts-btn-primary">Salvează piesa</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="workflowDialog" class="parts-modal hidden" aria-hidden="true">
+        <div class="parts-dialog-card" role="dialog" aria-modal="true" aria-labelledby="workflowDialogTitle">
+            <div class="parts-modal-header">
+                <h2 id="workflowDialogTitle">Confirmare</h2>
+                <button type="button" id="closeWorkflowDialogButton" class="parts-icon-btn" aria-label="Închide">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="workflowDialogBody" class="parts-dialog-body"></div>
+            <div class="parts-modal-footer">
+                <p id="workflowDialogMessage" class="parts-form-message"></p>
+                <div class="parts-modal-actions">
+                    <button type="button" id="cancelWorkflowDialogButton" class="parts-btn parts-btn-secondary">Anulează</button>
+                    <button type="button" id="confirmWorkflowDialogButton" class="parts-btn parts-btn-primary">Confirmă</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastRegion" class="parts-toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/js/comenzi_piese_sh.js"></script>
+</body>
+</html>

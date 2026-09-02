@@ -888,6 +888,7 @@
             { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+            { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
           ],
         },
         {
@@ -946,6 +947,7 @@
         { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
         { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
         { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+        { id: "comenzi-piese-sh", title: "Comenzi Piese SH", meta: "—", icon: "shopping-cart", tone: "neutral", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
         { id: "manager-dashboard-card", title: "Dashboard Manager", meta: "—", icon: "layout-dashboard", tone: "neutral", url: "modules/manager/manager.html", permission: "manager_dashboard" },
       ];
 
@@ -2400,19 +2402,19 @@ function cereParolaAdmin() {
 */
 const SYSTEM_UPDATES = [
   {
-    id: 4, // Schimbarea ID-ului face să reapară bulina roșie pentru toți utilizatorii
-    date: "2026-07-19",
-    title: "Constatări v2 — flux nou pentru service",
+    id: 5, // Schimbarea ID-ului face să reapară bulina roșie pentru toți utilizatorii
+    date: "2026-09-02",
+    title: "Comenzi Piese SH — flux nou pentru service",
     description: [
-      "A fost introdusă noua pagină Constatări v2, disponibilă separat față de versiunea veche.",
-      "Mașinile pot fi repartizate pe departamente: Mecanică, Electrică, Vopsitorie și Pregătire.",
-      "Fiecare departament poate completa defectele constatate, lucrările efectuate și piesele sau materialele folosite.",
-      "Au fost introduse statusuri individuale pe departament: De făcut, În lucru, Așteptare piese și Finalizat.",
-      "Când toate departamentele repartizate termină lucrările, apare avertizarea „Gata de finalizare” pentru Birou.",
-      "Pagina afișează timpul real petrecut în service și timpul total de așteptare a pieselor.",
-      "Fișa RAR de intrare poate fi tipărită direct, cu datele clientului și ale mașinii completate automat.",
-      "Fișă tehnică electronică”: va fi disponibilă într-o etapă viitoare.",
-      "Versiunea veche rămâne disponibilă și funcționează în continuare."
+    "A fost introdusă noua pagină Comenzi Piese SH pentru evidența pieselor comandate din dezmembrări sau de la alți furnizori.",
+    "Pentru fiecare comandă se pot salva piesa, mașina, departamentul, furnizorul, telefonul, prețul piesei, transportul și tipul achiziției.",
+    "Comenzile pot fi urmărite prin statusuri precum Comandată, În tranzit, Ajunsă și Montată, inclusiv situații precum Anulată, Nepotrivită sau Returnată.",
+    "La expediere se pot completa opțional curierul și numărul AWB, iar datele importante ale comenzii sunt păstrate automat.",
+    "Pagina include căutare, filtre, indicatori de stare și o zonă cu detaliile complete ale comenzii selectate.",
+    "Comenzile existente pot fi editate, iar pentru o piesă anulată sau comandată din altă parte se poate folosi opțiunea „Comandă din nou”, fără pierderea istoricului.",
+    "Comenzile finalizate sau anulate pot fi arhivate pentru a nu încărca lista principală și pot fi restaurate ulterior.",
+    "Accesul la pagină poate fi acordat individual utilizatorilor din Gestionare Useri.",
+    "Într-o etapă următoare este prevăzută integrarea cu Deviz Final pentru adăugarea mai rapidă a pieselor montate în deviz."
     ]
   }
 ];
