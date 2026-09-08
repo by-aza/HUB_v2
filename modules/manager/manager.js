@@ -690,7 +690,7 @@ async function initPerformanta(){
       <td>${x.dataFinalizare}</td>
       <td><span class="status-pill-sm ${clasaStatus}">${x.status}</span></td>
       <td>${x.mecanic}</td>
-      <td><a class="btn-link" href="/modules/formulare/constatari.html?nr=${encodeURIComponent(x.nr)}">→ Constatări</a></td>
+      <td><a class="btn-link" href="/modules/formulare/constatari_v2.html?nr=${encodeURIComponent(x.nr)}">→ Constatări</a></td>
     </tr>`;
   }).join('');
 

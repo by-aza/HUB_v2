@@ -300,6 +300,9 @@
         font-weight: 800;
         letter-spacing: .06em;
       }
+      .notifications-scroll-lock {
+        overflow: hidden;
+      }
 
       /* Shimmer sweep on hover */
       @keyframes shimmer-sweep {
@@ -888,7 +891,7 @@
             { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
-            { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
+            { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh", isNew: true },
           ],
         },
         {
@@ -906,8 +909,7 @@
           title: "Detailing",
           items: [
             { id: "fisa", label: "Fișă Detailing", icon: "sparkles", url: "modules/formulare/detailing.html", permission: "detailing" },
-            { id: "constatari", label: "Constatări", icon: "clipboard-list", url: "modules/formulare/constatari.html", permission: "constatari" },
-            { id: "constatari-v2", label: "Constatări v2", icon: "clipboard-check", url: "modules/formulare/constatari_v2.html", permission: "constatari", isNew: true },
+            { id: "constatari-v2", label: "Constatări v2", icon: "clipboard-check", url: "modules/formulare/constatari_v2.html", permission: "constatari" },
           ],
         },
         {
@@ -2376,9 +2378,9 @@ function cereParolaAdmin() {
 <!-- =========================================
      SYSTEM NOTIFICATIONS MODAL
      ========================================= -->
-<div id="notificationsModalOverlay" class="fixed inset-0 z-50 hidden bg-background/80 backdrop-blur-sm transition-opacity">
-  <div class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-border bg-card p-6 shadow-2xl shadow-black/60">
-    <div class="flex items-center justify-between mb-5">
+<div id="notificationsModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center overflow-hidden bg-background/80 p-4 backdrop-blur-sm transition-opacity">
+  <div class="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-2xl shadow-black/60">
+    <div class="mb-5 flex flex-shrink-0 items-center justify-between">
       <h2 class="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
         <i data-lucide="bell-ring" class="size-5 text-primary"></i>
         Actualizări Sistem
@@ -2387,7 +2389,7 @@ function cereParolaAdmin() {
         <i data-lucide="x" class="size-5"></i>
       </button>
     </div>
-    <div id="notificationsList" class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+    <div id="notificationsList" class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pr-2 custom-scrollbar">
       <!-- Updates vor fi injectate aici -->
     </div>
   </div>
@@ -2402,21 +2404,17 @@ function cereParolaAdmin() {
 */
 const SYSTEM_UPDATES = [
   {
-    id: 5, // Schimbarea ID-ului face să reapară bulina roșie pentru toți utilizatorii
-    date: "2026-09-02",
-    title: "Comenzi Piese SH — flux nou pentru service",
+    id: 6, // Schimbarea ID-ului face să reapară bulina roșie pentru toți utilizatorii
+    date: "2026-09-07",
+    title: "Deviz Final — import rapid din Deviz Estimativ",
     description: [
-    "A fost introdusă noua pagină Comenzi Piese SH pentru evidența pieselor comandate din dezmembrări sau de la alți furnizori.",
-    "Pentru fiecare comandă se pot salva piesa, mașina, departamentul, furnizorul, telefonul, prețul piesei, transportul și tipul achiziției.",
-    "Comenzile pot fi urmărite prin statusuri precum Comandată, În tranzit, Ajunsă și Montată, inclusiv situații precum Anulată, Nepotrivită sau Returnată.",
-    "La expediere se pot completa opțional curierul și numărul AWB, iar datele importante ale comenzii sunt păstrate automat.",
-    "Pagina include căutare, filtre, indicatori de stare și o zonă cu detaliile complete ale comenzii selectate.",
-    "Comenzile existente pot fi editate, iar pentru o piesă anulată sau comandată din altă parte se poate folosi opțiunea „Comandă din nou”, fără pierderea istoricului.",
-    "Comenzile finalizate sau anulate pot fi arhivate pentru a nu încărca lista principală și pot fi restaurate ulterior.",
-    "Accesul la pagină poate fi acordat individual utilizatorilor din Gestionare Useri.",
-    "Într-o etapă următoare este prevăzută integrarea cu Deviz Final pentru adăugarea mai rapidă a pieselor montate în deviz."
+      "Devizul Final poate găsi acum devizele estimative după numărul de înmatriculare, fără să mai fie nevoie să ții minte ID-ul devizului.",
+      "Piesele din Devizul Estimativ pot fi selectate și importate automat în Piese/Materiale, împreună cu cantitatea și prețul unitar.",
+      "Piesele SH montate pot fi importate direct în Devizul Final, iar totalurile pentru piese și manoperă se actualizează automat.",
+      "Câmpurile text din Devizul Final sunt normalizate automat cu majuscule."
     ]
   }
+
 ];
 
 const notifBtn = document.getElementById("notificationsBtn");
@@ -2424,6 +2422,7 @@ const notifDot = document.getElementById("notificationDot");
 const notifModal = document.getElementById("notificationsModalOverlay");
 const closeNotifBtn = document.getElementById("closeNotificationsBtn");
 const notifList = document.getElementById("notificationsList");
+let notificationsPreviousOverflow = null;
 
 function checkNotifications() {
   if (!SYSTEM_UPDATES || SYSTEM_UPDATES.length === 0) return;
@@ -2470,6 +2469,17 @@ function renderNotifications() {
 function openNotifications() {
   renderNotifications();
   notifModal.classList.remove("hidden");
+  notifModal.classList.add("flex");
+  if (!notificationsPreviousOverflow) {
+    notificationsPreviousOverflow = {
+      html: document.documentElement.style.overflow,
+      body: document.body.style.overflow
+    };
+  }
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  document.documentElement.classList.add("notifications-scroll-lock");
+  document.body.classList.add("notifications-scroll-lock");
   
   if (SYSTEM_UPDATES && SYSTEM_UPDATES.length > 0) {
     const latestUpdate = [...SYSTEM_UPDATES].sort((a, b) => b.id - a.id)[0];
@@ -2480,6 +2490,14 @@ function openNotifications() {
 
 function closeNotifications() {
   notifModal.classList.add("hidden");
+  notifModal.classList.remove("flex");
+  document.documentElement.classList.remove("notifications-scroll-lock");
+  document.body.classList.remove("notifications-scroll-lock");
+  if (notificationsPreviousOverflow) {
+    document.documentElement.style.overflow = notificationsPreviousOverflow.html;
+    document.body.style.overflow = notificationsPreviousOverflow.body;
+    notificationsPreviousOverflow = null;
+  }
 }
 
 if (notifBtn) {
@@ -2493,6 +2511,11 @@ if (notifModal) {
     if (e.target === notifModal) closeNotifications();
   });
 }
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && notifModal && !notifModal.classList.contains("hidden")) {
+    closeNotifications();
+  }
+});
 
 // Rulare inițială
 checkNotifications();
