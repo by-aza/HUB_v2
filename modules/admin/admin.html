@@ -1618,6 +1618,7 @@
                                 <button id="consumabile-nomenclator-tab" type="button" data-consumabile-subtab="consumabile-nomenclator-tab" class="consumabile-subtab-btn active rounded-xl px-4 py-2 text-sm font-semibold">Nomenclator</button>
                                 <button id="consumabile-miscari-tab" type="button" data-consumabile-subtab="consumabile-miscari-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Corecții Tranzacții</button>
                                 <button id="consumabile-produse-tab" type="button" data-consumabile-subtab="consumabile-produse-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Administrare Produse</button>
+                                <button id="consumabile-piese-sh-tab" type="button" data-consumabile-subtab="consumabile-piese-sh-tab" class="consumabile-subtab-btn rounded-xl px-4 py-2 text-sm font-semibold">Piese SH</button>
                             </div>
                         </div>
                         <div id="stock-admin-status" class="mt-3 text-sm text-slate-400"></div>
@@ -1699,6 +1700,35 @@
                                     </tr>
                                 </thead>
                                 <tbody id="stock-products-admin-body" class="divide-y divide-slate-800/70"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="consumabile-piese-sh-tab-panel" class="consumabile-subtab-panel glass-panel admin-table-panel hidden overflow-hidden">
+                        <!-- filtre administrare piese SH -->
+                        <div class="border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-100">Piese SH</h3>
+                                    <p class="mt-1 text-sm text-slate-400">Instrument admin pentru testare, resetări, statusuri și ștergeri controlate.</p>
+                                </div>
+                                <input id="piese-sh-admin-search" type="search" placeholder="Caută piesă, nr. auto, furnizor..." class="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none lg:w-80">
+                            </div>
+                        </div>
+                        <div id="piese-sh-admin-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400"></div>
+                        <!-- tabel compact comenzi piese SH -->
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Denumire piesă</th>
+                                        <th class="px-4 py-3 text-left">Nr. înmatriculare</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-left">Arhivă</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="piese-sh-admin-body" class="divide-y divide-slate-800/70"></tbody>
                             </table>
                         </div>
                     </div>
@@ -2112,6 +2142,10 @@
             document.querySelectorAll('.consumabile-subtab-panel').forEach((panel) => {
                 panel.classList.toggle('hidden', panel.id !== `${tabId}-panel`);
             });
+
+            if (tabId === 'consumabile-piese-sh-tab') {
+                loadPieseShAdminOrders();
+            }
         }
 
         const servicePersonalDepartmentTabs = {
@@ -3818,6 +3852,16 @@
 
         // Gestionează bifarea taskurilor active din TODO
         document.addEventListener('change', async (event) => {
+            const pieseShStatusSelect = event.target.closest('[data-piese-sh-admin-status]');
+            if (pieseShStatusSelect) {
+                const orderId = pieseShStatusSelect.getAttribute('data-piese-sh-admin-status');
+                const newStatus = pieseShStatusSelect.value;
+                const currentStatus = pieseShStatusSelect.getAttribute('data-current-status');
+                if (newStatus === currentStatus) return;
+                await updatePieseShAdminStatus(orderId, newStatus);
+                return;
+            }
+
             const todoCheckbox = event.target.closest('[data-complete-todo]');
             if (!todoCheckbox || !todoCheckbox.checked) return;
             await finalizeazaTodoTask(todoCheckbox.getAttribute('data-complete-todo'), todoCheckbox);
@@ -4006,6 +4050,12 @@
                 return;
             }
 
+            const deletePieseShAdminBtn = event.target.closest('[data-delete-piese-sh-admin]');
+            if (deletePieseShAdminBtn) {
+                await deletePieseShAdminOrder(deletePieseShAdminBtn.getAttribute('data-delete-piese-sh-admin'));
+                return;
+            }
+
             const archiveProductBtn = event.target.closest('[data-archive-stock-product]');
             if (archiveProductBtn) {
                 await setStockProductActive(archiveProductBtn.getAttribute('data-archive-stock-product'), false);
@@ -4037,6 +4087,7 @@
         let devizePage = null;
         let stockProductsManagementFilter = 'active';
         let stockSearchReloadTimer = null;
+        let pieseShAdminSearchReloadTimer = null;
         let auditProfiles = [];
         let auditProfilesById = new Map();
         let auditProfilesLoaded = false;
@@ -4049,6 +4100,11 @@
                 loadStockMovementsAdmin();
                 loadStockProductsManagement();
             }, 250);
+        });
+
+        document.getElementById('piese-sh-admin-search')?.addEventListener('input', () => {
+            clearTimeout(pieseShAdminSearchReloadTimer);
+            pieseShAdminSearchReloadTimer = setTimeout(loadPieseShAdminOrders, 250);
         });
 
         function restoreStaticAdminPages() {
@@ -4251,6 +4307,12 @@
                 const deleteMovementBtn = event.target.closest('[data-delete-stock-movement]');
                 if (deleteMovementBtn) {
                     await deleteStockMovement(deleteMovementBtn.getAttribute('data-delete-stock-movement'));
+                    return;
+                }
+
+                const deletePieseShAdminBtn = event.target.closest('[data-delete-piese-sh-admin]');
+                if (deletePieseShAdminBtn) {
+                    await deletePieseShAdminOrder(deletePieseShAdminBtn.getAttribute('data-delete-piese-sh-admin'));
                     return;
                 }
 
@@ -5290,6 +5352,223 @@
                 });
             } catch (error) {
                 console.error(error);
+            }
+        }
+
+        /* statusuri valide pentru administrarea comenzilor Piese SH */
+        const pieseShAdminStatuses = [
+            ['comandata', 'Comandată'],
+            ['in_tranzit', 'În tranzit'],
+            ['ajunsa', 'Ajunsă'],
+            ['montata', 'Montată'],
+            ['nepotrivita', 'Nepotrivită'],
+            ['returnata', 'Returnată'],
+            ['pusa_la_vanzare', 'Pusă la vânzare'],
+            ['anulata', 'Anulată']
+        ];
+        const pieseShAdminStatusLabels = Object.fromEntries(pieseShAdminStatuses);
+
+        /* mesajele pentru subtabul admin Piese SH */
+        function setPieseShAdminStatus(message, type = 'info') {
+            const el = document.getElementById('piese-sh-admin-status');
+            if (!el) return;
+            el.textContent = message || '';
+            if (type === 'success') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-emerald-400';
+                return;
+            }
+            if (type === 'error') {
+                el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-rose-400';
+                return;
+            }
+            el.className = 'border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400';
+        }
+
+        /* cautare dupa denumire, numar auto sau furnizor */
+        function getPieseShAdminSearchTerm() {
+            return document.getElementById('piese-sh-admin-search')?.value?.trim().toLowerCase() || '';
+        }
+
+        function matchesPieseShAdminSearch(row) {
+            const term = getPieseShAdminSearchTerm();
+            if (!term) return true;
+            return [row?.denumire_piesa, row?.nr_inmatriculare, row?.furnizor]
+                .some((value) => String(value || '').toLowerCase().includes(term));
+        }
+
+        /* timestampuri curatate in functie de statusul admin ales */
+        function getPieseShStatusResetPayload(status, row = {}) {
+            const now = new Date().toISOString();
+            const payload = { status, updated_at: now };
+
+            if (status === 'comandata') {
+                return { ...payload, data_expediere: null, data_sosire: null, data_montare: null, data_retur: null, curier: null, awb: null, motiv_problema: null };
+            }
+            if (status === 'in_tranzit') {
+                return { ...payload, data_expediere: now, data_sosire: null, data_montare: null, data_retur: null };
+            }
+            if (status === 'ajunsa') {
+                return { ...payload, data_expediere: row?.data_expediere || now, data_sosire: now, data_montare: null, data_retur: null };
+            }
+            if (status === 'montata') {
+                return { ...payload, data_montare: now };
+            }
+            if (status === 'returnata') {
+                return { ...payload, data_retur: now };
+            }
+            return payload;
+        }
+
+        /* completeaza updated_by cu utilizatorul curent, daca exista */
+        async function enrichPieseShPayloadWithActor(payload) {
+            const actor = await getConsumabileAuditActor();
+            if (actor?.user_id) payload.updated_by = actor.user_id;
+            return actor;
+        }
+
+        async function logAuditPieseShAdmin(actiune, descriere, entitateId) {
+            try {
+                if (typeof window.addAuditLog !== 'function') return;
+                const actor = await getConsumabileAuditActor();
+                await window.addAuditLog({
+                    modul: 'HUB Admin - Piese SH',
+                    actiune,
+                    descriere,
+                    entitate: 'comenzi_piese_sh',
+                    entitate_id: entitateId,
+                    user_id: actor.user_id,
+                    user_name: actor.user_name
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderPieseShAdminRows(rows) {
+            const tbody = document.getElementById('piese-sh-admin-body');
+            if (!tbody) return;
+            if (!rows.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există comenzi Piese SH pentru filtrul curent.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const id = String(row?.id ?? '');
+                const status = String(row?.status || 'comandata');
+                const statusOptions = pieseShAdminStatuses.map(([value, label]) => `
+                    <option value="${escapeHtml(value)}" ${value === status ? 'selected' : ''}>${escapeHtml(label)}</option>
+                `).join('');
+                return `
+                    <tr class="hover:bg-slate-800/40 transition-colors">
+                        <td class="px-4 py-3 font-semibold text-slate-100">${escapeHtml(row?.denumire_piesa || '—')}</td>
+                        <td class="px-4 py-3 text-slate-300">${escapeHtml(row?.nr_inmatriculare || '—')}</td>
+                        <td class="px-4 py-3">
+                            <select data-piese-sh-admin-status="${escapeHtml(id)}" data-current-status="${escapeHtml(status)}" class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none">
+                                ${statusOptions}
+                            </select>
+                        </td>
+                        <td class="px-4 py-3 text-slate-300">${row?.is_archived ? 'Arhivat' : 'Activ'}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" data-delete-piese-sh-admin="${escapeHtml(id)}" class="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-500">Șterge</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadPieseShAdminOrders() {
+            const tbody = document.getElementById('piese-sh-admin-body');
+            if (!tbody) return;
+            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă comenzile Piese SH...</td></tr>`;
+            setPieseShAdminStatus('Se încarcă ultimele comenzi Piese SH...');
+
+            try {
+                const { data, error } = await sb
+                    .from('comenzi_piese_sh')
+                    .select('*')
+                    .order('data_comanda', { ascending: false })
+                    .limit(300);
+                if (error) throw error;
+                const rows = (data || []).filter(matchesPieseShAdminSearch);
+                renderPieseShAdminRows(rows);
+                setPieseShAdminStatus(`Au fost încărcate ${rows.length} comenzi Piese SH.`, 'success');
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare la încărcarea comenzilor Piese SH.</td></tr>`;
+                setPieseShAdminStatus(error.message || 'Eroare la încărcarea comenzilor Piese SH.', 'error');
+            }
+        }
+
+        async function updatePieseShAdminStatus(orderId, status) {
+            if (!orderId || !pieseShAdminStatusLabels[status]) return;
+            let rowBeforeUpdate = null;
+            try {
+                const { data, error } = await sb.from('comenzi_piese_sh').select('*').eq('id', orderId).maybeSingle();
+                if (error) throw error;
+                rowBeforeUpdate = data;
+            } catch (error) {
+                console.error(error);
+            }
+
+            const partLabel = rowBeforeUpdate?.denumire_piesa || `ID ${orderId}`;
+            const plateLabel = rowBeforeUpdate?.nr_inmatriculare || 'fără număr';
+            if (!confirm(`Schimbi statusul pentru ${partLabel} (${plateLabel}) în "${pieseShAdminStatusLabels[status]}"?`)) {
+                await loadPieseShAdminOrders();
+                return;
+            }
+
+            const payload = getPieseShStatusResetPayload(status, rowBeforeUpdate || {});
+            setPieseShAdminStatus(`Se actualizează statusul comenzii ${orderId}...`);
+            try {
+                await enrichPieseShPayloadWithActor(payload);
+                const { error } = await sb.from('comenzi_piese_sh').update(payload).eq('id', orderId);
+                if (error) throw error;
+                setPieseShAdminStatus(`Status actualizat la ${pieseShAdminStatusLabels[status]}.`, 'success');
+                setStockAdminStatus('Status Piese SH actualizat.', 'success');
+                logAuditPieseShAdmin(
+                    status === 'comandata' ? 'STATUS_RESET' : 'STATUS_ADMIN_UPDATE',
+                    `A setat statusul comenzii Piese SH ${partLabel} (${plateLabel}) la ${pieseShAdminStatusLabels[status]}`,
+                    orderId
+                );
+                await loadPieseShAdminOrders();
+            } catch (error) {
+                console.error(error);
+                setPieseShAdminStatus(error.message || 'Eroare la actualizarea statusului Piese SH.', 'error');
+                await loadPieseShAdminOrders();
+            }
+        }
+
+        async function deletePieseShAdminOrder(orderId) {
+            if (!orderId) return;
+            let rowBeforeDelete = null;
+            try {
+                const { data, error } = await sb.from('comenzi_piese_sh').select('id, denumire_piesa, nr_inmatriculare').eq('id', orderId).maybeSingle();
+                if (error) throw error;
+                rowBeforeDelete = data;
+            } catch (error) {
+                console.error(error);
+            }
+
+            const partLabel = rowBeforeDelete?.denumire_piesa || `ID ${orderId}`;
+            const plateLabel = rowBeforeDelete?.nr_inmatriculare || 'fără număr';
+            if (!confirm(`Ștergi definitiv comanda Piese SH "${partLabel}" pentru ${plateLabel}?\n\nOperația este doar pentru Admin/teste.`)) return;
+
+            setPieseShAdminStatus(`Se șterge comanda ${orderId}...`);
+            try {
+                const { error } = await sb.from('comenzi_piese_sh').delete().eq('id', orderId);
+                if (error) throw error;
+                setPieseShAdminStatus('Comanda Piese SH a fost ștearsă.', 'success');
+                setStockAdminStatus('Comandă Piese SH ștearsă.', 'success');
+                logAuditPieseShAdmin('DELETE', `A șters comanda Piese SH ${partLabel} (${plateLabel})`, orderId);
+                await loadPieseShAdminOrders();
+            } catch (error) {
+                console.error(error);
+                const message = String(error?.message || '');
+                const isRlsError = message.toLowerCase().includes('row-level security') || message.toLowerCase().includes('rls');
+                setPieseShAdminStatus(
+                    isRlsError ? 'DELETE blocat de RLS. Este necesară o policy DELETE doar pentru Admin.' : (message || 'DELETE blocat de baza de date. Verifică FK/RLS pentru comenzi_piese_sh.'),
+                    'error'
+                );
             }
         }
 

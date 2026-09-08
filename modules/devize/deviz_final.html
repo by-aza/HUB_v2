@@ -9,6 +9,7 @@
     <title>Deviz Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/audit.js"></script>
     <link rel="stylesheet" href="/css/style.css">
     <style>
@@ -27,14 +28,16 @@
 <body class="min-h-screen bg-slate-950 text-slate-200">
     <header class="sticky top-0 z-50 border-b border-slate-700 bg-slate-900 p-4 shadow-md">
         <div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center justify-between gap-3 sm:justify-start">
+            <!-- link inapoi in stil discret HUB -->
+            <div class="flex items-center gap-4 sm:justify-start">
+                <a href="../../index.html" class="back-link justify-self-start inline-flex items-center gap-2 transition-all group">
+                    <i data-lucide="arrow-left" class="h-5 w-5 transition-transform group-hover:-translate-x-1"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">ÎNAPOI</span>
+                </a>
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight text-slate-100">Deviz Final</h1>
                     <div id="save-status" class="min-h-5 text-xs text-slate-400"></div>
                 </div>
-                <a href="../../index.html" class="sm:hidden rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
-                    Înapoi
-                </a>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -53,10 +56,6 @@
                 <button id="btn-salveaza-deviz" type="button" class="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-extrabold text-white transition-colors hover:bg-cyan-500">
                     Salvează
                 </button>
-
-                <a href="../../index.html" class="hidden sm:inline-flex rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700">
-                    &lt;- Înapoi
-                </a>
             </div>
         </div>
     </header>
@@ -92,12 +91,14 @@
                     <div id="import-status" class="min-h-6 text-sm text-slate-400"></div>
                 </div>
 
+                <!-- camp scurt pentru import manual dupa ID deviz estimativ -->
                 <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-                    <label class="grid flex-1 gap-1.5">
+                    <label class="grid w-full gap-1.5 md:w-64 md:flex-none">
                         <span class="text-sm font-semibold text-slate-300">ID Deviz Estimativ</span>
                         <input
                             id="input-deviz-estimativ"
                             data-field="idDevizEstimativ"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
@@ -147,6 +148,7 @@
                         <input
                             id="input-client-deviz-final"
                             data-field="client"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
@@ -158,6 +160,7 @@
                         <input
                             id="input-tip-auto-deviz-final"
                             data-field="tipAuto"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
@@ -169,6 +172,7 @@
                         <input
                             id="input-nr-inmatriculare-deviz-final"
                             data-field="nrInmatriculare"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
@@ -180,6 +184,7 @@
                         <input
                             id="input-serie-vin-deviz-final"
                             data-field="serieVin"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono tracking-wide text-slate-100 outline-none transition focus:border-cyan-500"
@@ -191,6 +196,7 @@
                         <input
                             id="input-serie-motor-deviz-final"
                             data-field="serieMotor"
+                            data-uppercase="true"
                             type="text"
                             autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-500"
@@ -413,6 +419,40 @@
         </div>
     </main>
 
+    <!-- modal import date din deviz estimativ -->
+    <div id="deviz-estimativ-import-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-950/80 p-4">
+        <div class="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <!-- antet modal selectie deviz estimativ -->
+            <div class="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
+                <div>
+                    <h2 id="deviz-estimativ-import-title" class="text-lg font-extrabold text-slate-100">Importă Date</h2>
+                    <p id="deviz-estimativ-import-message" class="mt-1 min-h-5 text-sm text-slate-400"></p>
+                </div>
+                <button
+                    id="btn-close-deviz-estimativ-import"
+                    type="button"
+                    class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+                >
+                    Închide
+                </button>
+            </div>
+            <!-- lista devize si piese disponibile pentru import -->
+            <div id="deviz-estimativ-import-content" class="flex-1 overflow-y-auto p-5"></div>
+            <!-- footer confirmare import selectiv piese -->
+            <div class="flex flex-col gap-3 border-t border-slate-800 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div id="deviz-estimativ-import-footer-message" class="min-h-5 text-sm text-slate-400"></div>
+                <button
+                    id="btn-confirm-deviz-estimativ-import"
+                    type="button"
+                    disabled
+                    class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-extrabold text-white opacity-60 transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed"
+                >
+                    Importă 0 piese
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="piese-sh-import-modal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/80 p-4">
         <div class="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
             <div class="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
@@ -489,6 +529,8 @@
         let currentDevizId = null;
         let auditActorPromise = null;
         let pieseShImportOrders = [];
+        let devizEstimativImportRows = [];
+        let selectedDevizEstimativ = null;
 
         const saveStatus = document.getElementById('save-status');
         const btnDevizNou = document.getElementById('btn-deviz-nou');
@@ -526,6 +568,13 @@
         const pieseShImportFooterMessage = document.getElementById('piese-sh-import-footer-message');
         const btnClosePieseShImport = document.getElementById('btn-close-piese-sh-import');
         const btnConfirmPieseShImport = document.getElementById('btn-confirm-piese-sh-import');
+        const devizEstimativImportModal = document.getElementById('deviz-estimativ-import-modal');
+        const devizEstimativImportTitle = document.getElementById('deviz-estimativ-import-title');
+        const devizEstimativImportMessage = document.getElementById('deviz-estimativ-import-message');
+        const devizEstimativImportContent = document.getElementById('deviz-estimativ-import-content');
+        const devizEstimativImportFooterMessage = document.getElementById('deviz-estimativ-import-footer-message');
+        const btnCloseDevizEstimativImport = document.getElementById('btn-close-deviz-estimativ-import');
+        const btnConfirmDevizEstimativImport = document.getElementById('btn-confirm-deviz-estimativ-import');
         const summaryTotalManopera = document.getElementById('summary-total-manopera');
         const summaryTotalPieseBrut = document.getElementById('summary-total-piese-brut');
         const summaryTotalDiscount = document.getElementById('summary-total-discount');
@@ -575,6 +624,24 @@
             if (!plate) return 'FaraNumar';
             const cleaned = String(plate).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             return cleaned || 'FaraNumar';
+        };
+
+        /* transforma textul relevant in majuscule romanesti */
+        const normalizeUppercaseText = (value) => String(value ?? '').toLocaleUpperCase('ro-RO');
+
+        /* normalizeaza un camp marcat pentru uppercase */
+        const normalizeUppercaseElement = (field) => {
+            if (!field || field.dataset.uppercase !== 'true') return;
+            const key = field.dataset.field || '';
+            field.value = key === 'nrInmatriculare'
+                ? normalizePlate(field.value)
+                : normalizeUppercaseText(field.value);
+            if (key) devizData[key] = field.value;
+        };
+
+        /* normalizeaza toate campurile marcate inainte de salvare */
+        const normalizeAllUppercaseFields = () => {
+            document.querySelectorAll('[data-uppercase="true"]').forEach(normalizeUppercaseElement);
         };
 
         function escapeHtml(unsafe) {
@@ -629,6 +696,7 @@
                 <td class="px-3 py-3">
                     <textarea
                         rows="1"
+                        data-uppercase="true"
                         class="lucrare-denumire min-h-[44px] w-full resize-y rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
                         placeholder="Descrie lucrarea solicitată..."
                     ></textarea>
@@ -636,6 +704,7 @@
                 <td class="px-3 py-3">
                     <input
                         type="text"
+                        data-uppercase="true"
                         class="lucrare-piese-client w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
                         placeholder="Piese client"
                     >
@@ -710,6 +779,7 @@
                 <td class="px-3 py-3">
                     <textarea
                         rows="1"
+                        data-uppercase="true"
                         class="constatare-defect min-h-[44px] w-full resize-y rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 outline-none transition focus:border-cyan-500"
                         placeholder="Descrie defectul suplimentar constatat..."
                     ></textarea>
@@ -815,6 +885,7 @@
                 <td class="px-3 py-3">
                     <input
                         type="text"
+                        data-uppercase="true"
                         class="manopera-denumire w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
                         placeholder="Denumire operație"
                     >
@@ -906,6 +977,8 @@
 
         const updateSummaryTotals = () => {
             ensurePieseState();
+            /* total general recalculat la fiecare refresh de sumar */
+            devizData.totalDePlata = toNumber(devizData.totalManopera) + toNumber(devizData.totalPiese?.final);
             summaryTotalManopera.textContent = `${formatMoney(devizData.totalManopera)} Lei`;
             summaryTotalPieseBrut.textContent = `${formatMoney(devizData.totalPiese.brut)} Lei`;
             summaryTotalDiscount.textContent = `${formatMoney(devizData.totalPiese.discount)} Lei`;
@@ -949,7 +1022,6 @@
                 discount: totalDiscount,
                 final: totalFinal
             };
-            devizData.totalDePlata = toNumber(devizData.totalManopera) + totalFinal;
             syncPieseState();
             updateSummaryTotals();
         };
@@ -979,6 +1051,7 @@
                 <td class="px-3 py-3">
                     <input
                         type="text"
+                        data-uppercase="true"
                         class="piesa-denumire w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
                         placeholder="Denumire piesă/material"
                     >
@@ -1142,43 +1215,281 @@
             ).trim();
         }
 
+        /* data folosita la sortarea devizelor estimative */
+        const getEstimatedDevizDateValue = (row) => row?.data_deviz || row?.data || row?.created_at || row?.updated_at || '';
+        const getEstimatedDevizDateTime = (row) => {
+            const time = new Date(getEstimatedDevizDateValue(row)).getTime();
+            return Number.isFinite(time) ? time : 0;
+        };
+
+        /* total afisat in lista compacta de devize estimative */
+        const getEstimatedDevizTotalValue = (row) => (
+            row?.total_general ??
+            row?.total ??
+            row?.total_deviz ??
+            row?.valoare_totala ??
+            row?.total_piese ??
+            0
+        );
+
+        /* piesele importabile din campul JSONB public.devize.piese */
+        const getEstimatedDevizParts = (row) => Array.isArray(row?.piese) ? row.piese : [];
+
+        /* verifica daca o valoare numerica este 0 sau goala */
+        const isZeroOrEmpty = (value) => String(value ?? '').trim() === '' || toNumber(value) === 0;
+
+        /* randul implicit gol din tabul Piese/Materiale */
+        const isDefaultEmptyPiesa = (item) => {
+            const um = String(item?.um ?? 'buc').trim().toLowerCase();
+            return (
+                !String(item?.denumire ?? '').trim() &&
+                isZeroOrEmpty(item?.cantitate) &&
+                isZeroOrEmpty(item?.pretUnitar) &&
+                isZeroOrEmpty(item?.valoare) &&
+                !Boolean(item?.aplicaDiscount) &&
+                !String(item?.comandaPiesaShId ?? '').trim() &&
+                (!um || um === 'buc')
+            );
+        };
+
+        /* cantitate afisata fara zecimale inutile */
+        const formatQuantityDisplay = (value) => {
+            const n = toNumber(value);
+            return Number.isInteger(n) ? String(n) : String(n);
+        };
+
+        /* format compact pentru lista de devize estimative */
+        const formatEstimatedDevizLabel = (row) => {
+            const id = row?.id_deviz || 'Fără ID';
+            const date = formatDate(getEstimatedDevizDateValue(row)) || 'Fără dată';
+            const total = formatMoney(getEstimatedDevizTotalValue(row));
+            return `${id} | ${date} | ${total} RON`;
+        };
+
+        /* completeaza Antetul cu valorile devizului estimativ ales */
+        function importEstimatedHeaderData(data) {
+            devizData.idDevizEstimativ = normalizeUppercaseText(data?.id_deviz || devizData.idDevizEstimativ || '');
+            devizData.client = normalizeUppercaseText(extractClient(data));
+            devizData.tipAuto = normalizeUppercaseText(data?.autovehicul || '');
+            devizData.nrInmatriculare = normalizePlate(data?.nr_inmatriculare || '');
+            devizData.serieVin = normalizeUppercaseText(data?.vin || '');
+            syncFieldsFromState();
+        }
+
         async function importEstimatedDeviz() {
-            const idDeviz = String(devizData.idDevizEstimativ || '').trim();
-            if (!idDeviz) {
-                setImportStatus('Introdu ID-ul devizului estimativ.', 'error');
+            /* flux import date: cautare dupa ID sau dupa numarul normalizat din Antet */
+            normalizeAllUppercaseFields();
+            const idDeviz = normalizeDevizEstimativId(inputDevizEstimativ?.value || devizData.idDevizEstimativ);
+            const plate = normalizePlate(inputNrInmatriculareDevizFinal?.value || devizData.nrInmatriculare);
+            if (!idDeviz && (!plate || plate === 'FaraNumar')) {
+                setImportStatus('Completează ID Deviz Estimativ sau Nr. Înmatriculare în Antet.', 'error');
                 return;
             }
 
             btnImportaDate.disabled = true;
             btnImportaDate.classList.add('opacity-60', 'cursor-not-allowed');
-            setImportStatus(`Se importă datele pentru ${idDeviz}...`);
+            setImportStatus(idDeviz ? `Se caută devizul estimativ ${idDeviz}...` : `Se caută devize estimative pentru ${plate}...`);
 
             try {
-                const { data, error } = await sb
-                    .from('devize')
-                    .select('*')
-                    .eq('id_deviz', idDeviz)
-                    .maybeSingle();
+                let rows = [];
+                if (idDeviz) {
+                    const { data, error } = await sb
+                        .from('devize')
+                        .select('*')
+                        .eq('id_deviz', idDeviz)
+                        .maybeSingle();
 
-                if (error) throw error;
-                if (!data) {
-                    setImportStatus('Deviz estimativ inexistent.', 'error');
+                    if (error) throw error;
+                    rows = data ? [data] : [];
+                } else {
+                    const { data, error } = await sb
+                        .from('devize')
+                        .select('*')
+                        .limit(2000);
+
+                    if (error) throw error;
+                    rows = (Array.isArray(data) ? data : [])
+                        .filter((row) => normalizePlate(row?.nr_inmatriculare) === plate)
+                        .sort((a, b) => getEstimatedDevizDateTime(b) - getEstimatedDevizDateTime(a));
+                }
+
+                if (!rows.length) {
+                    setImportStatus(idDeviz ? 'Nu am găsit niciun deviz estimativ cu acest ID.' : `Nu am găsit devize estimative pentru ${plate}.`, 'error');
                     return;
                 }
 
-                devizData.client = extractClient(data);
-                devizData.tipAuto = data.autovehicul || '';
-                devizData.nrInmatriculare = data.nr_inmatriculare || '';
-                devizData.serieVin = data.vin || '';
-                syncFieldsFromState();
-                setImportStatus(`Datele pentru ${idDeviz} au fost importate.`, 'success');
+                openDevizEstimativImportModal(rows, idDeviz ? idDeviz : plate);
+                setImportStatus(`${rows.length} ${rows.length === 1 ? 'deviz estimativ găsit' : 'devize estimative găsite'}. Selectează piesele din modal.`, 'success');
             } catch (error) {
-                setImportStatus(error.message || 'Eroare la importul datelor.', 'error');
+                console.error(error);
+                setImportStatus('Nu am putut încărca devizele estimative. Verifică datele și încearcă din nou.', 'error');
             } finally {
                 btnImportaDate.disabled = false;
                 btnImportaDate.classList.remove('opacity-60', 'cursor-not-allowed');
             }
         }
+
+        /* stare footer pentru importul selectiv din deviz estimativ */
+        const setDevizEstimativImportFooterState = () => {
+            const count = Array.from(devizEstimativImportContent.querySelectorAll('.deviz-estimativ-piesa-select:checked')).length;
+            const canImport = Boolean(selectedDevizEstimativ);
+            btnConfirmDevizEstimativImport.disabled = !canImport;
+            btnConfirmDevizEstimativImport.classList.toggle('opacity-60', !canImport);
+            btnConfirmDevizEstimativImport.textContent = `Importă ${count} ${count === 1 ? 'piesă' : 'piese'}`;
+            devizEstimativImportFooterMessage.textContent = selectedDevizEstimativ
+                ? ''
+                : 'Selectează un deviz estimativ pentru a vedea piesele.';
+        };
+
+        /* lista compacta de devize estimative gasite */
+        const renderEstimatedDevizList = () => {
+            if (!devizEstimativImportRows.length) {
+                devizEstimativImportContent.innerHTML = `
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-300">
+                        Nu există devize estimative pentru criteriul curent.
+                    </div>
+                `;
+                setDevizEstimativImportFooterState();
+                return;
+            }
+
+            devizEstimativImportContent.innerHTML = `
+                <div class="grid gap-3">
+                    ${devizEstimativImportRows.map((row) => `
+                        <button
+                            type="button"
+                            data-select-deviz-estimativ="${escapeHtml(String(row?.id_deviz || ''))}"
+                            class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-left text-sm font-bold text-slate-100 transition-colors hover:border-cyan-500/60 hover:bg-slate-800"
+                        >
+                            ${escapeHtml(formatEstimatedDevizLabel(row))}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            setDevizEstimativImportFooterState();
+        };
+
+        /* lista de piese bifate implicit pentru devizul estimativ ales */
+        const renderEstimatedDevizParts = (row) => {
+            selectedDevizEstimativ = row;
+            const parts = getEstimatedDevizParts(row);
+            const rowsHtml = parts.map((part, index) => {
+                const produs = String(part?.produs || '');
+                const qty = toNumber(part?.qty);
+                const price = toNumber(part?.price);
+                return `
+                    <label data-deviz-estimativ-part-row="${index}" class="mb-2 block rounded-xl border border-slate-800 bg-slate-950 px-3 py-2">
+                        <div class="grid gap-2 lg:grid-cols-[auto_1fr_auto_auto_auto] lg:items-center">
+                            <input type="checkbox" checked class="deviz-estimativ-piesa-select h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/60">
+                            <div class="text-sm font-bold text-slate-100">
+                                ${escapeHtml(produs || 'Piesă fără denumire')}
+                            </div>
+                            <div class="text-sm text-slate-300">
+                                <span class="font-bold text-slate-100">${formatQuantityDisplay(part?.qty)}</span>
+                                <span class="text-slate-500"> buc</span>
+                            </div>
+                            <div class="text-sm text-slate-300">
+                                <span class="font-bold text-slate-100">${formatMoney(price)}</span>
+                                <span class="text-slate-500"> RON</span>
+                            </div>
+                            <div class="text-sm text-slate-300">
+                                <span class="font-bold text-cyan-300">${formatMoney(qty * price)}</span>
+                                <span class="text-slate-500"> RON</span>
+                            </div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            devizEstimativImportTitle.textContent = `Importă Date — ${row?.id_deviz || ''}`;
+            devizEstimativImportMessage.textContent = `${formatEstimatedDevizLabel(row)}. Bifează piesele pe care vrei să le imporți.`;
+            devizEstimativImportContent.innerHTML = `
+                <div class="mb-4">
+                    <button
+                        type="button"
+                        id="btn-back-devize-estimative"
+                        class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+                    >
+                        Înapoi la devize
+                    </button>
+                </div>
+                ${parts.length ? `<div class="max-h-[52vh] overflow-y-auto pr-1">${rowsHtml}</div>` : `
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-300">
+                        Devizul selectat nu are piese în câmpul JSONB piese.
+                    </div>
+                `}
+            `;
+            setDevizEstimativImportFooterState();
+        };
+
+        /* deschide modalul pentru alegerea devizului estimativ */
+        function openDevizEstimativImportModal(rows, label) {
+            devizEstimativImportRows = rows;
+            selectedDevizEstimativ = null;
+            devizEstimativImportTitle.textContent = 'Importă Date';
+            devizEstimativImportMessage.textContent = `${rows.length} ${rows.length === 1 ? 'deviz estimativ găsit' : 'devize estimative găsite'} pentru ${label}.`;
+            devizEstimativImportMessage.className = 'mt-1 min-h-5 text-sm text-slate-400';
+            devizEstimativImportModal.classList.remove('hidden');
+            devizEstimativImportModal.classList.add('flex');
+            renderEstimatedDevizList();
+        }
+
+        function closeDevizEstimativImportModal() {
+            devizEstimativImportModal.classList.add('hidden');
+            devizEstimativImportModal.classList.remove('flex');
+            devizEstimativImportRows = [];
+            selectedDevizEstimativ = null;
+            devizEstimativImportContent.innerHTML = '';
+            devizEstimativImportFooterMessage.textContent = '';
+        }
+
+        /* adauga importurile peste randul implicit gol, fara sa stearga piese reale */
+        function appendImportedPieseRows(importedItems) {
+            if (!Array.isArray(importedItems) || !importedItems.length) return;
+            ensurePieseState();
+            syncPieseState();
+
+            if (devizData.piese.length === 1 && isDefaultEmptyPiesa(devizData.piese[0])) {
+                devizData.piese = [importedItems[0]];
+                renderPieseRows();
+                importedItems.slice(1).forEach((item) => addPiesaRow(item));
+                return;
+            }
+
+            importedItems.forEach((item) => addPiesaRow(item));
+        }
+
+        /* importa piesele bifate si reutilizeaza primul rand gol implicit */
+        function importSelectedEstimatedParts() {
+            if (!selectedDevizEstimativ) return;
+            const parts = getEstimatedDevizParts(selectedDevizEstimativ);
+            const selectedParts = Array.from(devizEstimativImportContent.querySelectorAll('.deviz-estimativ-piesa-select:checked'))
+                .map((checkbox) => Number(checkbox.closest('[data-deviz-estimativ-part-row]')?.dataset.devizEstimativPartRow))
+                .filter((index) => Number.isInteger(index) && parts[index])
+                .map((index) => parts[index]);
+
+            importEstimatedHeaderData(selectedDevizEstimativ);
+            if (selectedParts.length) {
+                ensurePieseState();
+                syncPieseState();
+                const importedItems = selectedParts.map((part) => ({
+                    denumire: normalizeUppercaseText(part?.produs ?? ''),
+                    um: 'buc',
+                    cantitate: part?.qty ?? '',
+                    pretUnitar: part?.price ?? '',
+                    aplicaDiscount: false,
+                    valoare: '',
+                    comandaPiesaShId: null
+                }));
+                appendImportedPieseRows(importedItems);
+            }
+
+            recalculatePieseTotals();
+            switchTab('tab-piese-materiale');
+            setImportStatus(`Datele din ${selectedDevizEstimativ.id_deviz || 'devizul estimativ'} au fost importate.`, 'success');
+            closeDevizEstimativImportModal();
+        }
+
 
         const getImportedPieseShIds = () => {
             ensurePieseState();
@@ -1372,22 +1683,25 @@
                 .map((checkbox) => checkbox.closest('[data-sh-row]'))
                 .filter(Boolean);
 
-            selectedRows.forEach((row) => {
+            /* piesele SH selectate folosesc aceeasi regula pentru randul implicit gol */
+            const importedItems = selectedRows.map((row) => {
                 const id = String(row.dataset.shId || '');
                 const order = pieseShImportOrders.find((item) => String(item.id) === id);
                 const price = toNumber(row.querySelector('.piese-sh-price')?.value);
-                if (!order || price <= 0) return;
+                if (!order || price <= 0) return null;
 
-                addPiesaRow({
-                    denumire: order.denumire_piesa ?? '',
+                return {
+                    denumire: normalizeUppercaseText(order.denumire_piesa ?? ''),
                     um: 'buc',
                     cantitate: 1,
                     pretUnitar: price,
                     aplicaDiscount: false,
                     valoare: '',
                     comandaPiesaShId: id
-                });
-            });
+                };
+            }).filter(Boolean);
+
+            appendImportedPieseRows(importedItems);
 
             closePieseShImportModal();
         }
@@ -1574,6 +1888,7 @@
 
         async function saveDevizFinal() {
             setSaveStatus('', 'info');
+            normalizeAllUppercaseFields();
             syncLucrariState();
             syncConstatariState();
             syncManoperaState();
@@ -1980,7 +2295,11 @@
             });
         });
 
-        inputDevizEstimativ.addEventListener('blur', async () => {
+        document.addEventListener('focusout', (event) => {
+            normalizeUppercaseElement(event.target);
+        });
+
+        inputDevizEstimativ.addEventListener('blur', () => {
             const normalized = normalizeDevizEstimativId(inputDevizEstimativ.value);
             if (!normalized) {
                 devizData.idDevizEstimativ = '';
@@ -1990,10 +2309,33 @@
 
             devizData.idDevizEstimativ = normalized;
             inputDevizEstimativ.value = normalized;
-            await importEstimatedDeviz();
         });
 
         btnImportaDate.addEventListener('click', importEstimatedDeviz);
+        btnCloseDevizEstimativImport.addEventListener('click', closeDevizEstimativImportModal);
+        btnConfirmDevizEstimativImport.addEventListener('click', importSelectedEstimatedParts);
+        devizEstimativImportModal.addEventListener('click', (event) => {
+            if (event.target === devizEstimativImportModal) closeDevizEstimativImportModal();
+        });
+        devizEstimativImportContent.addEventListener('change', (event) => {
+            if (event.target.matches('.deviz-estimativ-piesa-select')) setDevizEstimativImportFooterState();
+        });
+        devizEstimativImportContent.addEventListener('click', (event) => {
+            const backButton = event.target.closest('#btn-back-devize-estimative');
+            if (backButton) {
+                selectedDevizEstimativ = null;
+                devizEstimativImportTitle.textContent = 'Importă Date';
+                devizEstimativImportMessage.textContent = `${devizEstimativImportRows.length} ${devizEstimativImportRows.length === 1 ? 'deviz estimativ găsit' : 'devize estimative găsite'}.`;
+                renderEstimatedDevizList();
+                return;
+            }
+
+            const selectButton = event.target.closest('[data-select-deviz-estimativ]');
+            if (!selectButton) return;
+            const id = selectButton.dataset.selectDevizEstimativ;
+            const row = devizEstimativImportRows.find((item) => String(item?.id_deviz || '') === id);
+            if (row) renderEstimatedDevizParts(row);
+        });
         btnImportaPieseSh.addEventListener('click', openPieseShImportModal);
         btnClosePieseShImport.addEventListener('click', closePieseShImportModal);
         btnConfirmPieseShImport.addEventListener('click', importSelectedPieseSh);
@@ -2121,6 +2463,7 @@
         btnSalveazaDeviz.addEventListener('click', saveDevizFinal);
 
         bootstrapDevizFinalPage();
+        if (window.lucide) window.lucide.createIcons();
 
         window.devizData = devizData;
         window.switchTab = switchTab;
