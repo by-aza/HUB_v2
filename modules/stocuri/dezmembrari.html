@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/dezmembrari.css">
 </head>
 <body>
-  <!-- Shell principal desktop pentru modulul Piese Mari -->
+  <!-- Shell principal desktop pentru modulul Dezmembrari -->
   <div class="dez-app">
     <!-- Zona principala cu lista si detalii -->
     <main class="dez-main">
@@ -23,7 +23,7 @@
             <span>Înapoi</span>
           </button>
           <div class="dez-module-title">
-            <h1>Piese Mari</h1>
+            <h1>Dezmembrări</h1>
             <p>Gestionare mașini, motoare și cutii de viteză din parcul de dezmembrări</p>
           </div>
           <button class="dez-btn dez-btn-primary" id="newItemBtn" type="button">＋ Adaugă piesă / mașină</button>
@@ -74,6 +74,70 @@
       <!-- Panoul de detalii cu galerie si campuri compacte -->
       <section class="dez-detail-pane" id="detailPane"></section>
     </main>
+  </div>
+
+  <!-- Modal desktop compact pentru aceeasi captura minima folosita pe mobil -->
+  <div class="dez-capture-modal" id="desktopCaptureModal" aria-hidden="true" inert>
+    <button class="dez-capture-backdrop" type="button" data-close-capture aria-label="Închide formularul"></button>
+    <section class="dez-capture-dialog" role="dialog" aria-modal="true" aria-labelledby="desktopCaptureTitle">
+      <!-- Antetul modalului si actiunea rapida de inchidere -->
+      <header class="dez-capture-head">
+        <div>
+          <h2 id="desktopCaptureTitle">Adaugă piesă / mașină</h2>
+          <p>Captură rapidă pentru parcul de dezmembrări</p>
+        </div>
+        <button class="dez-capture-close" type="button" data-close-capture aria-label="Închide">×</button>
+      </header>
+
+      <form class="dez-capture-form" id="desktopCaptureForm">
+        <!-- Selectorul tipului de articol -->
+        <fieldset class="dez-capture-types">
+          <legend>Tip</legend>
+          <div class="dez-capture-type-grid">
+            <button class="dez-capture-type active" type="button" data-capture-type="car">Mașină</button>
+            <button class="dez-capture-type" type="button" data-capture-type="engine">Motor</button>
+            <button class="dez-capture-type" type="button" data-capture-type="gearbox">Cutie</button>
+            <button class="dez-capture-type" type="button" data-capture-type="part">Altă piesă</button>
+          </div>
+        </fieldset>
+
+        <!-- Picker multiplu si thumbnail-uri locale, maximum 9 fotografii -->
+        <section class="dez-capture-photos">
+          <div class="dez-capture-label-row">
+            <strong>Fotografii</strong>
+            <span id="desktopCapturePhotoCount">0 / 9</span>
+          </div>
+          <input id="desktopCapturePhotoInput" type="file" accept="image/*" multiple hidden>
+          <button class="dez-capture-photo-picker" id="desktopCapturePhotoPicker" type="button">＋ Selectează fotografii</button>
+          <div class="dez-capture-photo-grid" id="desktopCapturePhotoGrid"></div>
+        </section>
+
+        <!-- Campul apare doar pentru tipul Alta piesa -->
+        <label class="dez-capture-field" id="desktopCapturePartNameField" hidden>
+          <span>Denumire piesă</span>
+          <input id="desktopCapturePartName" type="text" placeholder="Ex: Haion, capotă, ușă..." autocomplete="off">
+        </label>
+
+        <!-- Datele text minimale ale capturii -->
+        <label class="dez-capture-field">
+          <span>VIN / Serie caroserie</span>
+          <input id="desktopCaptureVin" type="text" placeholder="Ex: WBAPD11020A123456" autocomplete="off">
+        </label>
+        <label class="dez-capture-field dez-capture-field-full">
+          <span>Observații <small>(opțional)</small></span>
+          <textarea id="desktopCaptureNotes" placeholder="Detalii rapide despre articol"></textarea>
+        </label>
+
+        <!-- Mesajele raman in modal pentru validare clara -->
+        <p class="dez-capture-message" id="desktopCaptureMessage" role="status" aria-live="polite"></p>
+
+        <!-- Actiunile finale ale capturii -->
+        <footer class="dez-capture-actions">
+          <button class="dez-btn dez-btn-ghost" type="button" data-close-capture>Anulează</button>
+          <button class="dez-btn dez-btn-primary" id="desktopCaptureSave" type="submit">Salvează</button>
+        </footer>
+      </form>
+    </section>
   </div>
 
   <script src="/js/dezmembrari.js"></script>

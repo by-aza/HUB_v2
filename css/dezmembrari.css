@@ -1,4 +1,4 @@
-/* culorile principale pentru desktop Piese Mari */
+/* culorile principale pentru desktop Dezmembrari */
 :root {
   --dez-bg: #07111a;
   --dez-panel: #0b1722;
@@ -1016,6 +1016,269 @@ textarea.dez-control {
 
 .hidden {
   display: none !important;
+}
+
+/* stratul modalului de captura rapida */
+.dez-capture-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .16s ease, visibility .16s ease;
+}
+
+.dez-capture-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* fundalul intunecat din spatele modalului */
+.dez-capture-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(1, 6, 11, .76);
+  backdrop-filter: blur(5px);
+}
+
+/* cardul compact al formularului desktop */
+.dez-capture-dialog {
+  position: relative;
+  width: min(620px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid #29485e;
+  border-radius: 14px;
+  background: #091722;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, .55);
+}
+
+/* antetul formularului rapid */
+.dez-capture-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--dez-line);
+  background: #091722;
+}
+
+.dez-capture-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.dez-capture-head p {
+  margin: 4px 0 0;
+  color: var(--dez-muted);
+  font-size: 12px;
+}
+
+/* butonul X al modalului */
+.dez-capture-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--dez-line);
+  border-radius: 8px;
+  background: #102332;
+  color: var(--dez-text);
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* grila principala a campurilor minimale */
+.dez-capture-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
+/* selectorul compact pentru tipul capturii */
+.dez-capture-types,
+.dez-capture-photos,
+.dez-capture-field-full,
+.dez-capture-message,
+.dez-capture-actions {
+  grid-column: 1 / -1;
+}
+
+.dez-capture-types {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dez-capture-types legend,
+.dez-capture-field > span,
+.dez-capture-label-row strong {
+  display: block;
+  margin-bottom: 7px;
+  color: #b9cbd9;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.dez-capture-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* butoanele de tip Mașină / Motor / Cutie / Altă piesă */
+.dez-capture-type {
+  min-height: 38px;
+  border: 1px solid var(--dez-line);
+  border-radius: 8px;
+  background: #0e2030;
+  color: var(--dez-muted);
+  font-weight: 800;
+}
+
+.dez-capture-type.active {
+  border-color: var(--dez-cyan);
+  background: rgba(25, 211, 238, .12);
+  color: #d8fbff;
+}
+
+/* randul etichetei si contorului foto */
+.dez-capture-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dez-capture-label-row span {
+  color: var(--dez-muted);
+  font-size: 12px;
+}
+
+/* butonul care deschide pickerul multiplu */
+.dez-capture-photo-picker {
+  width: 100%;
+  min-height: 38px;
+  border: 1px dashed #356078;
+  border-radius: 8px;
+  background: #0b1d2a;
+  color: #b9eefa;
+  font-weight: 800;
+}
+
+/* grila thumbnail-urilor selectate local */
+.dez-capture-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+/* thumbnail foto si actiunea de eliminare */
+.dez-capture-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--dez-line);
+  border-radius: 7px;
+  background: #061019;
+}
+
+.dez-capture-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dez-capture-photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1px solid #733747;
+  border-radius: 999px;
+  background: rgba(49, 12, 22, .9);
+  color: #fecdd3;
+  line-height: 18px;
+}
+
+/* campurile text ale capturii */
+.dez-capture-field {
+  min-width: 0;
+}
+
+.dez-capture-field input,
+.dez-capture-field textarea {
+  width: 100%;
+  border: 1px solid var(--dez-line);
+  border-radius: 8px;
+  outline: 0;
+  background: #07131d;
+  color: var(--dez-text);
+}
+
+.dez-capture-field input {
+  height: 38px;
+  padding: 0 11px;
+}
+
+.dez-capture-field textarea {
+  min-height: 70px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.dez-capture-field input:focus,
+.dez-capture-field textarea:focus {
+  border-color: var(--dez-cyan);
+  box-shadow: 0 0 0 2px rgba(25, 211, 238, .12);
+}
+
+/* mesajul de validare sau progres */
+.dez-capture-message {
+  min-height: 18px;
+  margin: -2px 0 0;
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.dez-capture-message.is-error {
+  color: #fb7185;
+}
+
+.dez-capture-message.is-success {
+  color: #4ade80;
+}
+
+/* actiunile de anulare si salvare */
+.dez-capture-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 2px;
+}
+
+.dez-capture-actions .dez-btn-primary {
+  margin-left: 0;
+}
+
+/* blocarea scroll-ului paginii cat timp modalul este deschis */
+body.dez-modal-open {
+  overflow: hidden;
 }
 
 /* stare goala */
