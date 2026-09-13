@@ -881,6 +881,13 @@
 
     <script>
       /* ---------------- DATA ---------------- */
+      /* pragul mobil comun pentru meniul HUB si linkurile responsive */
+      const mobileSidebarMedia = window.matchMedia("(max-width: 768px)");
+
+      /* alege destinatia mobila doar pentru modulele care o declara explicit */
+      const resolveNavigationUrl = (item) =>
+        mobileSidebarMedia.matches && item.mobileUrl ? item.mobileUrl : item.url;
+
       const navSections = [
         {
           title: "Birou",
@@ -899,7 +906,7 @@
           title: "Service",
           items: [
             /* acces rapid catre administrarea pieselor mari */
-            { id: "dezmembrari", label: "Dezmembrări", icon: "cog", url: "modules/stocuri/dezmembrari.html", permission: "dezmembrari_manage", isNew: true },
+            { id: "dezmembrari", label: "Dezmembrări", icon: "cog", url: "modules/stocuri/dezmembrari.html", mobileUrl: "/modules/stocuri/dezmembrari_capture.html", permission: "dezmembrari_manage", isNew: true },
             { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
             { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
             { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
@@ -958,7 +965,7 @@
 
       const serviceCards = [
         /* cardul Dezmembrari ramane primul in zona Service si pastreaza dimensiunile comune */
-        { id: "dezmembrari", title: "Dezmembrări", meta: "Gestionare piese mari", icon: "cog", tone: "primary", url: "modules/stocuri/dezmembrari.html", permission: "dezmembrari_manage" },
+        { id: "dezmembrari", title: "Dezmembrări", meta: "Gestionare piese mari", icon: "cog", tone: "primary", url: "modules/stocuri/dezmembrari.html", mobileUrl: "/modules/stocuri/dezmembrari_capture.html", permission: "dezmembrari_manage" },
         { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
         { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
         { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
@@ -1205,7 +1212,7 @@
                     const newBadge = item.isNew ? '<span class="nav-new-badge">NEW</span>' : '';
                     return `
                     <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
-                      <a href="${item.url}" data-id="${item.id}" title="${item.label}"
+                      <a href="${resolveNavigationUrl(item)}" data-id="${item.id}" title="${item.label}"
                         class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${newClass} ${
                           isActive
                             ? "bg-sidebar-accent text-sidebar-foreground"
@@ -1238,7 +1245,7 @@
             ? "bg-success animate-pulse shadow-[0_0_8px_rgba(39,199,154,0.8)]"
             : "bg-destructive shadow-[0_0_6px_#ef4757]";
         return `
-          <a href="${card.url}"
+          <a href="${resolveNavigationUrl(card)}"
             class="mobile-compact-card shimmer-on-hover group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-lg shadow-black/20 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30">
             ${card.statusDot ? `<span class="absolute right-3 top-3 size-2.5 rounded-full ${dotClass}"></span>` : ""}
             <div class="flex items-start justify-between">
@@ -1388,7 +1395,6 @@
       const mobileSearchCloseBtn = document.getElementById("mobileSearchCloseBtn");
       const sidebarOverlay = document.getElementById("sidebarOverlay");
       const globalSearchContainer = document.getElementById("global-search-container");
-      const mobileSidebarMedia = window.matchMedia("(max-width: 768px)");
 
       if (localStorage.getItem("sidebarCollapsed") === "true") {
         sidebar.classList.add("collapsed");

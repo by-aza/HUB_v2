@@ -536,6 +536,25 @@ function cameraErrorMessage(error) {
   return "Camera nu a putut fi pornită. Folosește grila foto.";
 }
 
+/* elimina zoomul implicit al camerei folosind minimul raportat de dispozitiv */
+async function applyMinimumCameraZoom(stream) {
+  const videoTrack = stream.getVideoTracks()[0];
+  if (!videoTrack
+    || typeof videoTrack.getCapabilities !== "function"
+    || typeof videoTrack.applyConstraints !== "function") return;
+
+  try {
+    const capabilities = videoTrack.getCapabilities();
+    const minimumZoom = capabilities?.zoom?.min;
+    if (!Number.isFinite(minimumZoom)) return;
+
+    await videoTrack.applyConstraints({ advanced: [{ zoom: minimumZoom }] });
+  } catch (error) {
+    /* unele browsere raporteaza zoomul, dar refuza schimbarea lui in fluxul activ */
+    console.warn("Zoom minim cameră Dezmembrări indisponibil:", error);
+  }
+}
+
 /* deschide camera din spate cand exista si pastreaza fluxul pentru capturi multiple */
 async function openInPageCamera() {
   if (elements.openCameraBtn.disabled || captureState.cameraOpen) return;
@@ -564,6 +583,15 @@ async function openInPageCamera() {
     }
 
     captureState.cameraStream = stream;
+    await applyMinimumCameraZoom(stream);
+
+    /* inchiderea panoului in timpul configurarii zoomului opreste fluxul nou */
+    if (!captureState.cameraOpen || requestId !== captureState.cameraRequestId) {
+      stream.getTracks().forEach((track) => track.stop());
+      if (captureState.cameraStream === stream) captureState.cameraStream = null;
+      return;
+    }
+
     elements.cameraVideo.srcObject = stream;
     await elements.cameraVideo.play();
     elements.cameraStatus.textContent = "";
