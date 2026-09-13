@@ -1,9 +1,9 @@
 {
   "name": "DZ HUB",
   "short_name": "DZ HUB",
-  "id": "/modules/stocuri/dezmembrari_capture.html",
+  "id": "/dz-hub",
   "start_url": "/modules/stocuri/dezmembrari_capture.html",
-  "scope": "/",
+  "scope": "/modules/stocuri/",
   "display": "standalone",
   "background_color": "#08121d",
   "theme_color": "#08121d",
