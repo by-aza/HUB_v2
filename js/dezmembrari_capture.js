@@ -555,6 +555,70 @@ async function applyMinimumCameraZoom(stream) {
   }
 }
 
+/* puncteaza etichetele camerelor pentru a evita lentilele tele, macro si auxiliare */
+function rearCameraPreferenceScore(device, index) {
+  const label = String(device?.label || "").toLocaleLowerCase();
+  const isRearCamera = /(rear|back|environment|world|spate|traseira|trasera|arrière|hinten)/i.test(label);
+  const isFrontCamera = /(front|user|selfie|față|fata)/i.test(label);
+  const isAuxiliaryCamera = /(telephoto|tele\b|macro|depth|portrait|monochrome|infrared|\btof\b)/i.test(label);
+  const isUltraWideCamera = /(ultra[\s-]?wide|ultrawide|0[.,]5x)/i.test(label);
+  const isMainCamera = /(main|primary|standard|principal)/i.test(label);
+  const isWideCamera = /\bwide\b/i.test(label) && !isUltraWideCamera;
+
+  if (!label || !isRearCamera || isFrontCamera) return Number.NEGATIVE_INFINITY;
+
+  let score = 100 - index;
+  if (isMainCamera) score += 80;
+  if (isWideCamera) score += 60;
+  if (isUltraWideCamera) score -= 25;
+  if (isAuxiliaryCamera) score -= 200;
+  return score;
+}
+
+/* inspecteaza camerele dupa permisiune si alege lentila spate wide/principala */
+async function findPreferredRearCamera() {
+  if (typeof navigator.mediaDevices?.enumerateDevices !== "function") return null;
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices
+    .filter((device) => device.kind === "videoinput")
+    .map((device, index) => ({ device, score: rearCameraPreferenceScore(device, index) }))
+    .filter(({ score }) => Number.isFinite(score) && score > 0)
+    .sort((left, right) => right.score - left.score)[0]?.device || null;
+}
+
+/* acorda permisiunea cu environment, apoi comuta pe camera spate preferata cand este identificabila */
+async function openPreferredRearCameraStream() {
+  const environmentConstraints = {
+    audio: false,
+    video: { facingMode: { ideal: "environment" } },
+  };
+  let stream = await navigator.mediaDevices.getUserMedia(environmentConstraints);
+
+  try {
+    const preferredCamera = await findPreferredRearCamera();
+    const activeDeviceId = stream.getVideoTracks()[0]?.getSettings?.().deviceId;
+    if (!preferredCamera?.deviceId || preferredCamera.deviceId === activeDeviceId) return stream;
+
+    /* elibereaza lentila initiala inainte de selectarea exacta pe telefoanele cu acces exclusiv */
+    stream.getTracks().forEach((track) => track.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        deviceId: { exact: preferredCamera.deviceId },
+        facingMode: { ideal: "environment" },
+      },
+    });
+  } catch (error) {
+    /* facingMode environment ramane alternativa daca enumerarea sau camera exacta nu functioneaza */
+    console.warn("Selectarea camerei spate principale nu a reușit; se folosește environment:", error);
+    const initialStreamIsLive = stream.getTracks().some((track) => track.readyState === "live");
+    if (!initialStreamIsLive) stream = await navigator.mediaDevices.getUserMedia(environmentConstraints);
+  }
+
+  return stream;
+}
+
 /* deschide camera din spate cand exista si pastreaza fluxul pentru capturi multiple */
 async function openInPageCamera() {
   if (elements.openCameraBtn.disabled || captureState.cameraOpen) return;
@@ -572,10 +636,7 @@ async function openInPageCamera() {
   syncCameraControls();
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { facingMode: { ideal: "environment" } },
-    });
+    const stream = await openPreferredRearCameraStream();
 
     if (!captureState.cameraOpen || requestId !== captureState.cameraRequestId) {
       stream.getTracks().forEach((track) => track.stop());
@@ -1187,8 +1248,9 @@ async function cancelCapture() {
 
 /* legarea evenimentelor principale */
 function bindCaptureEvents() {
+  /* revenirea din captura mobila duce direct la pagina principala HUB */
   elements.backBtn.addEventListener("click", () => {
-    window.location.href = "/modules/stocuri/dezmembrari.html";
+    window.location.href = "/";
   });
 
   elements.typeButtons.forEach((button) => {
