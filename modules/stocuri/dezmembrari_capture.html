@@ -76,13 +76,15 @@
           <span>(minim 3, recomandat 5)</span>
         </div>
 
-        <!-- Actiunea pentru camera integrata; grila ramane selectorul foto de rezerva -->
+        <!-- Camera nativa mobila foloseste lentila din spate cand dispozitivul o ofera -->
         <div class="capture-photo-actions">
           <button class="capture-camera-open" id="openCameraBtn" type="button">
             <i data-lucide="camera" aria-hidden="true"></i>
             <span>Deschide camera</span>
           </button>
         </div>
+        <input class="capture-file-input" id="cameraInput" type="file" accept="image/*" capture="environment">
+        <!-- Pickerul separat pastreaza selectia multipla pentru actiunea Adauga foto -->
         <input class="capture-file-input" id="photoInput" type="file" accept="image/*" multiple>
         <div class="capture-photo-grid" id="photoGrid"></div>
       </section>
@@ -121,33 +123,6 @@
       </div>
     </form>
   </main>
-
-  <!-- Camera integrata ramane deschisa pentru fotografii succesive -->
-  <section class="capture-camera" id="cameraPanel" aria-hidden="true" inert hidden>
-    <header class="capture-camera-header">
-      <div>
-        <strong>Camera DZ HUB</strong>
-        <span id="cameraCounter">0 / 9 fotografii</span>
-      </div>
-      <button class="capture-camera-close" id="closeCameraBtn" type="button" aria-label="Închide camera">
-        <i data-lucide="x" aria-hidden="true"></i>
-      </button>
-    </header>
-
-    <!-- Previzualizarea live foloseste playsinline pentru PWA si iOS -->
-    <div class="capture-camera-preview">
-      <video id="cameraVideo" autoplay muted playsinline></video>
-      <p class="capture-camera-status" id="cameraStatus" role="status" aria-live="polite"></p>
-    </div>
-
-    <!-- Declansatorul mare permite capturi repetate fara inchiderea camerei -->
-    <footer class="capture-camera-controls">
-      <button class="capture-camera-shutter" id="capturePhotoBtn" type="button" aria-label="Fotografiază">
-        <span aria-hidden="true"></span>
-      </button>
-      <small>Fotografia se adaugă imediat în grilă</small>
-    </footer>
-  </section>
 
   <script src="/js/dezmembrari_capture.js"></script>
 </body>
