@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dezmembrări — HUB</title>
+  <!-- Clientul Supabase comun folosit de modulele HUB -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/css/dezmembrari.css">
+</head>
+<body>
+  <!-- Shell principal desktop pentru modulul Piese Mari -->
+  <div class="dez-app">
+    <!-- Zona principala cu lista si detalii -->
+    <main class="dez-main">
+      <section class="dez-left">
+        <div class="dez-module-head">
+          <!-- Buton inapoi aliniat dupa modelul HUB din pagina Avansuri -->
+          <button class="dez-back-btn" id="backBtn" type="button">
+            <i data-lucide="arrow-left" aria-hidden="true">←</i>
+            <span>Înapoi</span>
+          </button>
+          <div class="dez-module-title">
+            <h1>Piese Mari</h1>
+            <p>Gestionare mașini, motoare și cutii de viteză din parcul de dezmembrări</p>
+          </div>
+          <button class="dez-btn dez-btn-primary" id="newItemBtn" type="button">＋ Adaugă piesă / mașină</button>
+        </div>
+
+        <!-- Filtrele principale dupa statusul publicarii -->
+        <div class="dez-filters" id="filterBar">
+          <button class="dez-filter active" type="button" data-filter="all">Toate <b>0</b></button>
+          <button class="dez-filter" type="button" data-filter="draft">De completat <b>0</b></button>
+          <button class="dez-filter" type="button" data-filter="ready">Gata de publicare <b>0</b></button>
+          <button class="dez-filter" type="button" data-filter="published">Publicat <b>0</b></button>
+          <button class="dez-filter" type="button" data-filter="sold">Vândut <b>0</b></button>
+          <button class="dez-filter" type="button" data-filter="archived">Arhivat <b>0</b></button>
+        </div>
+
+        <!-- Toolbar compact pentru cautarea in lista -->
+        <div class="dez-list-toolbar">
+          <input class="dez-list-search" id="listSearchInput" type="search" placeholder="Caută în listă...">
+          <select class="dez-mini-select" id="typeFilter">
+            <option value="all">Toate tipurile</option>
+            <option value="car">Mașină</option>
+            <option value="engine">Motor</option>
+            <option value="gearbox">Cutie viteze</option>
+            <option value="part">Altă piesă</option>
+          </select>
+          <select class="dez-mini-select" id="statusFilterSelect">
+            <option value="all">Toate statusurile</option>
+            <option value="draft">De completat</option>
+            <option value="ready">Gata de publicare</option>
+            <option value="published">Publicat</option>
+            <option value="sold">Vândut</option>
+            <option value="archived">Arhivat</option>
+          </select>
+          <select class="dez-mini-select" id="sortSelect">
+            <option value="date">Data adăugării</option>
+            <option value="price">Preț</option>
+            <option value="name">Denumire</option>
+          </select>
+        </div>
+
+        <div class="dez-item-list" id="itemList"></div>
+        <div class="dez-list-foot" id="listFoot"></div>
+      </section>
+
+      <!-- Fundal de inchidere pentru panoul drawer la desktop ingust -->
+      <button class="dez-drawer-backdrop" id="drawerBackdrop" type="button" aria-label="Închide detaliile"></button>
+
+      <!-- Panoul de detalii cu galerie si campuri compacte -->
+      <section class="dez-detail-pane" id="detailPane"></section>
+    </main>
+  </div>
+
+  <script src="/js/dezmembrari.js"></script>
+</body>
+</html>

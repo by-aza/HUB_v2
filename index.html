@@ -821,7 +821,8 @@
   </div>
 </div>
             </div>
-            <div id="alertGrid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+            <!-- grila compacta permite afisarea simultana a celor patru alerte principale -->
+            <div id="alertGrid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
           </section>
 
           <!-- Detailing & Constatări — hero -->
@@ -897,6 +898,8 @@
         {
           title: "Service",
           items: [
+            /* acces rapid catre administrarea pieselor mari */
+            { id: "dezmembrari", label: "Dezmembrări", icon: "cog", url: "modules/stocuri/dezmembrari.html", permission: "dezmembrari_manage", isNew: true },
             { id: "masini", label: "Listă Mașini", icon: "clipboard-list", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
             { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
             { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
@@ -954,6 +957,8 @@
       ];
 
       const serviceCards = [
+        /* cardul Dezmembrari ramane primul in zona Service si pastreaza dimensiunile comune */
+        { id: "dezmembrari", title: "Dezmembrări", meta: "Gestionare piese mari", icon: "cog", tone: "primary", url: "modules/stocuri/dezmembrari.html", permission: "dezmembrari_manage" },
         { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
         { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
         { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
@@ -974,6 +979,7 @@
         contracte: "devize",
         cautare_deviz: "devize",
         deviz_final: "devize",
+        dezmembrari_manage: "dezmembrari",
         lista_masini: "flota",
         baza_vin: "flota",
         awb: "magazie",
@@ -988,7 +994,16 @@
       const alerts = [];
       let adminAnnouncementText = null;
       let detailingHeroMeta = "—";
-      const alertMetrics = { contracte: 0, consumabile: 0, generatorState: "off", generatorStart: null, generatorDuration: null, generatorLitri: 0 };
+      /* valorile live folosite pentru afisarea sau ascunderea alertelor */
+      const alertMetrics = {
+        contracte: 0,
+        consumabile: 0,
+        dezmembrariDrafts: 0,
+        generatorState: "off",
+        generatorStart: null,
+        generatorDuration: null,
+        generatorLitri: 0,
+      };
       const constatariBadges = { inLucru: null, asteptarePiese: null };
       const padConstatariCount = (value) => value == null ? "—" : String(value).padStart(2, "0");
 
@@ -1086,6 +1101,19 @@
             icon: "file-warning",
             level: "warning",
             url: "modules/devize/contracte.html",
+          });
+        }
+
+        /* alerta Dezmembrari exista numai cat timp sunt piese in starea draft */
+        if (alertMetrics.dezmembrariDrafts > 0 && hasPermission("dezmembrari_manage")) {
+          next.push({
+            id: "dezmembrari",
+            count: String(alertMetrics.dezmembrariDrafts),
+            label: alertMetrics.dezmembrariDrafts === 1 ? "Piesă de completat" : "Piese de completat",
+            detail: "Deschide lista De completat",
+            icon: "cog",
+            level: "warning",
+            url: "modules/stocuri/dezmembrari.html?status=draft",
           });
         }
 
@@ -1716,6 +1744,27 @@
         }
       }
 
+      /* numara exclusiv articolele Dezmembrari cu status draft */
+      async function loadDezmembrariBadge() {
+        const { count, error } = await sb
+          .from("dezmembrari_items")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "draft");
+
+        if (error) {
+          alertMetrics.dezmembrariDrafts = 0;
+          patchCard(serviceCards, "dezmembrari", { meta: "Gestionare piese mari" });
+          return;
+        }
+
+        alertMetrics.dezmembrariDrafts = count || 0;
+        patchCard(serviceCards, "dezmembrari", {
+          meta: alertMetrics.dezmembrariDrafts > 0
+            ? `${alertMetrics.dezmembrariDrafts} de completat`
+            : "Gestionare piese mari",
+        });
+      }
+
       async function loadTotalDevize() {
         const { count, error } = await sb.from("devize").select("*", { count: "exact", head: true });
         patchCard(birouCards, "cautare", {
@@ -1797,6 +1846,7 @@
           loadAwbBadge().catch(e => console.warn("loadAwbBadge failed:", e)),
           loadUltimulDeviz().catch(e => console.warn("loadUltimulDeviz failed:", e)),
           loadContracteBadge().catch(e => console.warn("loadContracteBadge failed:", e)),
+          loadDezmembrariBadge().catch(e => console.warn("loadDezmembrariBadge failed:", e)),
           loadTotalDevize().catch(e => console.warn("loadTotalDevize failed:", e)),
           loadMasiniBadge().catch(e => console.warn("loadMasiniBadge failed:", e)),
           loadDetailingBadge().catch(e => console.warn("loadDetailingBadge failed:", e)),
@@ -2351,6 +2401,7 @@
         .on("postgres_changes", { event: "*", schema: "public", table: "evidenta_awb" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "admin_announcements" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "contracte" }, refreshDashboard)
+        .on("postgres_changes", { event: "*", schema: "public", table: "dezmembrari_items" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "detailing" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "devize" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "flota_auto" }, refreshDashboard)

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Captură Dezmembrări — HUB</title>
+  <!-- Manifestul separat pastreaza instalarea DZ HUB independenta de PWA-ul principal -->
+  <link rel="manifest" href="/manifest-dz.json">
+  <meta name="theme-color" content="#08121d">
+
+  <!-- Setarile iOS pentru numele, iconul si afisarea standalone pe ecranul principal -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/dz-hub-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DZ HUB">
+
+  <!-- Clientul Supabase comun folosit de modulele HUB -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/css/dezmembrari_capture.css">
+</head>
+<body>
+  <!-- Shell mobil pentru fluxul simplu de captura dezmembrari -->
+  <main class="capture-app">
+    <header class="capture-topbar">
+      <button class="capture-back" id="backBtn" type="button" aria-label="Înapoi">
+        <i data-lucide="chevron-left" aria-hidden="true"></i>
+      </button>
+      <h1>Adaugă piesă / mașină</h1>
+    </header>
+
+    <!-- Indicatorul pasilor din fluxul mobil -->
+    <nav class="capture-stepper" aria-label="Pași captură">
+      <div class="capture-step active">
+        <span>1</span>
+        <strong>Fotografii</strong>
+      </div>
+      <i></i>
+      <div class="capture-step">
+        <span>2</span>
+        <strong>Date</strong>
+      </div>
+      <i></i>
+      <div class="capture-step">
+        <span>3</span>
+        <strong>Trimite</strong>
+      </div>
+    </nav>
+
+    <form id="captureForm">
+      <!-- Selectia compacta a tipului capturat -->
+      <div class="capture-type-grid" id="captureTypeGrid">
+        <button class="capture-type active" type="button" data-type="car">
+          <i data-lucide="car-front" aria-hidden="true"></i>
+          <span>Mașină</span>
+        </button>
+        <button class="capture-type" type="button" data-type="engine">
+          <i data-lucide="settings" aria-hidden="true"></i>
+          <span>Motor</span>
+        </button>
+        <button class="capture-type" type="button" data-type="gearbox">
+          <i data-lucide="settings" aria-hidden="true"></i>
+          <span>Cutie</span>
+        </button>
+        <button class="capture-type" type="button" data-type="part">
+          <i data-lucide="wrench" aria-hidden="true"></i>
+          <span>Altă piesă</span>
+        </button>
+      </div>
+
+      <!-- Grila foto compacta cu previzualizari locale -->
+      <section class="capture-photo-area">
+        <div class="capture-label-row">
+          <strong>Fotografii</strong>
+          <span>(minim 3, recomandat 5)</span>
+        </div>
+
+        <!-- Actiunea pentru camera integrata; grila ramane selectorul foto de rezerva -->
+        <div class="capture-photo-actions">
+          <button class="capture-camera-open" id="openCameraBtn" type="button">
+            <i data-lucide="camera" aria-hidden="true"></i>
+            <span>Deschide camera</span>
+          </button>
+        </div>
+        <input class="capture-file-input" id="photoInput" type="file" accept="image/*" multiple>
+        <div class="capture-photo-grid" id="photoGrid"></div>
+      </section>
+
+      <!-- Identificatorul generat de Supabase dupa trimitere -->
+      <label class="capture-field capture-id-field">
+        <span>ID intern</span>
+        <input id="internalIdInput" type="text" readonly>
+      </label>
+
+      <!-- Denumirea obligatorie apare numai pentru tipul Alta piesa -->
+      <label class="capture-field" data-field="partName" hidden>
+        <span>Denumire piesă</span>
+        <input id="partNameInput" type="text" placeholder="Ex: Haion, capotă, ușă stânga față..." autocomplete="off">
+      </label>
+
+      <!-- Camp VIN completabil acum sau ulterior -->
+      <label class="capture-field">
+        <span>VIN / Serie caroserie</span>
+        <input id="vinInput" type="text" placeholder="Ex: WBAPD11020A123456" autocomplete="off">
+      </label>
+
+      <!-- Observatie scurta pentru detalii rapide de parc -->
+      <label class="capture-field">
+        <span>Observație rapidă <small>(opțional)</small></span>
+        <textarea id="notesInput" placeholder="Mașină adusă azi în parc. Stare bună."></textarea>
+      </label>
+
+      <!-- Actiunile finale: anulare compacta si trimitere principala -->
+      <div class="capture-actions">
+        <button class="capture-cancel" id="cancelCaptureBtn" type="button">Anulează</button>
+        <button class="capture-submit" id="submitBtn" type="submit">
+          <i data-lucide="cloud-upload" aria-hidden="true"></i>
+          <span>Trimite în HUB</span>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Camera integrata ramane deschisa pentru fotografii succesive -->
+  <section class="capture-camera" id="cameraPanel" aria-hidden="true" inert hidden>
+    <header class="capture-camera-header">
+      <div>
+        <strong>Camera DZ HUB</strong>
+        <span id="cameraCounter">0 / 9 fotografii</span>
+      </div>
+      <button class="capture-camera-close" id="closeCameraBtn" type="button" aria-label="Închide camera">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <!-- Previzualizarea live foloseste playsinline pentru PWA si iOS -->
+    <div class="capture-camera-preview">
+      <video id="cameraVideo" autoplay muted playsinline></video>
+      <p class="capture-camera-status" id="cameraStatus" role="status" aria-live="polite"></p>
+    </div>
+
+    <!-- Declansatorul mare permite capturi repetate fara inchiderea camerei -->
+    <footer class="capture-camera-controls">
+      <button class="capture-camera-shutter" id="capturePhotoBtn" type="button" aria-label="Fotografiază">
+        <span aria-hidden="true"></span>
+      </button>
+      <small>Fotografia se adaugă imediat în grilă</small>
+    </footer>
+  </section>
+
+  <script src="/js/dezmembrari_capture.js"></script>
+</body>
+</html>

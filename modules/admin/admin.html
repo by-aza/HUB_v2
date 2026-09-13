@@ -224,6 +224,118 @@
         #sectiune-echipe .echipe-inline-input:focus {
             border-color: rgba(34, 211, 238, 0.55);
         }
+        /* cardurile compacte pentru contoarele modulului Dezmembrări */
+        #sectiune-dezmembrari .dez-admin-summary-card {
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 0.9rem;
+            background: rgba(15, 23, 42, 0.58);
+            padding: 0.85rem 1rem;
+        }
+        /* dimensiunea valorilor din sumarul Dezmembrări */
+        #sectiune-dezmembrari .dez-admin-counter {
+            margin-top: 0.15rem;
+            font-size: 1.65rem;
+            line-height: 1.1;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        /* cardul de stare pentru spațiul real folosit în bucket-ul R2 */
+        #sectiune-dezmembrari .dez-admin-r2-card {
+            --dez-r2-accent: #22d3ee;
+            flex: 0 1 330px;
+            width: min(100%, 330px);
+            border: 1px solid color-mix(in srgb, var(--dez-r2-accent) 28%, transparent);
+            border-radius: 0.8rem;
+            background: rgba(8, 47, 73, 0.22);
+            padding: 0.55rem 0.7rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+        }
+        /* pragurile cromatice pentru consumul R2 */
+        #sectiune-dezmembrari .dez-admin-r2-card.is-warning { --dez-r2-accent: #facc15; }
+        #sectiune-dezmembrari .dez-admin-r2-card.is-strong-warning { --dez-r2-accent: #fb923c; }
+        #sectiune-dezmembrari .dez-admin-r2-card.is-critical { --dez-r2-accent: #fb7185; }
+        #sectiune-dezmembrari .dez-admin-r2-card.is-unavailable { --dez-r2-accent: #94a3b8; }
+        /* eticheta procentuală preia automat culoarea pragului curent */
+        #sectiune-dezmembrari .dez-admin-r2-level {
+            color: var(--dez-r2-accent);
+            font-size: 0.72rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        /* bara subțire care indică procentul de stocare R2 folosit */
+        #sectiune-dezmembrari .dez-admin-r2-track {
+            height: 4px;
+            margin-top: 0.45rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.16);
+        }
+        #sectiune-dezmembrari .dez-admin-r2-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--dez-r2-accent);
+            transition: width 240ms ease, background 160ms ease;
+        }
+        /* culorile etichetelor de status din tabelul Dezmembrări */
+        #sectiune-dezmembrari .dez-admin-status-pill {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 999px;
+            padding: 0.25rem 0.65rem;
+            background: rgba(100, 116, 139, 0.12);
+            color: #cbd5e1;
+            font-size: 0.72rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        #sectiune-dezmembrari .dez-admin-status-pill.is-draft {
+            border-color: rgba(245, 158, 11, 0.28);
+            background: rgba(245, 158, 11, 0.1);
+            color: #fcd34d;
+        }
+        #sectiune-dezmembrari .dez-admin-status-pill.is-archived {
+            border-color: rgba(244, 63, 94, 0.22);
+            background: rgba(244, 63, 94, 0.08);
+            color: #fda4af;
+        }
+        #sectiune-dezmembrari .dez-admin-status-pill.is-active {
+            border-color: rgba(16, 185, 129, 0.24);
+            background: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+        }
+        /* stilul comun al butoanelor de administrare Dezmembrări */
+        #sectiune-dezmembrari .dez-admin-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.65rem;
+            padding: 0.42rem 0.65rem;
+            background: rgba(30, 41, 59, 0.72);
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            font-weight: 800;
+            transition: border-color 160ms ease, background 160ms ease;
+        }
+        #sectiune-dezmembrari .dez-admin-action:hover {
+            border-color: rgba(34, 211, 238, 0.4);
+            background: rgba(8, 145, 178, 0.18);
+        }
+        #sectiune-dezmembrari .dez-admin-action.is-delete {
+            border-color: rgba(244, 63, 94, 0.3);
+            color: #fda4af;
+        }
+        /* hover rosu pentru butonul de stergere definitiva */
+        #sectiune-dezmembrari .dez-admin-action.is-delete:hover {
+            border-color: rgba(244, 63, 94, 0.6);
+            background: rgba(244, 63, 94, 0.16);
+        }
+        #sectiune-dezmembrari .dez-admin-action:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
         /* container compact pentru sectiunea TODO */
         #sectiune-todo .todo-shell { width: min(100%, 920px); margin: 0 auto; font-family: "Inter", sans-serif; }
         /* antet TODO cu titlu, contor si buton */
@@ -1422,6 +1534,10 @@
             <button id="tab-audit-log" onclick="schimbaTab('sectiune-audit-log', 'tab-audit-log')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>📋</span> Audit Log
             </button>
+            <!-- acces rapid la administrarea pieselor din Dezmembrări -->
+            <button id="tab-dezmembrari" onclick="schimbaTab('sectiune-dezmembrari', 'tab-dezmembrari')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+                <span>⚙️</span> Dezmembrări
+            </button>
             <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>👤</span> Gestionare Useri
             </button>
@@ -1786,6 +1902,81 @@
                 </div>
             </div>
 
+            <!-- ===== ADMINISTRARE DEZMEMBRĂRI ===== -->
+            <div id="sectiune-dezmembrari" class="admin-page hidden admin-fixed-section">
+                <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
+                    <!-- card principal cu acces în modul și contoare live -->
+                    <div class="glass-panel p-4 flex-shrink-0">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Dezmembrări</h2>
+                                <p class="mt-1 text-sm text-slate-400">Rezumat și administrare pentru articolele din dezmembrări.</p>
+                            </div>
+                            <!-- card R2 aliniat în spațiul liber din antet -->
+                            <div id="dez-admin-r2-card" class="dez-admin-r2-card" aria-live="polite">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Stocare R2</span>
+                                    <span id="dez-admin-r2-level" class="dez-admin-r2-level">Se încarcă...</span>
+                                </div>
+                                <div class="mt-1 flex items-end justify-between gap-3 text-xs">
+                                    <strong id="dez-admin-r2-used" class="text-slate-100">— / 10 GB</strong>
+                                    <span id="dez-admin-r2-remaining" class="text-slate-400">— rămași</span>
+                                </div>
+                                <div class="dez-admin-r2-track" role="progressbar" aria-label="Spațiu R2 folosit" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                                    <div id="dez-admin-r2-fill" class="dez-admin-r2-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- grila contoarelor Dezmembrări -->
+                        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div class="dez-admin-summary-card">
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Total articole</p>
+                                <p id="dez-admin-total" class="dez-admin-counter">0</p>
+                            </div>
+                            <div class="dez-admin-summary-card">
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-amber-400/80">De completat</p>
+                                <p id="dez-admin-draft" class="dez-admin-counter">0</p>
+                            </div>
+                            <div class="dez-admin-summary-card">
+                                <p class="text-xs font-bold uppercase tracking-[0.16em] text-rose-400/80">Arhivate</p>
+                                <p id="dez-admin-archived" class="dez-admin-counter">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- tabelul de management al articolelor Dezmembrări -->
+                    <div class="glass-panel admin-table-panel overflow-hidden">
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/70 bg-slate-900/50 px-4 py-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-100">Articole Dezmembrări</h3>
+                                <p class="mt-1 text-sm text-slate-400">Ștergerea definitivă este disponibilă numai pentru Admin și articole arhivate.</p>
+                            </div>
+                            <!-- buton pentru reîmprospătarea manuală a listei -->
+                            <button id="refresh-dezmembrari-admin" type="button" class="dez-admin-action">Reîncarcă</button>
+                        </div>
+                        <div id="dezmembrari-admin-status" class="border-b border-slate-800/70 px-4 py-3 text-sm text-slate-400" aria-live="polite"></div>
+                        <div class="admin-table-scroll">
+                            <table class="min-w-full text-sm text-slate-200">
+                                <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">ID intern</th>
+                                        <th class="px-4 py-3 text-left">Tip</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-left">Creat de</th>
+                                        <th class="px-4 py-3 text-left">Data creării</th>
+                                        <th class="px-4 py-3 text-right">Acțiuni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dezmembrari-admin-body" class="divide-y divide-slate-800/70">
+                                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Selectează secțiunea pentru încărcarea datelor.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== AUDIT LOG ===== -->
             <div id="sectiune-audit-log" class="admin-page hidden admin-fixed-section">
                 <div class="w-full max-w-7xl mx-auto admin-fixed-shell gap-5">
@@ -1981,6 +2172,9 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_piese_stoc" class="rounded border-slate-600 bg-slate-900"> Piese Stoc</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_consumabile" class="rounded border-slate-600 bg-slate-900"> Consumabile</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_generator" class="rounded border-slate-600 bg-slate-900"> Generator</label>
+                                                <!-- Permisiunile rapide pentru modulul Dezmembrări -->
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_dezmembrari_capture" class="rounded border-slate-600 bg-slate-900"> Captură Dezmembrări</label>
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_dezmembrari_manage" class="rounded border-slate-600 bg-slate-900"> Administrare Dezmembrări</label>
                                             </div>
                                         </div>
                                         <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
@@ -2716,6 +2910,8 @@
             'tab-consumabile': 'admin_consumabile',
             'tab-echipe': 'admin_echipe',
             'tab-audit-log': 'admin_audit',
+            // Secțiunea folosește permisiunea existentă de administrare Dezmembrări
+            'tab-dezmembrari': 'dezmembrari_manage',
             'tab-useri': 'admin_useri'
         };
         const adminTabSectionMap = {
@@ -2725,6 +2921,7 @@
             'tab-consumabile': 'sectiune-consumabile',
             'tab-echipe': 'sectiune-echipe',
             'tab-audit-log': 'sectiune-audit-log',
+            'tab-dezmembrari': 'sectiune-dezmembrari',
             'tab-useri': 'sectiune-useri',
             'tab-todo': 'sectiune-todo'
         };
@@ -2735,6 +2932,7 @@
             'sectiune-consumabile': 'Consumabile',
             'sectiune-echipe': 'Echipe & Departamente',
             'sectiune-audit-log': 'Audit Log',
+            'sectiune-dezmembrari': 'Dezmembrări',
             'sectiune-useri': 'Gestionare Useri',
             'sectiune-todo': 'TODO'
         };
@@ -2753,6 +2951,9 @@
             ['perm_piese_stoc', 'piese_stoc'],
             ['perm_consumabile', 'consumabile'],
             ['perm_generator', 'generator'],
+            // Permisiunile Dezmembrări folosesc același obiect JSON din auth_profiles
+            ['perm_dezmembrari_capture', 'dezmembrari_capture'],
+            ['perm_dezmembrari_manage', 'dezmembrari_manage'],
             ['perm_detailing', 'detailing'],
             ['perm_constatari', 'constatari'],
             ['perm_admin_megafon', 'admin_megafon'],
@@ -2778,6 +2979,8 @@
             piese_stoc: 'Piese Stoc',
             consumabile: 'Consumabile',
             generator: 'Generator',
+            dezmembrari_capture: 'Captură Dezmembrări',
+            dezmembrari_manage: 'Administrare Dezmembrări',
             detailing: 'Detailing',
             constatari: 'Constatări',
             admin_megafon: 'Admin Megafon',
@@ -3014,6 +3217,10 @@
                 if (sectiuneId === 'sectiune-audit-log' && typeof loadAuditLogs === 'function') {
                     loadAuditLogs();
                 }
+                if (sectiuneId === 'sectiune-dezmembrari') {
+                    loadDezmembrariAdmin();
+                    loadDezmembrariR2StorageStatus();
+                }
                 closeMobileSidebar();
                 return true;
             } catch (error) {
@@ -3022,6 +3229,328 @@
                 return false;
             }
         }
+
+        let dezmembrariAdminRows = [];
+        let dezmembrariAdminLoading = false;
+        let dezmembrariR2StorageLoading = false;
+        let dezmembrariR2StorageLoadedAt = 0;
+        const DEZMEMBRARI_R2_STATUS_CACHE_MS = 5 * 60 * 1000;
+
+        // Transformă valorile tehnice în etichete clare pentru tabel
+        const dezmembrariAdminTypeLabels = {
+            car: 'Mașină',
+            engine: 'Motor',
+            gearbox: 'Cutie de viteze',
+            part: 'Piesă'
+        };
+        const dezmembrariAdminStatusLabels = {
+            draft: 'De completat',
+            ready: 'Pregătit',
+            published: 'Publicat',
+            sold: 'Vândut',
+            archived: 'Arhivat'
+        };
+
+        // Formatează data de creare în fusul și limba interfeței Admin
+        function formatDezmembrariAdminDate(value) {
+            if (!value) return '—';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '—';
+            return new Intl.DateTimeFormat('ro-RO', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            }).format(date);
+        }
+
+        // Alege doar numele afișat al creatorului, fără identificatorul tehnic
+        function getDezmembrariAdminCreator(item) {
+            const creator = Array.isArray(item?.creator) ? item.creator[0] : item?.creator;
+            const fullName = [creator?.prenume, creator?.nume].filter(Boolean).join(' ').trim();
+            return creator?.porecla || fullName || 'Utilizator necunoscut';
+        }
+
+        // Actualizează cele trei contoare din cardul de sumar
+        function renderDezmembrariAdminCounters(rows) {
+            const safeRows = Array.isArray(rows) ? rows : [];
+            const totalEl = document.getElementById('dez-admin-total');
+            const draftEl = document.getElementById('dez-admin-draft');
+            const archivedEl = document.getElementById('dez-admin-archived');
+            if (totalEl) totalEl.textContent = String(safeRows.length);
+            if (draftEl) draftEl.textContent = String(safeRows.filter((item) => item.status === 'draft').length);
+            if (archivedEl) archivedEl.textContent = String(safeRows.filter((item) => item.status === 'archived').length);
+        }
+
+        // Formatează valorile R2 în unități zecimale, identice limitei Cloudflare de 10 GB
+        function formatDezmembrariR2Bytes(value) {
+            const bytes = Number(value);
+            if (!Number.isFinite(bytes) || bytes < 0) return '—';
+            if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(bytes >= 10_000_000_000 ? 0 : 2)} GB`;
+            if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+            if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`;
+            return `${Math.round(bytes)} B`;
+        }
+
+        // Afișează procentul cu precizie suplimentară pentru bucket-urile încă mici
+        function formatDezmembrariR2Percentage(value) {
+            const percentage = Number(value);
+            if (!Number.isFinite(percentage)) return '—';
+            if (percentage < 1) return `${percentage.toFixed(2)}%`;
+            if (percentage < 10) return `${percentage.toFixed(1)}%`;
+            return `${percentage.toFixed(0)}%`;
+        }
+
+        // Aplică pragurile vizuale 70%, 85% și 95% fără a modifica layout-ul sumarului
+        function renderDezmembrariR2StorageStatus(data) {
+            const card = document.getElementById('dez-admin-r2-card');
+            const levelEl = document.getElementById('dez-admin-r2-level');
+            const usedEl = document.getElementById('dez-admin-r2-used');
+            const remainingEl = document.getElementById('dez-admin-r2-remaining');
+            const fillEl = document.getElementById('dez-admin-r2-fill');
+            const progressEl = card?.querySelector('[role="progressbar"]');
+            if (!card || !levelEl || !usedEl || !remainingEl || !fillEl) return;
+
+            const usedBytes = Number(data?.used_bytes);
+            const limitBytes = Number(data?.free_tier_limit_bytes);
+            const remainingBytes = Number(data?.remaining_bytes);
+            const percentage = Number(data?.percentage_used);
+            if (![usedBytes, limitBytes, remainingBytes, percentage].every(Number.isFinite)) {
+                throw new Error('Răspunsul pentru stocarea R2 este incomplet.');
+            }
+
+            card.classList.remove('is-warning', 'is-strong-warning', 'is-critical', 'is-unavailable');
+            let levelLabel = 'Normal';
+            if (percentage >= 95) {
+                card.classList.add('is-critical');
+                levelLabel = 'Critic';
+            } else if (percentage >= 85) {
+                card.classList.add('is-strong-warning');
+                levelLabel = 'Avertizare puternică';
+            } else if (percentage >= 70) {
+                card.classList.add('is-warning');
+                levelLabel = 'Avertizare';
+            }
+
+            const visiblePercentage = formatDezmembrariR2Percentage(percentage);
+            levelEl.textContent = `${levelLabel} · ${visiblePercentage}`;
+            usedEl.textContent = `${formatDezmembrariR2Bytes(usedBytes)} / ${formatDezmembrariR2Bytes(limitBytes)}`;
+            remainingEl.textContent = `${formatDezmembrariR2Bytes(remainingBytes)} rămași`;
+            fillEl.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+            progressEl?.setAttribute('aria-valuenow', String(Math.min(100, Math.max(0, percentage))));
+            progressEl?.setAttribute('aria-valuetext', `${visiblePercentage} folosit, ${formatDezmembrariR2Bytes(remainingBytes)} rămași`);
+            card.title = `Măsurat în bucket-ul R2 configurat · ${Number(data?.object_count || 0)} obiecte`;
+        }
+
+        // Afișează o stare neutră dacă măsurarea server-side nu este disponibilă
+        function renderDezmembrariR2StorageError() {
+            const card = document.getElementById('dez-admin-r2-card');
+            const levelEl = document.getElementById('dez-admin-r2-level');
+            const usedEl = document.getElementById('dez-admin-r2-used');
+            const remainingEl = document.getElementById('dez-admin-r2-remaining');
+            const fillEl = document.getElementById('dez-admin-r2-fill');
+            if (!card || !levelEl || !usedEl || !remainingEl || !fillEl) return;
+            card.classList.remove('is-warning', 'is-strong-warning', 'is-critical');
+            card.classList.add('is-unavailable');
+            levelEl.textContent = 'Indisponibil';
+            usedEl.textContent = 'Date R2 indisponibile';
+            remainingEl.textContent = '—';
+            fillEl.style.width = '0%';
+        }
+
+        // Cere agregatele R2 prin Edge Function; credențialele nu ajung în browser
+        async function loadDezmembrariR2StorageStatus(options = {}) {
+            const force = options.force === true;
+            const cacheIsFresh = Date.now() - dezmembrariR2StorageLoadedAt < DEZMEMBRARI_R2_STATUS_CACHE_MS;
+            if (dezmembrariR2StorageLoading || (!force && cacheIsFresh)) return;
+            dezmembrariR2StorageLoading = true;
+
+            try {
+                const { data, error } = await sb.functions.invoke('dezmembrari-photo-upload', {
+                    body: { action: 'r2_storage_status' }
+                });
+                if (error) throw error;
+                renderDezmembrariR2StorageStatus(data);
+                dezmembrariR2StorageLoadedAt = Date.now();
+            } catch (error) {
+                console.error('Eroare status stocare R2:', error);
+                renderDezmembrariR2StorageError();
+            } finally {
+                dezmembrariR2StorageLoading = false;
+            }
+        }
+
+        // Construiește rândurile și afișează ștergerea doar pentru Admin + arhivat
+        function renderDezmembrariAdminRows(rows) {
+            const tbody = document.getElementById('dezmembrari-admin-body');
+            if (!tbody) return;
+            if (!Array.isArray(rows) || !rows.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Nu există articole Dezmembrări.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((item) => {
+                const status = String(item.status || '').toLowerCase();
+                const statusClass = status === 'draft'
+                    ? 'is-draft'
+                    : (status === 'archived' ? 'is-archived' : 'is-active');
+                const deleteButton = isAdminUser() && status === 'archived'
+                    ? `<button type="button" class="dez-admin-action is-delete" data-dez-admin-delete="${escapeHtml(item.id)}">Șterge definitiv</button>`
+                    : '<span class="text-slate-600">—</span>';
+                const creatorLabel = getDezmembrariAdminCreator(item);
+
+                return `
+                    <tr class="hover:bg-slate-900/45">
+                        <td class="px-4 py-3 font-bold text-cyan-300">${escapeHtml(item.internal_id || '—')}</td>
+                        <td class="px-4 py-3">${escapeHtml(dezmembrariAdminTypeLabels[item.tip] || item.tip || '—')}</td>
+                        <td class="px-4 py-3"><span class="dez-admin-status-pill ${statusClass}">${escapeHtml(dezmembrariAdminStatusLabels[status] || status || '—')}</span></td>
+                        <td class="px-4 py-3">${escapeHtml(creatorLabel)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-400">${escapeHtml(formatDezmembrariAdminDate(item.created_at))}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap justify-end gap-2">
+                                ${deleteButton}
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // Afișează clar starea operațiilor fără a modifica structura tabelului
+        function setDezmembrariAdminStatus(message, type = 'neutral') {
+            const statusEl = document.getElementById('dezmembrari-admin-status');
+            if (!statusEl) return;
+            statusEl.textContent = message;
+            statusEl.classList.remove('text-slate-400', 'text-cyan-300', 'text-emerald-400', 'text-rose-400');
+            const colorClass = type === 'success'
+                ? 'text-emerald-400'
+                : (type === 'error' ? 'text-rose-400' : (type === 'working' ? 'text-cyan-300' : 'text-slate-400'));
+            statusEl.classList.add(colorClass);
+        }
+
+        // Preia articolele și profilurile creatorilor din Supabase
+        async function loadDezmembrariAdmin() {
+            if (dezmembrariAdminLoading) return;
+            dezmembrariAdminLoading = true;
+            const refreshBtn = document.getElementById('refresh-dezmembrari-admin');
+            const tbody = document.getElementById('dezmembrari-admin-body');
+            setDezmembrariAdminStatus('Se încarcă articolele...', 'working');
+            if (refreshBtn) refreshBtn.disabled = true;
+
+            try {
+                const { data, error } = await sb
+                    .from('dezmembrari_items')
+                    .select(`
+                        id,
+                        internal_id,
+                        tip,
+                        status,
+                        created_at,
+                        creator:auth_profiles!dezmembrari_items_created_by_fkey(porecla, prenume, nume)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                dezmembrariAdminRows = Array.isArray(data) ? data : [];
+                renderDezmembrariAdminCounters(dezmembrariAdminRows);
+                renderDezmembrariAdminRows(dezmembrariAdminRows);
+                setDezmembrariAdminStatus(`${dezmembrariAdminRows.length} ${dezmembrariAdminRows.length === 1 ? 'articol încărcat' : 'articole încărcate'}.`);
+            } catch (error) {
+                console.error('Eroare încărcare Admin Dezmembrări:', error);
+                renderDezmembrariAdminCounters([]);
+                setDezmembrariAdminStatus(`Eroare: ${error.message || 'Lista nu a putut fi încărcată.'}`, 'error');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">${escapeHtml(error.message || 'Lista nu a putut fi încărcată.')}</td></tr>`;
+                }
+            } finally {
+                dezmembrariAdminLoading = false;
+                if (refreshBtn) refreshBtn.disabled = false;
+            }
+        }
+
+        // Extrage mesajul sigur returnat de Edge Function pentru erori HTTP
+        async function getDezmembrariDeleteErrorMessage(error) {
+            const fallback = error?.message || 'Operația de ștergere a eșuat.';
+            const response = error?.context;
+            if (!response || typeof response.json !== 'function') return fallback;
+
+            try {
+                const payload = await (typeof response.clone === 'function' ? response.clone() : response).json();
+                return payload?.message || payload?.error || fallback;
+            } catch {
+                return fallback;
+            }
+        }
+
+        // Confirmă puternic ID-ul și apelează ștergerea atomic ordonată R2 -> Supabase
+        async function permanentlyDeleteDezmembrariAdminItem(itemId, button) {
+            const item = dezmembrariAdminRows.find((row) => String(row.id) === String(itemId));
+            if (!item || item.status !== 'archived' || !isAdminUser()) {
+                setDezmembrariAdminStatus('Ștergerea definitivă este permisă numai unui Admin pentru un articol arhivat.', 'error');
+                return;
+            }
+
+            const internalId = String(item.internal_id || '').trim().toUpperCase();
+            const typedInternalId = window.prompt(
+                `ȘTERGERE DEFINITIVĂ\n\nVor fi șterse toate fotografiile R2 și articolul ${internalId}. Această acțiune nu poate fi anulată.\n\nScrie ${internalId} pentru confirmare:`
+            );
+            if (typedInternalId === null) return;
+            if (typedInternalId.trim().toUpperCase() !== internalId) {
+                setDezmembrariAdminStatus(`Confirmarea nu corespunde. ${internalId} nu a fost șters.`, 'error');
+                return;
+            }
+            if (!window.confirm(`Confirmare finală: ștergi definitiv ${internalId}?`)) return;
+
+            const initialButtonText = button?.textContent || 'Șterge definitiv';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Se șterge...';
+            }
+            setDezmembrariAdminStatus(`Se curăță R2 și se șterge definitiv ${internalId}...`, 'working');
+
+            try {
+                const { data, error } = await sb.functions.invoke('dezmembrari-photo-upload', {
+                    body: {
+                        action: 'permanently_delete_archived_item',
+                        item_id: String(item.id),
+                        internal_id: internalId,
+                        confirm_internal_id: internalId
+                    }
+                });
+                if (error) throw error;
+                if (data?.deleted !== true || data?.internal_id !== internalId) {
+                    throw new Error('Edge Function nu a confirmat ștergerea completă.');
+                }
+
+                await Promise.all([
+                    loadDezmembrariAdmin(),
+                    loadDezmembrariR2StorageStatus({ force: true })
+                ]);
+                const deletedObjects = Number(data?.deleted_r2_objects || 0);
+                setDezmembrariAdminStatus(
+                    `${internalId} a fost șters definitiv. ${deletedObjects} ${deletedObjects === 1 ? 'obiect R2 șters' : 'obiecte R2 șterse'}.`,
+                    'success'
+                );
+            } catch (error) {
+                const message = await getDezmembrariDeleteErrorMessage(error);
+                console.error('Eroare ștergere definitivă Dezmembrări:', error);
+                await Promise.allSettled([
+                    loadDezmembrariAdmin(),
+                    loadDezmembrariR2StorageStatus({ force: true })
+                ]);
+                setDezmembrariAdminStatus(`Ștergerea nu a fost confirmată: ${message}`, 'error');
+                if (button?.isConnected) {
+                    button.disabled = false;
+                    button.textContent = initialButtonText;
+                }
+            }
+        }
+
+        // Gestionează acțiunile din tabel fără a recrea listener-ele la fiecare reîncărcare
+        document.getElementById('refresh-dezmembrari-admin')?.addEventListener('click', loadDezmembrariAdmin);
+        document.getElementById('dezmembrari-admin-body')?.addEventListener('click', async (event) => {
+            const deleteButton = event.target.closest('[data-dez-admin-delete]');
+            if (deleteButton) {
+                await permanentlyDeleteDezmembrariAdminItem(deleteButton.getAttribute('data-dez-admin-delete'), deleteButton);
+            }
+        });
 
 
         // normalizează prioritatea taskului pentru culori și sortare

@@ -1,0 +1,3 @@
+# Verificarea JWT ramane activa pentru endpoint-ul apelat de utilizatorii HUB.
+[functions.dezmembrari-photo-upload]
+verify_jwt = true

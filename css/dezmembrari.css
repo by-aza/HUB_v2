@@ -1,0 +1,1152 @@
+/* culorile principale pentru desktop Piese Mari */
+:root {
+  --dez-bg: #07111a;
+  --dez-panel: #0b1722;
+  --dez-panel-2: #0f1c29;
+  --dez-card: #101f2d;
+  --dez-line: #1f3445;
+  --dez-line-soft: #162938;
+  --dez-text: #e8f3ff;
+  --dez-muted: #8fa4b8;
+  --dez-cyan: #19d3ee;
+  --dez-blue: #229cff;
+  --dez-green: #22c55e;
+  --dez-amber: #f97316;
+  --dez-red: #ef4444;
+}
+
+/* reset minim pentru layout predictibil */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 1180px;
+  background: #030910;
+  color: var(--dez-text);
+  font: 13px Inter, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* carcasa generala similara cu referinta */
+.dez-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 30% -10%, rgba(25, 211, 238, .14), transparent 34%),
+    linear-gradient(180deg, #0a1621, #07111a 42%, #050b12);
+}
+
+.dez-list-search:focus,
+.dez-mini-select:focus,
+.dez-control:focus {
+  border-color: var(--dez-cyan);
+  box-shadow: 0 0 0 2px rgba(25, 211, 238, .14);
+}
+
+/* zona principala cu doua coloane dense */
+.dez-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(640px, 61fr) minmax(420px, 39fr);
+  overflow: hidden;
+}
+
+/* coloana stanga pentru lista */
+.dez-left {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 18px 14px 28px;
+  border-right: 1px solid var(--dez-line-soft);
+}
+
+.dez-module-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+/* buton inapoi: aceleasi proportii si tratare ca in avans.html */
+.dez-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dez-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  transition: color .16s ease;
+}
+
+.dez-back-btn:hover {
+  color: var(--dez-text);
+}
+
+.dez-back-btn svg,
+.dez-back-btn i {
+  width: 20px;
+  height: 20px;
+  transition: transform .16s ease;
+}
+
+.dez-back-btn:hover svg,
+.dez-back-btn:hover i {
+  transform: translateX(-4px);
+}
+
+/* zona titlului poate fi comprimata fara sa impinga actiunile */
+.dez-module-title {
+  min-width: 0;
+}
+
+.dez-module-head h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.dez-module-head p {
+  margin: 4px 0 0;
+  color: var(--dez-muted);
+  font-size: 12px;
+}
+
+/* butoane principale */
+.dez-btn {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--dez-line);
+  border-radius: 8px;
+  background: #0f2030;
+  color: var(--dez-text);
+  font-weight: 850;
+}
+
+.dez-btn-primary {
+  margin-left: auto;
+  border-color: #13bdd6;
+  background: #18d4ed;
+  color: #031017;
+}
+
+.dez-btn-ghost {
+  background: #0c1a27;
+}
+
+.dez-btn-danger {
+  border-color: #ef444466;
+  background: #2a1118;
+  color: #fb7185;
+}
+
+/* taburile de filtrare dupa status */
+.dez-filters {
+  display: flex;
+  gap: 0;
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--dez-line);
+  overflow: visible;
+}
+
+.dez-filter {
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--dez-line);
+  border-bottom: 0;
+  background: rgba(10, 23, 34, .74);
+  color: var(--dez-muted);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dez-filter:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.dez-filter.active {
+  position: relative;
+  color: var(--dez-text);
+}
+
+.dez-filter.active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--dez-cyan);
+}
+
+.dez-filter b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 25px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 7px;
+  background: #19354a;
+  color: #bfefff;
+  font-size: 12px;
+}
+
+/* toolbar-ul compact din lista */
+.dez-list-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 146px 158px 146px;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.dez-list-search,
+.dez-mini-select {
+  height: 35px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid var(--dez-line);
+  border-radius: 9px;
+  outline: none;
+  background: #0d1d2b;
+  color: var(--dez-text);
+  font-size: 12px;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+.dez-list-search:hover,
+.dez-mini-select:hover {
+  border-color: #2f536d;
+  background: #102335;
+}
+
+/* lista de piese mari */
+.dez-item-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden auto;
+  padding-right: 5px;
+}
+
+.dez-item-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 460px) 100px 132px minmax(96px, 1fr) 34px;
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--dez-line-soft);
+  border-left: 2px solid transparent;
+  background: transparent;
+}
+
+.dez-item-row:hover {
+  background: rgba(16, 31, 45, .55);
+}
+
+.dez-item-row.selected {
+  border: 1px solid var(--dez-cyan);
+  border-radius: 9px;
+  background: rgba(14, 59, 73, .48);
+}
+
+.dez-thumb {
+  width: 86px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid #274358;
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .12), transparent 38%),
+    var(--thumb-bg, linear-gradient(135deg, #34495e, #0f172a));
+  background-size: cover;
+  box-shadow: inset 0 -22px 28px rgba(0, 0, 0, .22);
+}
+
+/* thumbnail-ul din lista ramane integral vizibil in cadrul fix */
+.dez-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #050d15;
+}
+
+.dez-info-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* identificatorul intern ramane secundar pe linia titlului */
+.dez-internal-id {
+  flex: 0 0 auto;
+  color: #7890a6;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dez-info-main strong {
+  display: block;
+  overflow: hidden;
+  color: #f2f7ff;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dez-meta {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--dez-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dez-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: 25px;
+  padding: 0 8px;
+  border: 1px solid #19d3ee99;
+  border-radius: 999px;
+  background: #073442;
+  color: var(--dez-cyan);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.dez-price {
+  color: #f6fbff;
+  font-weight: 950;
+  text-align: right;
+}
+
+.dez-date {
+  display: block;
+  color: #adc0d2;
+  font-size: 12px;
+  text-align: right;
+}
+
+/* data si autorul raman grupate discret in partea dreapta */
+.dez-date-cell {
+  min-width: 0;
+  text-align: right;
+}
+
+.dez-added-by {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #6f879b;
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dez-more {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--dez-line);
+  border-radius: 7px;
+  background: #102335;
+  color: #b7cadc;
+  font-weight: 900;
+}
+
+/* badge-uri pentru statusurile noi */
+.dez-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.dez-status-draft {
+  border-color: #f9731688;
+  background: #3b1f0e;
+  color: #fb923c;
+}
+
+.dez-status-ready {
+  border-color: #229cff88;
+  background: #08253d;
+  color: #38bdf8;
+}
+
+.dez-status-published {
+  border-color: #22c55e88;
+  background: #082b1a;
+  color: #4ade80;
+}
+
+.dez-status-sold {
+  border-color: #a78bfa88;
+  background: #21153d;
+  color: #c4b5fd;
+}
+
+.dez-status-archived {
+  border-color: #64748b88;
+  background: #17212f;
+  color: #cbd5e1;
+}
+
+.dez-list-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  color: #a7b9ca;
+  font-size: 12px;
+}
+
+/* fundalul drawer-ului este ascuns in layout-ul desktop complet */
+.dez-drawer-backdrop {
+  display: none;
+}
+
+/* panoul de detalii din dreapta */
+.dez-detail-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 16px 18px 18px;
+  background: rgba(7, 17, 26, .62);
+}
+
+.dez-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dez-detail-head h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 20px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dez-detail-close {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #8fa4b8;
+  font-size: 24px;
+}
+
+.dez-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--dez-line);
+}
+
+.dez-tab {
+  height: 35px;
+  padding: 0 13px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: #0f2030;
+  color: #b0c4d6;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dez-tab.active {
+  border-bottom-color: var(--dez-cyan);
+  color: #eafcff;
+  background: #153247;
+}
+
+/* ID-ul selectiei este ancorat la dreapta randului de taburi */
+.dez-detail-id {
+  margin-left: auto;
+  padding: 0 2px 0 10px;
+  color: #7890a6;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* grupul compact pentru grila foto si actiunea de adaugare */
+.dez-gallery-wrap {
+  margin-bottom: 12px;
+}
+
+/* grila responsiva cu toate fotografiile la aceeasi dimensiune */
+.dez-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+/* card foto egal, cu raport 4:3 si fara decuparea imaginii */
+.dez-photo {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid #28445a;
+  border-radius: 8px;
+  background: #050d15;
+  box-shadow: inset 0 0 0 1px rgba(25, 211, 238, .035);
+}
+
+/* butonul foto ocupa complet cardul si deschide lightbox-ul existent */
+.dez-photo-link {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: #050d15;
+  color: var(--dez-muted);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* imaginea ramane integral vizibila, fara crop sau marire */
+.dez-photo-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.dez-photo-unavailable {
+  padding: 8px;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* starea goala ocupa acelasi spatiu ca galeria aprobata */
+.dez-gallery-state {
+  display: grid;
+  place-content: center;
+  min-height: 155px;
+  margin-bottom: 12px;
+  padding: 18px;
+  border: 1px dashed #28445a;
+  border-radius: 7px;
+  background: rgba(11, 23, 34, .7);
+  color: var(--dez-muted);
+  text-align: center;
+}
+
+.dez-gallery-state strong,
+.dez-gallery-state span {
+  display: block;
+}
+
+.dez-gallery-state strong {
+  margin-bottom: 5px;
+  color: var(--dez-text);
+}
+
+.dez-gallery-error strong {
+  color: #fb7185;
+}
+
+/* butonul X pentru stergerea completa a perechii foto din R2 */
+.dez-photo-delete {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(251, 113, 133, .58);
+  border-radius: 999px;
+  background: rgba(32, 8, 14, .72);
+  color: #fecdd3;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dez-photo-delete:hover:not(:disabled) {
+  border-color: #fb7185;
+  background: rgba(82, 18, 31, .94);
+  color: #ffffff;
+}
+
+/* actiunea discreta pentru poza principala */
+.dez-photo-primary {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(185, 238, 250, .42);
+  border-radius: 999px;
+  background: rgba(3, 10, 16, .62);
+  color: #9fb7c9;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.dez-photo-primary:hover {
+  border-color: #19d3ee;
+  color: #eafcff;
+  background: rgba(8, 39, 53, .88);
+}
+
+.dez-photo-primary.active {
+  border-color: #facc15;
+  color: #facc15;
+}
+
+/* starea blocata previne actiuni concurente asupra aceleiasi galerii */
+.dez-photo-delete:disabled,
+.dez-photo-primary:disabled,
+.dez-photo-add:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+/* randul discret pentru actiunea de adaugare foto */
+.dez-gallery-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* buton HUB compact pentru adaugarea unei fotografii */
+.dez-photo-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(25, 211, 238, .38);
+  border-radius: 7px;
+  background: #082735;
+  color: #b9eefa;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+  transition: border-color .16s ease, background .16s ease, color .16s ease;
+}
+
+.dez-photo-add:hover {
+  border-color: var(--dez-cyan);
+  background: #10364a;
+  color: #ffffff;
+}
+
+/* stratul lightbox acopera HUB-ul fara a schimba layout-ul paginii */
+.dez-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: clamp(10px, 2vw, 28px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility .18s ease;
+}
+
+.dez-lightbox.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* fundalul inchis si blurat inchide galeria la click */
+.dez-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(1, 6, 11, .84);
+  backdrop-filter: blur(9px);
+}
+
+/* cadrul central pastreaza imaginea si navigarea vizibile */
+.dez-lightbox-dialog {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: clamp(44px, 5vw, 62px) minmax(0, 1fr) clamp(44px, 5vw, 62px);
+  grid-template-rows: minmax(0, 1fr) 30px;
+  align-items: center;
+  width: min(90vw, 1380px);
+  height: min(90vh, 900px);
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 20px);
+  overflow: hidden;
+  padding: clamp(10px, 1.3vw, 18px);
+  border: 1px solid #28445a;
+  border-radius: 14px;
+  background: rgba(5, 13, 21, .94);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .65);
+}
+
+/* imaginea mare ramane incadrata complet */
+.dez-lightbox-image-wrap {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: min(75vw, 1200px);
+  height: min(80vh, 800px);
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(4px, .7vw, 10px);
+}
+
+/* tinta imaginii complete ramane fixa pentru click dreapta */
+.dez-lightbox-image-link {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #02070d;
+  color: inherit;
+  cursor: default;
+  text-decoration: none;
+}
+
+/* imaginea completa se incadreaza fara taiere in viewport-ul fix */
+.dez-lightbox-image-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  object-position: center;
+  box-shadow: 0 12px 42px rgba(0, 0, 0, .46);
+}
+
+/* butoanele laterale navigheaza circular prin galerie */
+.dez-lightbox-arrow,
+.dez-lightbox-close {
+  display: grid;
+  place-items: center;
+  border: 1px solid #315269;
+  background: rgba(10, 28, 42, .9);
+  color: #e8f3ff;
+  transition: border-color .16s ease, background .16s ease, color .16s ease;
+}
+
+.dez-lightbox-arrow {
+  width: 48px;
+  height: 64px;
+  border-radius: 10px;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.dez-lightbox-previous {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.dez-lightbox-next {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.dez-lightbox-arrow:hover:not(:disabled),
+.dez-lightbox-close:hover {
+  border-color: var(--dez-cyan);
+  background: #10364a;
+  color: #ffffff;
+}
+
+.dez-lightbox-arrow:disabled {
+  opacity: .38;
+  cursor: default;
+}
+
+/* inchiderea ramane vizibila in coltul dreapta sus */
+.dez-lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dez-lightbox-counter {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  color: #91a9bd;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.dez-lightbox-open {
+  overflow: hidden;
+}
+
+/* limite compacte pentru ferestre foarte inguste sau joase */
+@media (max-width: 640px), (max-height: 520px) {
+  .dez-lightbox-dialog {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    grid-template-rows: minmax(0, 1fr) 24px;
+    padding: 8px;
+  }
+
+  .dez-lightbox-image-wrap {
+    width: 75vw;
+    height: 80vh;
+    max-width: 100%;
+    max-height: 100%;
+    padding: 4px;
+  }
+
+  .dez-lightbox-arrow {
+    width: 36px;
+    height: 50px;
+    font-size: 34px;
+  }
+
+  .dez-lightbox-close {
+    top: 7px;
+    right: 7px;
+    width: 34px;
+    height: 34px;
+    font-size: 24px;
+  }
+}
+
+/* formular compact in doua coloane */
+.dez-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.dez-field {
+  min-width: 0;
+}
+
+.dez-field-full {
+  grid-column: 1 / -1;
+}
+
+.dez-field label,
+.dez-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: #91a9bd;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.dez-control-wrap {
+  display: flex;
+  gap: 7px;
+}
+
+.dez-control {
+  width: 100%;
+  min-width: 0;
+  height: 37px;
+  padding: 0 10px;
+  border: 1px solid var(--dez-line);
+  border-radius: 7px;
+  outline: none;
+  background: #0d1d2b;
+  color: var(--dez-text);
+}
+
+textarea.dez-control {
+  height: 74px;
+  padding-top: 9px;
+  resize: none;
+}
+
+.dez-copy-btn {
+  width: 108px;
+  border: 1px solid #19d3ee66;
+  border-radius: 7px;
+  background: #082735;
+  color: var(--dez-cyan);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dez-counter {
+  margin-top: 4px;
+  color: #7890a6;
+  font-size: 10px;
+  text-align: right;
+}
+
+.dez-detail-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+/* sectiune audit minimal intre formular si actiuni */
+.dez-audit {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 0.7rem;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dez-audit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-family: "Inter", sans-serif;
+  line-height: 1.5;
+}
+.dez-audit-label {
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dez-audit-value {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+.dez-audit-sep {
+  color: #334155;
+}
+.dez-audit-date {
+  color: #94a3b8;
+  font-family: "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* stare goala */
+.dez-empty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: var(--dez-muted);
+  text-align: center;
+}
+
+.dez-empty strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--dez-text);
+  font-size: 17px;
+}
+
+@media (max-width: 1280px) {
+  .dez-main {
+    grid-template-columns: minmax(590px, 58fr) minmax(390px, 42fr);
+  }
+
+  .dez-left {
+    padding-left: 24px;
+  }
+
+  .dez-item-row {
+    grid-template-columns: 82px minmax(0, 360px) 92px 118px minmax(82px, 1fr) 32px;
+  }
+
+  .dez-thumb {
+    width: 76px;
+    height: 58px;
+  }
+}
+
+/* desktop ingust / split-screen: lista ramane completa, detaliile devin drawer */
+@media (min-width: 768px) and (max-width: 1180px) {
+  body {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .dez-main {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dez-left {
+    width: 100%;
+    padding: 14px 18px 12px;
+    border-right: 0;
+  }
+
+  .dez-module-head {
+    gap: 11px;
+    margin-bottom: 12px;
+  }
+
+  .dez-module-title h1,
+  .dez-module-title p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dez-filters {
+    flex-wrap: wrap;
+    row-gap: 1px;
+  }
+
+  /* toate controalele raman pe un singur rand la desktop ingust */
+  .dez-list-toolbar {
+    grid-template-columns:
+      minmax(220px, 1.45fr)
+      minmax(135px, .75fr)
+      minmax(155px, .9fr)
+      minmax(135px, .75fr);
+  }
+
+  .dez-item-row {
+    grid-template-columns: 82px minmax(0, 380px) 88px 118px minmax(90px, 1fr) 32px;
+    gap: 9px;
+  }
+
+  .dez-thumb {
+    width: 76px;
+    height: 58px;
+  }
+
+  /* stratul discret din spatele drawer-ului inchide detaliile la click */
+  .dez-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: block;
+    border: 0;
+    background: rgba(3, 9, 16, .58);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .18s ease, visibility .18s ease;
+  }
+
+  .dez-drawer-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* panoul existent aluneca peste lista si isi gestioneaza doar scroll-ul vertical */
+  .dez-detail-pane {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 21;
+    width: min(92vw, 720px);
+    max-width: 100%;
+    overflow-x: hidden;
+    background: #07111a;
+    box-shadow: -18px 0 42px rgba(0, 0, 0, .42);
+    transform: translateX(102%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform .2s ease, visibility .2s ease;
+  }
+
+  .dez-detail-pane.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
