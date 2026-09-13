@@ -1186,7 +1186,7 @@ textarea.dez-control {
   margin-top: 9px;
 }
 
-/* thumbnail foto si actiunea de eliminare */
+/* thumbnail foto si actiunile locale de eliminare / citire VIN */
 .dez-capture-photo {
   position: relative;
   aspect-ratio: 4 / 3;
@@ -1214,6 +1214,28 @@ textarea.dez-control {
   background: rgba(49, 12, 22, .9);
   color: #fecdd3;
   line-height: 18px;
+}
+
+/* butonul OCR compact afisat peste fiecare fotografie selectata */
+.dez-capture-photo-ocr {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  left: 4px;
+  min-height: 24px;
+  padding: 3px 6px;
+  border: 1px solid rgba(25, 211, 238, .65);
+  border-radius: 6px;
+  background: rgba(6, 16, 25, .9);
+  color: #d8fbff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.dez-capture-photo-ocr:disabled {
+  cursor: wait;
+  opacity: .7;
 }
 
 /* campurile text ale capturii */
@@ -1279,6 +1301,129 @@ textarea.dez-control {
 /* blocarea scroll-ului paginii cat timp modalul este deschis */
 body.dez-modal-open {
   overflow: hidden;
+}
+
+/* stratul superior pentru selectarea zonei VIN peste modalul de captura */
+.dez-vin-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .16s ease, visibility .16s ease;
+}
+
+.dez-vin-crop-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* fundalul care separa instrumentul de decupare de formular */
+.dez-vin-crop-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(1, 6, 11, .88);
+  backdrop-filter: blur(6px);
+}
+
+/* cardul principal al instrumentului de decupare */
+.dez-vin-crop-dialog {
+  position: relative;
+  width: min(960px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid #356078;
+  border-radius: 14px;
+  background: #091722;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .68);
+}
+
+/* antetul selectorului VIN */
+.dez-vin-crop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid var(--dez-line);
+}
+
+.dez-vin-crop-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.dez-vin-crop-head p {
+  margin: 4px 0 0;
+  color: var(--dez-muted);
+  font-size: 12px;
+}
+
+/* zona vizuala in care utilizatorul traseaza dreptunghiul VIN */
+.dez-vin-crop-stage {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  max-height: calc(100vh - 230px);
+  padding: 14px;
+  overflow: auto;
+  background: #03090e;
+}
+
+.dez-vin-crop-stage canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 260px);
+  border: 1px solid #29485e;
+  border-radius: 6px;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.dez-vin-crop-stage canvas:focus-visible {
+  outline: 2px solid var(--dez-cyan);
+  outline-offset: 3px;
+}
+
+/* mesajul de progres pentru OCR-ul zonei selectate */
+.dez-vin-crop-message {
+  min-height: 18px;
+  margin: 0;
+  padding: 10px 18px 0;
+  color: #fbbf24;
+  font-size: 12px;
+}
+
+.dez-vin-crop-message.is-error {
+  color: #fb7185;
+}
+
+/* actiunile locale de anulare si pornire OCR */
+.dez-vin-crop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 12px 18px 16px;
+}
+
+/* controalele compacte pentru orientarea corecta a seriei VIN */
+.dez-vin-rotate-controls,
+.dez-vin-crop-submit {
+  display: flex;
+  gap: 8px;
+}
+
+.dez-vin-rotate-controls .dez-btn {
+  min-width: 68px;
+  padding-inline: 10px;
 }
 
 /* stare goala */

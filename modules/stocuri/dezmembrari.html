@@ -140,6 +140,40 @@
     </section>
   </div>
 
+  <!-- Overlay desktop pentru selectarea stricta a zonei in care apare seria VIN -->
+  <div class="dez-vin-crop-modal" id="desktopVinCropModal" aria-hidden="true" inert>
+    <button class="dez-vin-crop-backdrop" type="button" data-close-vin-crop aria-label="Închide decuparea VIN"></button>
+    <section class="dez-vin-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="desktopVinCropTitle">
+      <!-- Antetul si instructiunile rapide pentru decupare -->
+      <header class="dez-vin-crop-head">
+        <div>
+          <h2 id="desktopVinCropTitle">Selectează zona cu VIN</h2>
+          <p>Trage peste seria completă, cât mai strâns în jurul celor 17 caractere.</p>
+        </div>
+        <button class="dez-capture-close" type="button" data-close-vin-crop aria-label="Închide">×</button>
+      </header>
+
+      <!-- Canvasul foloseste local fotografia deja selectata in formular -->
+      <div class="dez-vin-crop-stage" id="desktopVinCropStage">
+        <canvas id="desktopVinCropCanvas" tabindex="0" aria-label="Selectează cu mouse-ul zona care conține VIN-ul"></canvas>
+      </div>
+      <p class="dez-vin-crop-message" id="desktopVinCropMessage" role="status" aria-live="polite"></p>
+
+      <!-- Rotirea modifica numai previzualizarea si decupajul trimis catre OCR -->
+      <footer class="dez-vin-crop-actions">
+        <div class="dez-vin-rotate-controls" role="group" aria-label="Rotire decupaj VIN">
+          <button class="dez-btn dez-btn-ghost" id="desktopVinRotateLeft" type="button" title="Rotește 90° la stânga" aria-label="Rotește 90° la stânga">↶ 90°</button>
+          <button class="dez-btn dez-btn-ghost" id="desktopVinRotateRight" type="button" title="Rotește 90° la dreapta" aria-label="Rotește 90° la dreapta">↷ 90°</button>
+        </div>
+        <div class="dez-vin-crop-submit">
+          <button class="dez-btn dez-btn-ghost" type="button" data-close-vin-crop>Anulează</button>
+          <button class="dez-btn dez-btn-primary" id="desktopVinCropRead" type="button">Citește zona selectată</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <!-- Logica paginii trimite catre OCR numai decupajul ales, prin Edge Function -->
   <script src="/js/dezmembrari.js"></script>
 </body>
 </html>

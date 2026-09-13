@@ -24,9 +24,23 @@ type PreparedUpload = {
   requireR2: boolean;
 };
 
+type VinOcrEngine = 2 | 3;
+
+type VinOcrEngineResult = {
+  engine: VinOcrEngine;
+  rawText: string;
+  normalizedText: string;
+  vinCandidate: string | null;
+  error: string | null;
+};
+
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/webp"]);
+const VIN_OCR_IMAGE_TYPES = new Set(["image/jpeg", "image/webp", "image/png"]);
 const MAX_COMPRESSED_IMAGE_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 512 * 1024;
+const MAX_VIN_CROP_BYTES = 4 * 1024 * 1024;
+const OCR_SPACE_API_URL = "https://api.ocr.space/parse/image";
+const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/;
 /* originile explicite permise pentru HUB, inclusiv productie si testare locala */
 const HUB_ALLOWED_ORIGINS = new Set([
   "https://hub-v2-phi.vercel.app",
@@ -117,7 +131,7 @@ function corsHeaders(request: Request): HeadersInit {
     .filter(Boolean);
   const allowedOrigins = new Set([...configuredOrigins, ...HUB_ALLOWED_ORIGINS]);
   const headers: Record<string, string> = {
-    "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
+    "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-hub-action",
     "access-control-allow-methods": "POST, OPTIONS",
     vary: "Origin",
   };
@@ -487,6 +501,134 @@ async function parsePreparedUpload(request: Request): Promise<PreparedUpload> {
     sortOrder,
     isPrimary: isPrimaryText === "true",
     requireR2: requireR2Text === "true",
+  };
+}
+
+/* valideaza decupajul VIN separat de contractul fotografiilor incarcate in R2 */
+async function parseVinOcrCrop(request: Request): Promise<File> {
+  if (!request.headers.get("content-type")?.includes("multipart/form-data")) {
+    throw new Error("Decupajul VIN trebuie trimis ca multipart/form-data.");
+  }
+
+  const formData = await request.formData();
+  const action = String(formData.get("action") || "").trim();
+  const crop = formData.get("vin_crop");
+  if (action !== "ocr_vin") throw new Error("Acțiunea OCR VIN nu este validă.");
+  if (!(crop instanceof File) || !VIN_OCR_IMAGE_TYPES.has(crop.type)) {
+    throw new Error("vin_crop trebuie să fie o imagine JPEG, WebP sau PNG.");
+  }
+  if (crop.size === 0) throw new Error("Decupajul VIN este gol.");
+  if (crop.size > MAX_VIN_CROP_BYTES) throw new Error("Decupajul VIN este prea mare.");
+  return crop;
+}
+
+/* normalizarea elimina numai spatii si separatori, fara a inlocui caractere OCR */
+function normalizeVinOcrText(text: string): string {
+  return String(text || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/* accepta exclusiv o serie completa de 17 caractere VIN valide */
+function findVinCandidate(rawText: string): string | null {
+  const uniqueCandidates = new Set<string>();
+  const fragments = [rawText, ...String(rawText || "").split(/\r?\n/)];
+  for (const fragment of fragments) {
+    const normalized = normalizeVinOcrText(fragment);
+    if (VIN_PATTERN.test(normalized)) uniqueCandidates.add(normalized);
+  }
+  return uniqueCandidates.values().next().value || null;
+}
+
+/* citeste cheia OCR.Space numai din mediul server-side al functiei Edge */
+function readOcrSpaceApiKey(): string {
+  const apiKey = Deno.env.get("OCR_SPACE_API_KEY")?.trim();
+  if (!apiKey) throw new Error("Secretul OCR_SPACE_API_KEY nu este configurat.");
+  return apiKey;
+}
+
+/* trimite acelasi decupaj catre un singur motor OCR.Space */
+async function recognizeVinWithOcrSpace(crop: File, engine: VinOcrEngine): Promise<VinOcrEngineResult> {
+  const formData = new FormData();
+  formData.append("file", crop, "vin-crop.jpg");
+  formData.append("language", "eng");
+  formData.append("OCREngine", String(engine));
+  formData.append("detectOrientation", "true");
+  formData.append("scale", "true");
+  formData.append("isOverlayRequired", "false");
+
+  const response = await fetch(OCR_SPACE_API_URL, {
+    method: "POST",
+    headers: { apikey: readOcrSpaceApiKey() },
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`OCR.Space Engine ${engine} a răspuns cu status ${response.status}.`);
+
+  const payload = await response.json();
+  const parsedResults = Array.isArray(payload?.ParsedResults) ? payload.ParsedResults : [];
+  const rawText = parsedResults
+    .map((result: { ParsedText?: unknown }) => typeof result?.ParsedText === "string" ? result.ParsedText : "")
+    .filter(Boolean)
+    .join("\n");
+  const errorMessage = Array.isArray(payload?.ErrorMessage)
+    ? payload.ErrorMessage.filter(Boolean).join(" ")
+    : typeof payload?.ErrorMessage === "string" ? payload.ErrorMessage : "";
+  if (payload?.IsErroredOnProcessing === true && !rawText) {
+    throw new Error(errorMessage || `OCR.Space Engine ${engine} nu a putut procesa decupajul.`);
+  }
+
+  return {
+    engine,
+    rawText,
+    normalizedText: normalizeVinOcrText(rawText),
+    vinCandidate: findVinCandidate(rawText),
+    error: errorMessage || null,
+  };
+}
+
+/* ruleaza Engine 3 ca sursa principala si Engine 2 ca verificare independenta */
+async function compareVinOcrEngines(crop: File): Promise<Record<string, unknown>> {
+  const safeRecognize = async (engine: VinOcrEngine): Promise<VinOcrEngineResult> => {
+    try {
+      return await recognizeVinWithOcrSpace(crop, engine);
+    } catch (error) {
+      return {
+        engine,
+        rawText: "",
+        normalizedText: "",
+        vinCandidate: null,
+        error: error instanceof Error ? error.message : `OCR.Space Engine ${engine} a eșuat.`,
+      };
+    }
+  };
+
+  const primary = await safeRecognize(3);
+  const secondary = await safeRecognize(2);
+  if (primary.error && secondary.error && !primary.vinCandidate && !secondary.vinCandidate) {
+    throw new Error("OCR.Space nu a putut procesa decupajul cu niciun motor.");
+  }
+
+  const sameValidVin = primary.vinCandidate !== null && primary.vinCandidate === secondary.vinCandidate;
+  const suggestedVin = primary.vinCandidate || secondary.vinCandidate;
+  return {
+    action: "ocr_vin",
+    suggested_vin: suggestedVin,
+    confidence: sameValidVin ? "high" : suggestedVin ? "low" : "none",
+    requires_manual_confirmation: true,
+    engines: [
+      {
+        engine: primary.engine,
+        raw_text: primary.rawText,
+        normalized_text: primary.normalizedText,
+        vin_candidate: primary.vinCandidate,
+        error: primary.error,
+      },
+      {
+        engine: secondary.engine,
+        raw_text: secondary.rawText,
+        normalized_text: secondary.normalizedText,
+        vin_candidate: secondary.vinCandidate,
+        error: secondary.error,
+      },
+    ],
   };
 }
 
@@ -1001,6 +1143,13 @@ Deno.serve(async (request: Request) => {
     const isAuthorized = await authorizeDezmembrariUser(request, user.id);
     if (!isAuthorized) return jsonResponse(request, 403, { error: "FORBIDDEN" });
 
+    /* actiunea OCR consuma numai decupajul si nu intra in fluxul de upload R2 */
+    if (request.headers.get("x-hub-action") === "ocr_vin") {
+      const crop = await parseVinOcrCrop(request);
+      const result = await compareVinOcrEngines(crop);
+      return jsonResponse(request, 200, result);
+    }
+
     const jsonAction = await parseJsonActionRequest(request);
     if (jsonAction?.action === "test_r2") {
       const result = await testR2Connection();
@@ -1176,7 +1325,7 @@ Deno.serve(async (request: Request) => {
       },
     });
   } catch (error) {
-    console.error("Pregătire upload foto Dezmembrări:", error instanceof Error ? error.message : error);
+    console.error("Cerere Edge Dezmembrări:", error instanceof Error ? error.message : error);
     return jsonResponse(request, 400, {
       error: "INVALID_UPLOAD_REQUEST",
       message: error instanceof Error ? error.message : "Cererea nu este validă.",

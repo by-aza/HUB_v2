@@ -636,6 +636,29 @@ async function uploadDesktopPhotoToR2(item, photo, sortOrder, isPrimary) {
   return uploaded;
 }
 
+/* apeleaza OCR.Space prin Edge Function fara a expune cheia secreta in browser */
+async function readVinCropWithOcrSpace(cropBlob) {
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError) throw sessionError;
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) throw new Error("Sesiunea HUB nu mai este activă.");
+
+  const formData = new FormData();
+  formData.append("action", "ocr_vin");
+  formData.append("vin_crop", cropBlob, "vin-crop.jpg");
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/dezmembrari-photo-upload`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_ANON_KEY,
+      "x-hub-action": "ocr_vin",
+    },
+    body: formData,
+  });
+  if (!response.ok) throw await photoActionError(response);
+  return response.json();
+}
+
 /* salveaza randul foto nou fara a inlocui pozitiile deja existente */
 async function insertDesktopPhotoMetadata(item, photo, uploaded, sortOrder, isPrimary) {
   const photoRow = {
@@ -755,8 +778,261 @@ const desktopCaptureState = {
   type: "car",
   photos: [],
   busy: false,
+  ocrPhoto: null,
+  ocrRequestId: 0,
   returnFocus: null,
 };
+
+/* blocheaza numai controalele OCR cat timp Edge Function proceseaza decupajul */
+let desktopVinOcrActive = false;
+
+/* caracterele VIN permise exclud explicit literele I, O si Q */
+const DESKTOP_VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/;
+
+/* starea overlay-ului de decupare ramane separata de uploadul fotografiilor */
+const desktopVinCropState = {
+  photo: null,
+  image: null,
+  selection: null,
+  dragging: false,
+  startX: 0,
+  startY: 0,
+  rotation: 0,
+  loadId: 0,
+  returnFocus: null,
+};
+
+/* elementele overlay-ului de decupare sunt citite la nevoie */
+function desktopVinCropElements() {
+  const modal = document.querySelector("#desktopVinCropModal");
+  return {
+    modal,
+    canvas: modal?.querySelector("#desktopVinCropCanvas"),
+    message: modal?.querySelector("#desktopVinCropMessage"),
+    read: modal?.querySelector("#desktopVinCropRead"),
+    rotateLeft: modal?.querySelector("#desktopVinRotateLeft"),
+    rotateRight: modal?.querySelector("#desktopVinRotateRight"),
+    closeButtons: modal?.querySelectorAll("[data-close-vin-crop]") || [],
+  };
+}
+
+/* mesajul de progres sau validare din overlay-ul VIN */
+function setDesktopVinCropMessage(message = "", state = "") {
+  const { message: messageElement } = desktopVinCropElements();
+  if (!messageElement) return;
+  messageElement.textContent = message;
+  messageElement.classList.toggle("is-error", state === "error");
+}
+
+/* limiteaza coordonatele pointerului la suprafata reala a fotografiei */
+function desktopVinCropPointerPosition(event) {
+  const { canvas } = desktopVinCropElements();
+  const bounds = canvas.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(canvas.width, (event.clientX - bounds.left) * (canvas.width / bounds.width))),
+    y: Math.max(0, Math.min(canvas.height, (event.clientY - bounds.top) * (canvas.height / bounds.height))),
+  };
+}
+
+/* deseneaza fotografia conform orientarii locale, fara a modifica File-ul original */
+function drawDesktopVinRotatedImage(context, image, rotation) {
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  context.save();
+  if (rotation === 90) {
+    context.translate(height, 0);
+    context.rotate(Math.PI / 2);
+  } else if (rotation === 180) {
+    context.translate(width, height);
+    context.rotate(Math.PI);
+  } else if (rotation === 270) {
+    context.translate(0, width);
+    context.rotate(-Math.PI / 2);
+  }
+  context.drawImage(image, 0, 0, width, height);
+  context.restore();
+}
+
+/* potriveste dimensiunile canvasului cu orientarea curenta */
+function resizeDesktopVinCropCanvas() {
+  const { canvas } = desktopVinCropElements();
+  const { image, rotation } = desktopVinCropState;
+  if (!canvas || !image) return;
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  const isSideways = rotation === 90 || rotation === 270;
+  canvas.width = isSideways ? height : width;
+  canvas.height = isSideways ? width : height;
+}
+
+/* redeseneaza fotografia rotita, masca si conturul zonei selectate */
+function drawDesktopVinCropCanvas() {
+  const { canvas } = desktopVinCropElements();
+  const { image, selection, rotation } = desktopVinCropState;
+  if (!canvas || !image) return;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  drawDesktopVinRotatedImage(context, image, rotation);
+  if (!selection || selection.width <= 0 || selection.height <= 0) return;
+
+  context.fillStyle = "rgba(0, 0, 0, .58)";
+  context.fillRect(0, 0, canvas.width, selection.y);
+  context.fillRect(0, selection.y + selection.height, canvas.width, canvas.height - selection.y - selection.height);
+  context.fillRect(0, selection.y, selection.x, selection.height);
+  context.fillRect(selection.x + selection.width, selection.y, canvas.width - selection.x - selection.width, selection.height);
+  context.strokeStyle = "#19d3ee";
+  context.lineWidth = Math.max(2, canvas.width / 450);
+  context.setLineDash([10, 6]);
+  context.strokeRect(selection.x, selection.y, selection.width, selection.height);
+  context.setLineDash([]);
+}
+
+/* roteste previzualizarea si transforma selectia pe aceeasi zona fizica */
+function rotateDesktopVinCrop(direction) {
+  const { canvas, read } = desktopVinCropElements();
+  if (!desktopVinCropState.image || desktopVinOcrActive) return;
+  const selection = desktopVinCropState.selection;
+  const oldWidth = canvas.width;
+  const oldHeight = canvas.height;
+
+  if (selection) {
+    desktopVinCropState.selection = direction > 0
+      ? {
+        x: oldHeight - selection.y - selection.height,
+        y: selection.x,
+        width: selection.height,
+        height: selection.width,
+      }
+      : {
+        x: selection.y,
+        y: oldWidth - selection.x - selection.width,
+        width: selection.height,
+        height: selection.width,
+      };
+  }
+  desktopVinCropState.rotation = (desktopVinCropState.rotation + (direction * 90) + 360) % 360;
+  desktopVinCropState.dragging = false;
+  resizeDesktopVinCropCanvas();
+  drawDesktopVinCropCanvas();
+  read.disabled = !desktopVinCropState.selection
+    || desktopVinCropState.selection.width < 20
+    || desktopVinCropState.selection.height < 12;
+  setDesktopVinCropMessage("Imagine rotită. Selecția VIN a fost păstrată.");
+}
+
+/* elibereaza imaginea decodata folosita exclusiv pentru decupare */
+function releaseDesktopVinCropImage() {
+  if (typeof desktopVinCropState.image?.close === "function") desktopVinCropState.image.close();
+  desktopVinCropState.image = null;
+}
+
+/* deschide decuparea pe File-ul deja selectat, fara o noua incarcare */
+async function openDesktopVinCrop(photo) {
+  if (desktopVinOcrActive || desktopCaptureState.busy || !desktopCaptureState.photos.includes(photo)) return;
+  const cropElements = desktopVinCropElements();
+  const captureElements = desktopCaptureElements();
+  const loadId = ++desktopVinCropState.loadId;
+  desktopVinCropState.photo = photo;
+  desktopVinCropState.selection = null;
+  desktopVinCropState.rotation = 0;
+  desktopVinCropState.returnFocus = document.activeElement;
+  cropElements.read.disabled = true;
+  cropElements.rotateLeft.disabled = true;
+  cropElements.rotateRight.disabled = true;
+  setDesktopVinCropMessage("Se pregătește fotografia...");
+  captureElements.modal.inert = true;
+  cropElements.modal.inert = false;
+  cropElements.modal.setAttribute("aria-hidden", "false");
+  cropElements.modal.classList.add("is-open");
+  cropElements.modal.querySelector(".dez-capture-close")?.focus();
+
+  try {
+    const image = await decodeDesktopPhoto(photo.file);
+    if (loadId !== desktopVinCropState.loadId) {
+      if (typeof image.close === "function") image.close();
+      return;
+    }
+    releaseDesktopVinCropImage();
+    desktopVinCropState.image = image;
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    resizeDesktopVinCropCanvas();
+    desktopVinCropState.selection = {
+      x: Math.round(width * 0.1),
+      y: Math.round(height * 0.35),
+      width: Math.round(width * 0.8),
+      height: Math.round(height * 0.3),
+    };
+    drawDesktopVinCropCanvas();
+    cropElements.read.disabled = false;
+    cropElements.rotateLeft.disabled = false;
+    cropElements.rotateRight.disabled = false;
+    setDesktopVinCropMessage("Trage pe fotografie pentru a ajusta zona VIN.");
+    cropElements.canvas.focus();
+  } catch (error) {
+    console.error("Fotografia pentru decuparea VIN nu a putut fi deschisă:", error);
+    setDesktopVinCropMessage(error?.message || "Fotografia nu a putut fi pregătită.", "error");
+  }
+}
+
+/* inchide selectorul de zona si revine la formularul desktop */
+function closeDesktopVinCrop() {
+  if (desktopVinOcrActive) return;
+  const cropElements = desktopVinCropElements();
+  desktopVinCropState.loadId += 1;
+  desktopVinCropState.photo = null;
+  desktopVinCropState.selection = null;
+  desktopVinCropState.dragging = false;
+  desktopVinCropState.rotation = 0;
+  releaseDesktopVinCropImage();
+  cropElements.modal.classList.remove("is-open");
+  cropElements.modal.setAttribute("aria-hidden", "true");
+  cropElements.modal.inert = true;
+  const captureModal = desktopCaptureElements().modal;
+  if (captureModal.classList.contains("is-open")) captureModal.inert = false;
+  const returnFocus = desktopVinCropState.returnFocus;
+  desktopVinCropState.returnFocus = null;
+  if (returnFocus?.isConnected) returnFocus.focus();
+}
+
+/* exporta strict zona selectata ca JPEG, fara a reincarca fotografia originala */
+async function createDesktopVinCropBlob() {
+  const { image, selection, rotation } = desktopVinCropState;
+  if (!image || !selection) throw new Error("Selectează mai întâi zona în care apare VIN-ul.");
+  const crop = {
+    x: Math.max(0, Math.round(selection.x)),
+    y: Math.max(0, Math.round(selection.y)),
+    width: Math.max(1, Math.round(selection.width)),
+    height: Math.max(1, Math.round(selection.height)),
+  };
+  if (crop.width < 20 || crop.height < 12) throw new Error("Zona selectată este prea mică pentru citire.");
+
+  const rotatedCanvas = document.createElement("canvas");
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  const isSideways = rotation === 90 || rotation === 270;
+  rotatedCanvas.width = isSideways ? height : width;
+  rotatedCanvas.height = isSideways ? width : height;
+  drawDesktopVinRotatedImage(rotatedCanvas.getContext("2d"), image, rotation);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+  const context = canvas.getContext("2d");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(rotatedCanvas, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+  try {
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    if (!(blob instanceof Blob) || blob.size === 0) throw new Error("Decupajul VIN nu a putut fi creat.");
+    return blob;
+  } finally {
+    canvas.width = 1;
+    canvas.height = 1;
+    rotatedCanvas.width = 1;
+    rotatedCanvas.height = 1;
+  }
+}
 
 /* elementele modalului sunt citite la nevoie dupa incarcarea paginii */
 function desktopCaptureElements() {
@@ -833,7 +1109,17 @@ function renderDesktopCaptureModal() {
       setDesktopCaptureMessage();
       renderDesktopCaptureModal();
     });
-    card.append(image, removeButton);
+    /* actiunea OCR foloseste direct File-ul comprimat deja pastrat pentru upload */
+    const ocrButton = document.createElement("button");
+    const isReadingThisPhoto = desktopVinOcrActive && desktopCaptureState.ocrPhoto === photo;
+    ocrButton.className = "dez-capture-photo-ocr";
+    ocrButton.type = "button";
+    ocrButton.textContent = isReadingThisPhoto ? "Se citește VIN..." : "Citește VIN";
+    ocrButton.setAttribute("aria-label", `Citește VIN din fotografia ${index + 1}`);
+    ocrButton.setAttribute("aria-busy", String(isReadingThisPhoto));
+    ocrButton.disabled = desktopVinOcrActive || desktopCaptureState.busy;
+    ocrButton.addEventListener("click", () => openDesktopVinCrop(photo));
+    card.append(image, removeButton, ocrButton);
     elements.photoGrid.appendChild(card);
   });
 
@@ -848,6 +1134,68 @@ function renderDesktopCaptureModal() {
   elements.modal.querySelectorAll("[data-close-capture]").forEach((button) => {
     button.disabled = desktopCaptureState.busy;
   });
+}
+
+/* ruleaza OCR.Space numai pe crop si lasa utilizatorul sa confirme la salvarea formularului */
+async function readDesktopVinFromCrop() {
+  const photo = desktopVinCropState.photo;
+  if (desktopVinOcrActive || desktopCaptureState.busy || !desktopCaptureState.photos.includes(photo)) return;
+  const elements = desktopCaptureElements();
+  const cropElements = desktopVinCropElements();
+  const requestId = ++desktopCaptureState.ocrRequestId;
+  desktopVinOcrActive = true;
+  desktopCaptureState.ocrPhoto = photo;
+  setDesktopCaptureMessage("Se citește VIN...");
+  setDesktopVinCropMessage("Se citește VIN...");
+  cropElements.read.disabled = true;
+  cropElements.rotateLeft.disabled = true;
+  cropElements.rotateRight.disabled = true;
+  cropElements.closeButtons.forEach((button) => {
+    button.disabled = true;
+  });
+  renderDesktopCaptureModal();
+  let shouldCloseCrop = false;
+
+  try {
+    const cropBlob = await createDesktopVinCropBlob();
+    const result = await readVinCropWithOcrSpace(cropBlob);
+    if (requestId !== desktopCaptureState.ocrRequestId || !elements.modal.classList.contains("is-open")) return;
+
+    const suggestedVin = String(result?.suggested_vin || "").trim().toUpperCase();
+    if (DESKTOP_VIN_PATTERN.test(suggestedVin)) {
+      elements.vin.value = suggestedVin;
+      const highConfidence = result?.confidence === "high";
+      setDesktopCaptureMessage(
+        highConfidence
+          ? "VIN detectat – verifică înainte de salvare. Motoarele 2 și 3 au returnat aceeași serie."
+          : "VIN detectat – verifică înainte de salvare. Sugestia OCR are încredere redusă.",
+        highConfidence ? "success" : "",
+      );
+      shouldCloseCrop = true;
+    } else {
+      setDesktopCaptureMessage("Nu a fost găsit niciun VIN valid de 17 caractere. Câmpul VIN nu a fost modificat.", "error");
+      setDesktopVinCropMessage("Nu s-a găsit un VIN valid. Ajustează selecția și încearcă din nou.", "error");
+    }
+  } catch (error) {
+    console.error("Citirea VIN prin OCR.Space a eșuat:", error);
+    if (requestId === desktopCaptureState.ocrRequestId && elements.modal.classList.contains("is-open")) {
+      setDesktopCaptureMessage(error?.message || "VIN-ul nu a putut fi citit din această fotografie.", "error");
+      setDesktopVinCropMessage(error?.message || "VIN-ul nu a putut fi citit din această zonă.", "error");
+    }
+  } finally {
+    desktopVinOcrActive = false;
+    cropElements.rotateLeft.disabled = !desktopVinCropState.image;
+    cropElements.rotateRight.disabled = !desktopVinCropState.image;
+    cropElements.closeButtons.forEach((button) => {
+      button.disabled = false;
+    });
+    if (requestId === desktopCaptureState.ocrRequestId) {
+      desktopCaptureState.ocrPhoto = null;
+    }
+    cropElements.read.disabled = !desktopVinCropState.image;
+    if (elements.modal.classList.contains("is-open")) renderDesktopCaptureModal();
+    if (shouldCloseCrop) closeDesktopVinCrop();
+  }
 }
 
 /* deschide formularul gol si pastreaza focusul pentru revenire */
@@ -870,6 +1218,8 @@ function openDesktopCaptureModal() {
 /* inchide modalul numai cand nu ruleaza compresia sau salvarea */
 function closeDesktopCaptureModal() {
   if (desktopCaptureState.busy) return;
+  desktopCaptureState.ocrRequestId += 1;
+  desktopCaptureState.ocrPhoto = null;
   const { modal } = desktopCaptureElements();
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
@@ -1026,6 +1376,7 @@ async function submitDesktopCapture() {
 /* leaga o singura data controalele formularului desktop */
 function initializeDesktopCaptureModal() {
   const elements = desktopCaptureElements();
+  const cropElements = desktopVinCropElements();
   elements.typeButtons.forEach((button) => {
     button.addEventListener("click", () => {
       if (desktopCaptureState.busy) return;
@@ -1049,8 +1400,60 @@ function initializeDesktopCaptureModal() {
   elements.modal.querySelectorAll("[data-close-capture]").forEach((button) => {
     button.addEventListener("click", closeDesktopCaptureModal);
   });
+
+  /* butoanele schimba numai orientarea canvasului si a decupajului OCR */
+  cropElements.rotateLeft.addEventListener("click", () => rotateDesktopVinCrop(-1));
+  cropElements.rotateRight.addEventListener("click", () => rotateDesktopVinCrop(1));
+
+  /* pointerul deseneaza liber dreptunghiul folosit pentru decuparea VIN */
+  cropElements.canvas.addEventListener("pointerdown", (event) => {
+    if (!desktopVinCropState.image || desktopVinOcrActive) return;
+    const point = desktopVinCropPointerPosition(event);
+    desktopVinCropState.dragging = true;
+    desktopVinCropState.startX = point.x;
+    desktopVinCropState.startY = point.y;
+    desktopVinCropState.selection = { x: point.x, y: point.y, width: 0, height: 0 };
+    cropElements.canvas.setPointerCapture(event.pointerId);
+    drawDesktopVinCropCanvas();
+  });
+  cropElements.canvas.addEventListener("pointermove", (event) => {
+    if (!desktopVinCropState.dragging || desktopVinOcrActive) return;
+    const point = desktopVinCropPointerPosition(event);
+    desktopVinCropState.selection = {
+      x: Math.min(desktopVinCropState.startX, point.x),
+      y: Math.min(desktopVinCropState.startY, point.y),
+      width: Math.abs(point.x - desktopVinCropState.startX),
+      height: Math.abs(point.y - desktopVinCropState.startY),
+    };
+    drawDesktopVinCropCanvas();
+  });
+  const finishCropSelection = (event) => {
+    if (!desktopVinCropState.dragging) return;
+    desktopVinCropState.dragging = false;
+    if (cropElements.canvas.hasPointerCapture(event.pointerId)) {
+      cropElements.canvas.releasePointerCapture(event.pointerId);
+    }
+    const selection = desktopVinCropState.selection;
+    cropElements.read.disabled = !selection || selection.width < 20 || selection.height < 12;
+    setDesktopVinCropMessage(cropElements.read.disabled
+      ? "Selecția este prea mică. Trage din nou peste seria VIN."
+      : "Zona este pregătită. Apasă «Citește zona selectată».", cropElements.read.disabled ? "error" : "");
+  };
+  cropElements.canvas.addEventListener("pointerup", finishCropSelection);
+  cropElements.canvas.addEventListener("pointercancel", finishCropSelection);
+  cropElements.read.addEventListener("click", readDesktopVinFromCrop);
+  cropElements.closeButtons.forEach((button) => {
+    button.addEventListener("click", closeDesktopVinCrop);
+  });
+
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && elements.modal.classList.contains("is-open")) {
+    if (event.key !== "Escape") return;
+    if (cropElements.modal.classList.contains("is-open")) {
+      event.preventDefault();
+      closeDesktopVinCrop();
+      return;
+    }
+    if (elements.modal.classList.contains("is-open")) {
       event.preventDefault();
       closeDesktopCaptureModal();
     }
@@ -2224,6 +2627,7 @@ async function initializeDezmembrari() {
 /* curata URL-urile temporare cand pagina desktop se inchide */
 window.addEventListener("beforeunload", () => {
   clearDesktopCapturePhotos();
+  releaseDesktopVinCropImage();
   dezmembrariItems.forEach(revokeItemPhotoUrls);
   thumbnailObjectUrlCache.forEach((thumbnailRequest) => {
     thumbnailRequest.then((objectUrl) => URL.revokeObjectURL(objectUrl)).catch(() => {});
