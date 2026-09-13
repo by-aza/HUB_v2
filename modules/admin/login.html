@@ -49,6 +49,22 @@
     const loginButton = loginForm?.querySelector('button[type="submit"]');
     let isAuthenticating = false;
 
+    // Validează destinația de retur pentru a evita redirectări în afara HUB-ului.
+    function getSafeReturnTo() {
+        const requestedPath = new URLSearchParams(window.location.search).get('returnTo');
+        if (!requestedPath) return '';
+
+        try {
+            const targetUrl = new URL(requestedPath, window.location.origin);
+            if (targetUrl.origin !== window.location.origin) return '';
+            if (targetUrl.pathname === window.location.pathname) return '';
+            return `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
+        } catch (error) {
+            console.error('Destinație de retur invalidă:', error);
+            return '';
+        }
+    }
+
     loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (isAuthenticating) return;
@@ -153,6 +169,13 @@
             if (profError || !profile) {
                 if (profError) console.error(profError);
                 window.location.href = '../../index.html';
+                return;
+            }
+
+            // Revine la modulul care a inițiat autentificarea.
+            const returnTo = getSafeReturnTo();
+            if (returnTo) {
+                window.location.href = returnTo;
                 return;
             }
             

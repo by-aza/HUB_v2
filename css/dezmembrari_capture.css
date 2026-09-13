@@ -1,0 +1,673 @@
+/* culorile principale pentru interfata mobila HUB */
+:root {
+  --cap-bg: #02070d;
+  --cap-surface: #07111d;
+  --cap-panel: #0b1624;
+  --cap-panel-soft: #0f2030;
+  --cap-line: #21364c;
+  --cap-line-strong: #31516d;
+  --cap-text: #eef7ff;
+  --cap-muted: #92a3b7;
+  --cap-muted-strong: #c3d2e4;
+  --cap-cyan: #18dff0;
+  --cap-cyan-dark: #0c6474;
+  --cap-danger: #f87171;
+  --cap-shadow: 0 18px 44px rgba(0, 0, 0, .34);
+}
+
+/* reset compact pentru controale mobile */
+* {
+  box-sizing: border-box;
+}
+
+/* fundalul paginii mobile */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(24, 223, 240, .09), transparent 30%),
+    linear-gradient(180deg, #07111b 0%, #02070d 42%, #02070d 100%);
+  color: var(--cap-text);
+  font: 14px Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* mostenirea fontului pentru campuri si butoane */
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* containerul principal ingust, optimizat pentru telefon */
+.capture-app {
+  width: min(100%, 430px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 8px 13px 22px;
+  background: linear-gradient(180deg, rgba(9, 19, 31, .95), rgba(2, 7, 13, .98));
+}
+
+/* bara de sus cu titlu centrat */
+.capture-topbar {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  min-height: 50px;
+  border-bottom: 1px solid rgba(49, 81, 109, .45);
+}
+
+/* titlul paginii de captura */
+.capture-topbar h1 {
+  grid-column: 2;
+  margin: 0;
+  text-align: center;
+  color: var(--cap-text);
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+/* butonul inapoi din header */
+.capture-back {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cap-text);
+}
+
+.capture-back svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.35;
+}
+
+/* formularul principal fara card exterior */
+#captureForm {
+  padding-top: 14px;
+}
+
+/* indicatorul celor trei pasi */
+.capture-stepper {
+  display: grid;
+  grid-template-columns: max-content minmax(10px, 1fr) max-content minmax(10px, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px 12px;
+}
+
+/* fiecare pas din indicator */
+.capture-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #8394a9;
+}
+
+/* numarul pasului din cerc */
+.capture-step span {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  border-radius: 999px;
+  background: #274158;
+  color: #06121d;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+/* textul pasului din indicator */
+.capture-step strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* linia de legatura dintre pasi */
+.capture-stepper > i {
+  height: 1px;
+  background: rgba(49, 81, 109, .68);
+}
+
+/* pasul activ colorat cu accentul HUB */
+.capture-step.active {
+  color: var(--cap-cyan);
+}
+
+.capture-step.active span {
+  background: var(--cap-cyan);
+  color: #031018;
+  box-shadow: 0 0 18px rgba(24, 223, 240, .35);
+}
+
+/* randul compact de tipuri capturate */
+.capture-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+/* cardul mic pentru tipul piesei */
+.capture-type {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 7px 6px 6px;
+  border: 1px solid rgba(49, 81, 109, .7);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #101c2b, #0b1420);
+  color: var(--cap-muted-strong);
+  font-weight: 850;
+}
+
+/* iconita din cardul de tip */
+.capture-type svg {
+  width: 27px;
+  height: 27px;
+  color: #84a9c7;
+  stroke-width: 2.2;
+}
+
+/* eticheta din cardul de tip */
+.capture-type span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+/* starea selectata pentru tip */
+.capture-type.active {
+  border-color: var(--cap-cyan);
+  background: linear-gradient(180deg, rgba(18, 68, 79, .95), rgba(9, 48, 60, .92));
+  color: var(--cap-cyan);
+  box-shadow: 0 0 0 1px rgba(24, 223, 240, .38) inset;
+}
+
+.capture-type.active svg {
+  color: var(--cap-cyan);
+}
+
+/* zona fotografiilor imediat sub selectia de tip */
+.capture-photo-area {
+  margin-bottom: 14px;
+}
+
+/* randul cu titlu si nota de minim poze */
+.capture-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0 1px 8px;
+}
+
+.capture-label-row strong {
+  color: var(--cap-text);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.capture-label-row span {
+  color: var(--cap-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* randul compact pentru deschiderea camerei integrate */
+.capture-photo-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-bottom: 9px;
+}
+
+/* butonul camerei pastreaza stilul intunecat HUB */
+.capture-camera-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(49, 81, 109, .9);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #102133, #0b1623);
+  color: var(--cap-muted-strong);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+  border-color: rgba(24, 223, 240, .7);
+  color: var(--cap-cyan);
+}
+
+.capture-camera-open svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+/* starea indisponibila pe HTTP sau in timpul procesarii */
+.capture-camera-open:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+/* inputul real de fisier, ascuns vizual */
+.capture-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* grila 3 coloane pentru poze */
+.capture-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* fiecare patrat foto, plin sau gol */
+.capture-photo-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1.08;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(49, 81, 109, .85);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #102132, #0a1420);
+  color: #a9bed5;
+}
+
+/* imaginea de previzualizare locala */
+.capture-photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* butonul X pentru stergerea pozei */
+.capture-photo-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  border: 1px solid rgba(198, 216, 232, .38);
+  border-radius: 999px;
+  background: rgba(7, 17, 29, .78);
+  color: #f0f7ff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* slotul gol pentru adaugare foto */
+.capture-photo-add {
+  gap: 7px;
+  border-style: solid;
+  background: #0a1420;
+  color: #86a4bf;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.capture-photo-add svg {
+  width: 24px;
+  height: 24px;
+  color: #8fb1cc;
+  stroke-width: 2.1;
+}
+
+/* campurile compacte VIN, ID si observatii */
+.capture-field {
+  display: block;
+  margin-bottom: 13px;
+}
+
+/* eticheta campurilor de formular */
+.capture-field span {
+  display: block;
+  margin: 0 1px 7px;
+  color: var(--cap-text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.capture-field small {
+  color: var(--cap-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+/* stilul comun pentru input si textarea */
+.capture-field input,
+.capture-field textarea {
+  width: 100%;
+  border: 1px solid var(--cap-line-strong);
+  border-radius: 8px;
+  outline: none;
+  background: linear-gradient(180deg, #102133, #0c1724);
+  color: var(--cap-text);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .015) inset;
+}
+
+/* dimensiunea inputurilor compacte */
+.capture-field input {
+  min-height: 44px;
+  padding: 0 13px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+/* dimensiunea zonei de observatii */
+.capture-field textarea {
+  min-height: 50px;
+  max-height: 118px;
+  padding: 12px 13px;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* placeholder discret in stil HUB */
+.capture-field input::placeholder,
+.capture-field textarea::placeholder {
+  color: #8393a6;
+}
+
+/* conturul de focus pentru tastatura si touch */
+.capture-field input:focus,
+.capture-field textarea:focus {
+  border-color: rgba(24, 223, 240, .82);
+  box-shadow: 0 0 0 3px rgba(24, 223, 240, .12);
+}
+
+/* randul ID intern generat automat */
+.capture-id-field input {
+  color: #c8f9ff;
+  letter-spacing: .04em;
+}
+
+/* randul compact pentru anulare si trimitere */
+.capture-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* butonul compact pentru anularea sigura a capturii */
+.capture-cancel {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 126, 126, .48);
+  border-radius: 8px;
+  background: #101c29;
+  color: #ffb2b2;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+/* butonul principal de trimitere */
+.capture-submit {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 53px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #25e9f3, #12cfdf);
+  color: #031018;
+  box-shadow: 0 12px 28px rgba(18, 207, 223, .24);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+/* starea blocata pentru actiunile de formular */
+.capture-submit:disabled,
+.capture-cancel:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.capture-submit svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.35;
+}
+
+/* blocarea scrollului paginii cat timp camera ocupa ecranul */
+body.capture-camera-opened {
+  overflow: hidden;
+}
+
+/* panoul camerei integrat peste pagina mobila */
+.capture-camera {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #02070d;
+  color: var(--cap-text);
+}
+
+/* atributul hidden are prioritate fata de afisarea grid */
+.capture-camera[hidden] {
+  display: none !important;
+}
+
+/* bara superioara cu numar foto si inchidere */
+.capture-camera-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 68px;
+  padding: max(10px, env(safe-area-inset-top)) 16px 10px;
+  border-bottom: 1px solid rgba(49, 81, 109, .55);
+  background: #07111d;
+}
+
+.capture-camera-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.capture-camera-header strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.capture-camera-header span {
+  color: var(--cap-cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* butonul X al camerei */
+.capture-camera-close {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border: 1px solid var(--cap-line-strong);
+  border-radius: 999px;
+  background: #0d1b29;
+  color: var(--cap-text);
+}
+
+.capture-camera-close svg {
+  width: 23px;
+  height: 23px;
+}
+
+/* cadrul video pastreaza intreaga previzualizare vizibila */
+.capture-camera-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.capture-camera-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* mesajul afisat pana cand fluxul video este pregatit */
+.capture-camera-status {
+  position: absolute;
+  inset: auto 16px 16px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(2, 7, 13, .78);
+  color: #dffcff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.capture-camera-status:empty {
+  display: none;
+}
+
+/* zona inferioara pentru declansatorul mare */
+.capture-camera-controls {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 16px max(18px, env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(49, 81, 109, .55);
+  background: #07111d;
+}
+
+/* butonul circular principal pentru fotografiere */
+.capture-camera-shutter {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 4px solid #e7fdff;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: 0 0 0 3px rgba(24, 223, 240, .38), 0 0 28px rgba(24, 223, 240, .2);
+}
+
+.capture-camera-shutter span {
+  width: 56px;
+  height: 56px;
+  border-radius: inherit;
+  background: var(--cap-cyan);
+}
+
+.capture-camera-shutter:active:not(:disabled) span {
+  transform: scale(.9);
+}
+
+.capture-camera-shutter:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+.capture-camera-controls small {
+  color: var(--cap-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+/* mesajul scurt pentru validare si mock local */
+.capture-toast {
+  position: fixed;
+  right: 13px;
+  bottom: 16px;
+  left: 13px;
+  z-index: 120;
+  max-width: 404px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border: 1px solid rgba(24, 223, 240, .45);
+  border-radius: 8px;
+  background: rgba(8, 22, 34, .96);
+  color: #dffcff;
+  box-shadow: var(--cap-shadow);
+  font-weight: 850;
+}
+
+/* utilitar pentru ascundere rapida */
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 360px) {
+  /* compactare pentru telefoane foarte inguste */
+  .capture-app {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .capture-type-grid,
+  .capture-photo-grid {
+    gap: 6px;
+  }
+
+  .capture-type {
+    min-height: 66px;
+    padding-right: 3px;
+    padding-left: 3px;
+  }
+
+  .capture-type span,
+  .capture-photo-add {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 520px) {
+  /* incadrare pe ecrane mai mari fara aspect de desktop */
+  .capture-app {
+    margin-top: 0;
+    box-shadow: 0 0 0 1px rgba(49, 81, 109, .28), 0 24px 80px rgba(0, 0, 0, .45);
+  }
+}
