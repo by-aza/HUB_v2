@@ -27,7 +27,9 @@ type PreparedUpload = {
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/webp"]);
 const MAX_COMPRESSED_IMAGE_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 512 * 1024;
-const LOCAL_TEST_ORIGINS = new Set([
+/* originile explicite permise pentru HUB, inclusiv productie si testare locala */
+const HUB_ALLOWED_ORIGINS = new Set([
+  "https://hub-v2-phi.vercel.app",
   "http://127.0.0.1:5500",
   "http://192.168.1.130:5500",
 ]);
@@ -106,14 +108,14 @@ const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 const R2_SIGNED_URL_TTL_SECONDS = 5 * 60;
 const R2_FREE_TIER_BYTES = 10_000_000_000;
 
-/* permite originile HUB configurate si originea locala de test */
+/* permite originile HUB configurate si originile explicite de productie/test */
 function corsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get("origin");
   const configuredOrigins = (Deno.env.get("HUB_ALLOWED_ORIGINS") || "")
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const allowedOrigins = new Set([...configuredOrigins, ...LOCAL_TEST_ORIGINS]);
+  const allowedOrigins = new Set([...configuredOrigins, ...HUB_ALLOWED_ORIGINS]);
   const headers: Record<string, string> = {
     "access-control-allow-headers": "authorization, apikey, content-type, x-client-info",
     "access-control-allow-methods": "POST, OPTIONS",
