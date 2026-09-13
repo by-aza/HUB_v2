@@ -54,25 +54,16 @@ const captureState = {
   draftRestored: false,
   accessCheckRunning: false,
   retryAfterCurrentAttempt: false,
-  cameraStream: null,
-  cameraOpen: false,
-  cameraCapturing: false,
-  cameraRequestId: 0,
 };
 
 /* selectorii principali ai paginii mobile */
 const elements = {
   form: document.querySelector("#captureForm"),
   typeButtons: document.querySelectorAll(".capture-type"),
+  cameraInput: document.querySelector("#cameraInput"),
   photoInput: document.querySelector("#photoInput"),
   photoGrid: document.querySelector("#photoGrid"),
   openCameraBtn: document.querySelector("#openCameraBtn"),
-  cameraPanel: document.querySelector("#cameraPanel"),
-  cameraVideo: document.querySelector("#cameraVideo"),
-  cameraCounter: document.querySelector("#cameraCounter"),
-  cameraStatus: document.querySelector("#cameraStatus"),
-  closeCameraBtn: document.querySelector("#closeCameraBtn"),
-  capturePhotoBtn: document.querySelector("#capturePhotoBtn"),
   internalIdInput: document.querySelector("#internalIdInput"),
   vinInput: document.querySelector("#vinInput"),
   partNameInput: document.querySelector("#partNameInput"),
@@ -436,7 +427,8 @@ async function addSelectedPhotos(files) {
   }
 
   captureState.isProcessingPhotos = true;
-  elements.photoInput.disabled = true;
+  /* blocheaza ambele pickere cat timp fotografia curenta este comprimata si salvata */
+  syncCaptureDraftLock();
 
   try {
     while (selectedFiles.length > 0) {
@@ -461,254 +453,17 @@ async function addSelectedPhotos(files) {
   renderPhotos();
 }
 
-/* camera integrata este disponibila numai intr-un context HTTPS securizat */
-function supportsInPageCamera() {
-  return window.isSecureContext === true && Boolean(navigator.mediaDevices?.getUserMedia);
-}
-
-/* actualizeaza contorul si blocheaza declansatorul la limita de 9 fotografii */
-function syncCameraControls() {
+/* blocheaza deschiderea camerei native cand formularul este ocupat sau complet */
+function syncNativeCameraControl() {
   const editingLocked = !captureState.hasAccess
     || Boolean(captureState.pendingItem)
     || captureState.isSubmitting
     || captureState.isProcessingPhotos
     || captureState.isCancelling;
   const maximumReached = captureState.photos.length >= PHOTO_MAXIMUM;
-  const cameraSupported = supportsInPageCamera();
-
-  elements.cameraCounter.textContent = `${captureState.photos.length} / ${PHOTO_MAXIMUM} fotografii`;
-  elements.openCameraBtn.disabled = editingLocked || maximumReached || !cameraSupported;
-  elements.openCameraBtn.title = !window.isSecureContext
-    ? ""
-    : cameraSupported
-    ? (maximumReached ? `Ai atins limita de ${PHOTO_MAXIMUM} fotografii.` : "")
-    : "Camera integrată nu este disponibilă; folosește grila foto.";
-  elements.capturePhotoBtn.disabled = !captureState.cameraOpen
-    || !captureState.cameraStream
-    || captureState.cameraCapturing
-    || captureState.isProcessingPhotos
-    || maximumReached;
-
-  if (captureState.cameraOpen && maximumReached) {
-    elements.cameraStatus.textContent = `Ai atins limita de ${PHOTO_MAXIMUM} fotografii. Poți închide camera.`;
-  }
-}
-
-/* opreste complet fluxul video fara sa modifice fotografiile deja salvate local */
-function stopCameraStream() {
-  if (captureState.cameraStream) {
-    captureState.cameraStream.getTracks().forEach((track) => track.stop());
-  }
-  captureState.cameraStream = null;
-  elements.cameraVideo.srcObject = null;
-}
-
-/* inchide panoul si reda focusul butonului care l-a deschis */
-function closeInPageCamera({ restoreFocus = true } = {}) {
-  captureState.cameraRequestId += 1;
-  stopCameraStream();
-  captureState.cameraOpen = false;
-  captureState.cameraCapturing = false;
-
-  if (restoreFocus) {
-    const focusTarget = elements.openCameraBtn.disabled ? elements.backBtn : elements.openCameraBtn;
-    focusTarget.focus();
-  }
-  elements.cameraPanel.hidden = true;
-  elements.cameraPanel.setAttribute("aria-hidden", "true");
-  elements.cameraPanel.setAttribute("inert", "");
-  document.body.classList.remove("capture-camera-opened");
-  elements.cameraStatus.textContent = "";
-  syncCameraControls();
-}
-
-/* traduce erorile comune ale camerei intr-un mesaj util pentru utilizator */
-function cameraErrorMessage(error) {
-  if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
-    return "Accesul la cameră a fost refuzat. Permite camera sau folosește grila foto.";
-  }
-  if (error?.name === "NotFoundError" || error?.name === "OverconstrainedError") {
-    return "Nu a fost găsită o cameră disponibilă. Folosește grila foto.";
-  }
-  if (error?.name === "NotReadableError" || error?.name === "AbortError") {
-    return "Camera este ocupată de altă aplicație. Închide aplicația sau folosește grila foto.";
-  }
-  return "Camera nu a putut fi pornită. Folosește grila foto.";
-}
-
-/* elimina zoomul implicit al camerei folosind minimul raportat de dispozitiv */
-async function applyMinimumCameraZoom(stream) {
-  const videoTrack = stream.getVideoTracks()[0];
-  if (!videoTrack
-    || typeof videoTrack.getCapabilities !== "function"
-    || typeof videoTrack.applyConstraints !== "function") return;
-
-  try {
-    const capabilities = videoTrack.getCapabilities();
-    const minimumZoom = capabilities?.zoom?.min;
-    if (!Number.isFinite(minimumZoom)) return;
-
-    await videoTrack.applyConstraints({ advanced: [{ zoom: minimumZoom }] });
-  } catch (error) {
-    /* unele browsere raporteaza zoomul, dar refuza schimbarea lui in fluxul activ */
-    console.warn("Zoom minim cameră Dezmembrări indisponibil:", error);
-  }
-}
-
-/* puncteaza etichetele camerelor pentru a evita lentilele tele, macro si auxiliare */
-function rearCameraPreferenceScore(device, index) {
-  const label = String(device?.label || "").toLocaleLowerCase();
-  const isRearCamera = /(rear|back|environment|world|spate|traseira|trasera|arrière|hinten)/i.test(label);
-  const isFrontCamera = /(front|user|selfie|față|fata)/i.test(label);
-  const isAuxiliaryCamera = /(telephoto|tele\b|macro|depth|portrait|monochrome|infrared|\btof\b)/i.test(label);
-  const isUltraWideCamera = /(ultra[\s-]?wide|ultrawide|0[.,]5x)/i.test(label);
-  const isMainCamera = /(main|primary|standard|principal)/i.test(label);
-  const isWideCamera = /\bwide\b/i.test(label) && !isUltraWideCamera;
-
-  if (!label || !isRearCamera || isFrontCamera) return Number.NEGATIVE_INFINITY;
-
-  let score = 100 - index;
-  if (isMainCamera) score += 80;
-  if (isWideCamera) score += 60;
-  if (isUltraWideCamera) score -= 25;
-  if (isAuxiliaryCamera) score -= 200;
-  return score;
-}
-
-/* inspecteaza camerele dupa permisiune si alege lentila spate wide/principala */
-async function findPreferredRearCamera() {
-  if (typeof navigator.mediaDevices?.enumerateDevices !== "function") return null;
-
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices
-    .filter((device) => device.kind === "videoinput")
-    .map((device, index) => ({ device, score: rearCameraPreferenceScore(device, index) }))
-    .filter(({ score }) => Number.isFinite(score) && score > 0)
-    .sort((left, right) => right.score - left.score)[0]?.device || null;
-}
-
-/* acorda permisiunea cu environment, apoi comuta pe camera spate preferata cand este identificabila */
-async function openPreferredRearCameraStream() {
-  const environmentConstraints = {
-    audio: false,
-    video: { facingMode: { ideal: "environment" } },
-  };
-  let stream = await navigator.mediaDevices.getUserMedia(environmentConstraints);
-
-  try {
-    const preferredCamera = await findPreferredRearCamera();
-    const activeDeviceId = stream.getVideoTracks()[0]?.getSettings?.().deviceId;
-    if (!preferredCamera?.deviceId || preferredCamera.deviceId === activeDeviceId) return stream;
-
-    /* elibereaza lentila initiala inainte de selectarea exacta pe telefoanele cu acces exclusiv */
-    stream.getTracks().forEach((track) => track.stop());
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        deviceId: { exact: preferredCamera.deviceId },
-        facingMode: { ideal: "environment" },
-      },
-    });
-  } catch (error) {
-    /* facingMode environment ramane alternativa daca enumerarea sau camera exacta nu functioneaza */
-    console.warn("Selectarea camerei spate principale nu a reușit; se folosește environment:", error);
-    const initialStreamIsLive = stream.getTracks().some((track) => track.readyState === "live");
-    if (!initialStreamIsLive) stream = await navigator.mediaDevices.getUserMedia(environmentConstraints);
-  }
-
-  return stream;
-}
-
-/* deschide camera din spate cand exista si pastreaza fluxul pentru capturi multiple */
-async function openInPageCamera() {
-  if (elements.openCameraBtn.disabled || captureState.cameraOpen) return;
-  if (!supportsInPageCamera()) return;
-
-  const requestId = captureState.cameraRequestId + 1;
-  captureState.cameraRequestId = requestId;
-  captureState.cameraOpen = true;
-  elements.cameraPanel.hidden = false;
-  elements.cameraPanel.removeAttribute("inert");
-  elements.cameraPanel.setAttribute("aria-hidden", "false");
-  document.body.classList.add("capture-camera-opened");
-  elements.cameraStatus.textContent = "Se pornește camera...";
-  elements.closeCameraBtn.focus();
-  syncCameraControls();
-
-  try {
-    const stream = await openPreferredRearCameraStream();
-
-    if (!captureState.cameraOpen || requestId !== captureState.cameraRequestId) {
-      stream.getTracks().forEach((track) => track.stop());
-      return;
-    }
-
-    captureState.cameraStream = stream;
-    await applyMinimumCameraZoom(stream);
-
-    /* inchiderea panoului in timpul configurarii zoomului opreste fluxul nou */
-    if (!captureState.cameraOpen || requestId !== captureState.cameraRequestId) {
-      stream.getTracks().forEach((track) => track.stop());
-      if (captureState.cameraStream === stream) captureState.cameraStream = null;
-      return;
-    }
-
-    elements.cameraVideo.srcObject = stream;
-    await elements.cameraVideo.play();
-    elements.cameraStatus.textContent = "";
-    syncCameraControls();
-  } catch (error) {
-    if (!captureState.cameraOpen || requestId !== captureState.cameraRequestId) return;
-    console.error("Pornire cameră Dezmembrări:", error);
-    const message = cameraErrorMessage(error);
-    closeInPageCamera();
-    showToast(message, 6000);
-  }
-}
-
-/* transforma cadrul video intr-un File si il trimite procesarii foto existente */
-async function captureCurrentCameraFrame() {
-  if (elements.capturePhotoBtn.disabled || !captureState.cameraStream) return;
-  if (captureState.photos.length >= PHOTO_MAXIMUM) {
-    syncCameraControls();
-    return;
-  }
-
-  const video = elements.cameraVideo;
-  if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
-    showToast("Camera nu este încă pregătită. Încearcă din nou într-o clipă.");
-    return;
-  }
-
-  captureState.cameraCapturing = true;
-  elements.cameraStatus.textContent = "Se adaugă fotografia...";
-  syncCameraControls();
-
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, canvas.width, canvas.height);
-    const sourceBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
-    canvas.width = 1;
-    canvas.height = 1;
-    if (!sourceBlob) throw new Error("Browserul nu a putut prelua cadrul camerei.");
-
-    const cameraFile = new File([sourceBlob], `camera-dz-${Date.now()}.jpg`, {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
-    await addSelectedPhotos([cameraFile]);
-  } catch (error) {
-    console.error("Captură foto Dezmembrări:", error);
-    showToast(error?.message || "Fotografia nu a putut fi adăugată.", 5000);
-  } finally {
-    captureState.cameraCapturing = false;
-    if (captureState.cameraOpen && captureState.photos.length < PHOTO_MAXIMUM) {
-      elements.cameraStatus.textContent = "";
-    }
-    syncCameraControls();
-  }
+  elements.cameraInput.disabled = editingLocked || maximumReached;
+  elements.openCameraBtn.disabled = editingLocked || maximumReached;
+  elements.openCameraBtn.title = maximumReached ? `Ai atins limita de ${PHOTO_MAXIMUM} fotografii.` : "";
 }
 
 /* mesaj scurt pentru validare si rezultatul trimiterii */
@@ -742,6 +497,7 @@ function syncCaptureDraftLock() {
   elements.typeButtons.forEach((button) => {
     button.disabled = editingLocked;
   });
+  elements.cameraInput.disabled = editingLocked || captureState.photos.length >= PHOTO_MAXIMUM;
   elements.photoInput.disabled = editingLocked || captureState.photos.length >= PHOTO_MAXIMUM;
   elements.vinInput.disabled = editingLocked;
   elements.partNameInput.disabled = editingLocked;
@@ -757,7 +513,7 @@ function syncCaptureDraftLock() {
     || captureState.isSubmitting
     || captureState.isProcessingPhotos
     || captureState.isCancelling;
-  syncCameraControls();
+  syncNativeCameraControl();
 }
 
 /* verifica sesiunea si permisiunile din profilul HUB */
@@ -1075,7 +831,6 @@ async function uploadCapturePhotos(item, restoredSavedPositions = null) {
 
 /* resetarea capturii dupa inserarea reusita */
 function resetAfterSubmit() {
-  closeInPageCamera({ restoreFocus: false });
   if (captureDraftInputTimer) window.clearTimeout(captureDraftInputTimer);
   captureDraftInputTimer = null;
   elements.form.reset();
@@ -1269,14 +1024,15 @@ function bindCaptureEvents() {
     await processingPhotos;
   });
 
-  /* camera ramane activa intre cadre si se inchide numai la cererea utilizatorului */
-  elements.openCameraBtn.addEventListener("click", openInPageCamera);
-  elements.closeCameraBtn.addEventListener("click", () => closeInPageCamera());
-  elements.capturePhotoBtn.addEventListener("click", captureCurrentCameraFrame);
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && captureState.cameraOpen) closeInPageCamera();
+  /* butonul deschide pickerul nativ, iar resetarea permite fotografii succesive */
+  elements.openCameraBtn.addEventListener("click", () => {
+    if (!elements.cameraInput.disabled) elements.cameraInput.click();
   });
-  window.addEventListener("pagehide", () => closeInPageCamera({ restoreFocus: false }));
+  elements.cameraInput.addEventListener("change", async () => {
+    const processingPhotos = addSelectedPhotos(Array.from(elements.cameraInput.files || []));
+    elements.cameraInput.value = "";
+    await processingPhotos;
+  });
 
   [elements.vinInput, elements.partNameInput, elements.notesInput].forEach((control) => {
     control.addEventListener("input", scheduleCaptureDraftSave);

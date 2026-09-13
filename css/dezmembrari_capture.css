@@ -233,7 +233,7 @@ button {
   font-weight: 700;
 }
 
-/* randul compact pentru deschiderea camerei integrate */
+/* randul compact pentru deschiderea camerei native a telefonului */
 .capture-photo-actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -267,7 +267,7 @@ button {
   flex: 0 0 auto;
 }
 
-/* starea indisponibila pe HTTP sau in timpul procesarii */
+/* starea indisponibila in timpul procesarii sau la limita foto */
 .capture-camera-open:disabled {
   cursor: not-allowed;
   opacity: .5;
@@ -465,157 +465,6 @@ button {
   width: 22px;
   height: 22px;
   stroke-width: 2.35;
-}
-
-/* blocarea scrollului paginii cat timp camera ocupa ecranul */
-body.capture-camera-opened {
-  overflow: hidden;
-}
-
-/* panoul camerei integrat peste pagina mobila */
-.capture-camera {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: 100%;
-  min-height: 100dvh;
-  overflow: hidden;
-  background: #02070d;
-  color: var(--cap-text);
-}
-
-/* atributul hidden are prioritate fata de afisarea grid */
-.capture-camera[hidden] {
-  display: none !important;
-}
-
-/* bara superioara cu numar foto si inchidere */
-.capture-camera-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 68px;
-  padding: max(10px, env(safe-area-inset-top)) 16px 10px;
-  border-bottom: 1px solid rgba(49, 81, 109, .55);
-  background: #07111d;
-}
-
-.capture-camera-header > div {
-  display: grid;
-  gap: 3px;
-}
-
-.capture-camera-header strong {
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.capture-camera-header span {
-  color: var(--cap-cyan);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* butonul X al camerei */
-.capture-camera-close {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  border: 1px solid var(--cap-line-strong);
-  border-radius: 999px;
-  background: #0d1b29;
-  color: var(--cap-text);
-}
-
-.capture-camera-close svg {
-  width: 23px;
-  height: 23px;
-}
-
-/* cadrul video pastreaza intreaga previzualizare vizibila */
-.capture-camera-preview {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  overflow: hidden;
-  background: #000;
-}
-
-.capture-camera-preview video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transform: none;
-  background: #000;
-}
-
-/* mesajul afisat pana cand fluxul video este pregatit */
-.capture-camera-status {
-  position: absolute;
-  inset: auto 16px 16px;
-  margin: 0;
-  padding: 9px 11px;
-  border-radius: 8px;
-  background: rgba(2, 7, 13, .78);
-  color: #dffcff;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.capture-camera-status:empty {
-  display: none;
-}
-
-/* zona inferioara pentru declansatorul mare */
-.capture-camera-controls {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 18px 16px max(18px, env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(49, 81, 109, .55);
-  background: #07111d;
-}
-
-/* butonul circular principal pentru fotografiere */
-.capture-camera-shutter {
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  padding: 0;
-  border: 4px solid #e7fdff;
-  border-radius: 999px;
-  background: transparent;
-  box-shadow: 0 0 0 3px rgba(24, 223, 240, .38), 0 0 28px rgba(24, 223, 240, .2);
-}
-
-.capture-camera-shutter span {
-  width: 56px;
-  height: 56px;
-  border-radius: inherit;
-  background: var(--cap-cyan);
-}
-
-.capture-camera-shutter:active:not(:disabled) span {
-  transform: scale(.9);
-}
-
-.capture-camera-shutter:disabled {
-  cursor: not-allowed;
-  opacity: .42;
-}
-
-.capture-camera-controls small {
-  color: var(--cap-muted);
-  font-size: 11px;
-  font-weight: 750;
 }
 
 /* mesajul scurt pentru validare si mock local */
