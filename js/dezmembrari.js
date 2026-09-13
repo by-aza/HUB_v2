@@ -1,4 +1,4 @@
-/* etichetele folosite de lista si filtrele Piese Mari */
+/* etichetele folosite de lista si filtrele Dezmembrari */
 const statusLabels = {
   draft: "De completat",
   ready: "Gata de publicare",
@@ -243,7 +243,9 @@ let activeThumbnailRequests = 0;
 let activeListThumbnailLoads = 0;
 const R2_OBJECT_KEY_PATTERN = /^DZ-\d{5,}\/\d{2}(?:-thumb)?\.jpg$/;
 const R2_SIGNED_URL_REFRESH_MARGIN_MS = 30 * 1000;
-const DESKTOP_PHOTO_MAXIMUM = 99;
+/* limita comuna pentru galeria desktop si captura rapida */
+const DESKTOP_PHOTO_MINIMUM = 3;
+const DESKTOP_PHOTO_MAXIMUM = 9;
 
 /* regulile imaginii principale sunt identice cu fluxul mobil */
 const DESKTOP_PHOTO_COMPRESSION = {
@@ -661,23 +663,21 @@ async function insertDesktopPhotoMetadata(item, photo, uploaded, sortOrder, isPr
   return mapDezmembrariPhoto(data);
 }
 
-/* citeste ultima pozitie salvata pentru a evita reutilizarea unei chei existente */
-async function loadNextDesktopPhotoSortOrder(item) {
+/* citeste numarul real si ultima pozitie pentru limita de 9 si chei R2 fara coliziuni */
+async function loadDesktopPhotoCapacity(item) {
   const { data, error } = await supabaseClient
     .from("dezmembrari_photos")
     .select("sort_order")
     .eq("item_id", item.id)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  if (data === null) return 0;
-  const lastSortOrder = Number(data.sort_order);
+  if (!data?.length) return { photoCount: 0, nextSortOrder: 0 };
+  const lastSortOrder = Number(data[data.length - 1].sort_order);
   if (!Number.isInteger(lastSortOrder) || lastSortOrder < 0) {
     throw new Error("Ultima poziție foto din HUB nu este validă.");
   }
-  return lastSortOrder + 1;
+  return { photoCount: data.length, nextSortOrder: lastSortOrder + 1 };
 }
 
 /* adauga secvential fotografiile selectate la finalul galeriei curente */
@@ -686,9 +686,9 @@ async function addDesktopPhotos(item, selectedFiles) {
 
   item.photoManagementBusy = true;
   renderDetail();
-  let nextAvailableSortOrder;
+  let photoCapacity;
   try {
-    nextAvailableSortOrder = await loadNextDesktopPhotoSortOrder(item);
+    photoCapacity = await loadDesktopPhotoCapacity(item);
   } catch (error) {
     console.error("Poziția următoarei fotografii nu a putut fi citită:", error);
     window.alert(`Fotografiile nu pot fi adăugate: ${error?.message || "poziția următoare este indisponibilă."}`);
@@ -696,7 +696,7 @@ async function addDesktopPhotos(item, selectedFiles) {
     render();
     return;
   }
-  const availableSlots = Math.max(0, DESKTOP_PHOTO_MAXIMUM - nextAvailableSortOrder);
+  const availableSlots = Math.max(0, DESKTOP_PHOTO_MAXIMUM - photoCapacity.photoCount);
   const files = selectedFiles.slice(0, Math.max(0, availableSlots));
   if (!files.length) {
     window.alert(`Galeria poate conține maximum ${DESKTOP_PHOTO_MAXIMUM} fotografii.`);
@@ -705,10 +705,10 @@ async function addDesktopPhotos(item, selectedFiles) {
     return;
   }
   if (selectedFiles.length > files.length) {
-    window.alert(`Vor fi adăugate numai ${files.length} fotografii, până la limita de ${DESKTOP_PHOTO_MAXIMUM}.`);
+    window.alert(`Mai sunt ${availableSlots} locuri disponibile. Ai selectat ${selectedFiles.length}; vor fi acceptate numai primele ${files.length} fotografii.`);
   }
 
-  let nextSortOrder = nextAvailableSortOrder;
+  let nextSortOrder = photoCapacity.nextSortOrder;
   let uploadedCount = 0;
 
   try {
@@ -748,6 +748,313 @@ async function addDesktopPhotos(item, selectedFiles) {
     item.photoManagementBusy = false;
     render();
   }
+}
+
+/* starea formularului desktop de captura rapida */
+const desktopCaptureState = {
+  type: "car",
+  photos: [],
+  busy: false,
+  returnFocus: null,
+};
+
+/* elementele modalului sunt citite la nevoie dupa incarcarea paginii */
+function desktopCaptureElements() {
+  const modal = document.querySelector("#desktopCaptureModal");
+  return {
+    modal,
+    form: modal?.querySelector("#desktopCaptureForm"),
+    typeButtons: modal?.querySelectorAll("[data-capture-type]") || [],
+    photoInput: modal?.querySelector("#desktopCapturePhotoInput"),
+    photoPicker: modal?.querySelector("#desktopCapturePhotoPicker"),
+    photoGrid: modal?.querySelector("#desktopCapturePhotoGrid"),
+    photoCount: modal?.querySelector("#desktopCapturePhotoCount"),
+    partNameField: modal?.querySelector("#desktopCapturePartNameField"),
+    partName: modal?.querySelector("#desktopCapturePartName"),
+    vin: modal?.querySelector("#desktopCaptureVin"),
+    notes: modal?.querySelector("#desktopCaptureNotes"),
+    message: modal?.querySelector("#desktopCaptureMessage"),
+    save: modal?.querySelector("#desktopCaptureSave"),
+  };
+}
+
+/* mesajul clar de validare sau progres din modal */
+function setDesktopCaptureMessage(message = "", state = "") {
+  const { message: messageElement } = desktopCaptureElements();
+  if (!messageElement) return;
+  messageElement.textContent = message;
+  messageElement.classList.toggle("is-error", state === "error");
+  messageElement.classList.toggle("is-success", state === "success");
+}
+
+/* elibereaza URL-urile locale ale thumbnail-urilor din modal */
+function clearDesktopCapturePhotos() {
+  desktopCaptureState.photos.forEach((photo) => {
+    if (photo.previewUrl) URL.revokeObjectURL(photo.previewUrl);
+  });
+  desktopCaptureState.photos = [];
+}
+
+/* sincronizeaza tipul, campul conditionat si thumbnail-urile */
+function renderDesktopCaptureModal() {
+  const elements = desktopCaptureElements();
+  elements.typeButtons.forEach((button) => {
+    const isActive = button.dataset.captureType === desktopCaptureState.type;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  const isPart = desktopCaptureState.type === "part";
+  elements.partNameField.hidden = !isPart;
+  elements.partName.required = isPart;
+  elements.photoCount.textContent = `${desktopCaptureState.photos.length} / ${DESKTOP_PHOTO_MAXIMUM}`;
+  const availableSlots = DESKTOP_PHOTO_MAXIMUM - desktopCaptureState.photos.length;
+  elements.photoPicker.textContent = availableSlots > 0
+    ? `＋ Selectează fotografii (${availableSlots} ${availableSlots === 1 ? "loc" : "locuri"})`
+    : `Limita de ${DESKTOP_PHOTO_MAXIMUM} fotografii atinsă`;
+
+  elements.photoGrid.innerHTML = "";
+  desktopCaptureState.photos.forEach((photo, index) => {
+    const card = document.createElement("div");
+    card.className = "dez-capture-photo";
+    const image = document.createElement("img");
+    image.src = photo.previewUrl;
+    image.alt = `Fotografie selectată ${index + 1}`;
+    const removeButton = document.createElement("button");
+    removeButton.className = "dez-capture-photo-remove";
+    removeButton.type = "button";
+    removeButton.setAttribute("aria-label", `Elimină fotografia ${index + 1}`);
+    removeButton.textContent = "×";
+    removeButton.disabled = desktopCaptureState.busy;
+    removeButton.addEventListener("click", () => {
+      if (desktopCaptureState.busy) return;
+      URL.revokeObjectURL(photo.previewUrl);
+      desktopCaptureState.photos.splice(index, 1);
+      setDesktopCaptureMessage();
+      renderDesktopCaptureModal();
+    });
+    card.append(image, removeButton);
+    elements.photoGrid.appendChild(card);
+  });
+
+  elements.typeButtons.forEach((button) => {
+    button.disabled = desktopCaptureState.busy;
+  });
+  elements.photoPicker.disabled = desktopCaptureState.busy;
+  elements.partName.disabled = desktopCaptureState.busy;
+  elements.vin.disabled = desktopCaptureState.busy;
+  elements.notes.disabled = desktopCaptureState.busy;
+  elements.save.disabled = desktopCaptureState.busy;
+  elements.modal.querySelectorAll("[data-close-capture]").forEach((button) => {
+    button.disabled = desktopCaptureState.busy;
+  });
+}
+
+/* deschide formularul gol si pastreaza focusul pentru revenire */
+function openDesktopCaptureModal() {
+  const elements = desktopCaptureElements();
+  desktopCaptureState.returnFocus = document.activeElement;
+  desktopCaptureState.type = "car";
+  desktopCaptureState.busy = false;
+  clearDesktopCapturePhotos();
+  elements.form.reset();
+  setDesktopCaptureMessage();
+  renderDesktopCaptureModal();
+  elements.modal.inert = false;
+  elements.modal.setAttribute("aria-hidden", "false");
+  elements.modal.classList.add("is-open");
+  document.body.classList.add("dez-modal-open");
+  elements.typeButtons[0]?.focus();
+}
+
+/* inchide modalul numai cand nu ruleaza compresia sau salvarea */
+function closeDesktopCaptureModal() {
+  if (desktopCaptureState.busy) return;
+  const { modal } = desktopCaptureElements();
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  modal.inert = true;
+  document.body.classList.remove("dez-modal-open");
+  clearDesktopCapturePhotos();
+  const returnFocus = desktopCaptureState.returnFocus;
+  desktopCaptureState.returnFocus = null;
+  if (returnFocus?.isConnected) returnFocus.focus();
+}
+
+/* proceseaza selectia multipla si accepta numai numarul de locuri ramas */
+async function addDesktopCapturePhotos(selectedFiles) {
+  const availableSlots = DESKTOP_PHOTO_MAXIMUM - desktopCaptureState.photos.length;
+  if (availableSlots <= 0) {
+    setDesktopCaptureMessage(`Ai atins limita de ${DESKTOP_PHOTO_MAXIMUM} fotografii.`, "error");
+    return;
+  }
+
+  const acceptedFiles = selectedFiles.slice(0, availableSlots);
+  if (selectedFiles.length > availableSlots) {
+    setDesktopCaptureMessage(
+      `Mai sunt ${availableSlots} locuri. Ai selectat ${selectedFiles.length}; sunt acceptate numai primele ${availableSlots}.`,
+      "error",
+    );
+  } else {
+    setDesktopCaptureMessage("Se pregătesc fotografiile...");
+  }
+
+  desktopCaptureState.busy = true;
+  renderDesktopCaptureModal();
+  let failedCount = 0;
+  try {
+    for (const file of acceptedFiles) {
+      try {
+        const photo = await processDesktopPhoto(file);
+        photo.previewUrl = URL.createObjectURL(photo.thumbnailFile);
+        desktopCaptureState.photos.push(photo);
+        renderDesktopCaptureModal();
+      } catch (error) {
+        failedCount += 1;
+        console.error(`Fotografia ${file.name} nu a putut fi procesată:`, error);
+      }
+    }
+  } finally {
+    desktopCaptureState.busy = false;
+    renderDesktopCaptureModal();
+  }
+
+  if (failedCount > 0) {
+    setDesktopCaptureMessage(`${failedCount} fotografii nu au putut fi procesate.`, "error");
+  } else if (selectedFiles.length <= availableSlots) {
+    setDesktopCaptureMessage(`${acceptedFiles.length} fotografii adăugate.`, "success");
+  }
+}
+
+/* creeaza randul Supabase cu aceleasi campuri minimale ca fluxul mobil */
+async function insertDesktopCaptureItem() {
+  const elements = desktopCaptureElements();
+  const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+  if (userError) throw userError;
+  const userId = userData?.user?.id;
+  if (!userId) throw new Error("Sesiunea HUB nu mai este activă.");
+
+  const partName = desktopCaptureState.type === "part" ? elements.partName.value.trim() : "";
+  if (desktopCaptureState.type === "part" && !partName) {
+    throw new Error("Denumirea piesei este obligatorie pentru tipul Altă piesă.");
+  }
+
+  const payload = {
+    tip: desktopCaptureState.type,
+    status: "draft",
+    vin: elements.vin.value.trim() || null,
+    denumire_piesa: partName || null,
+    observatii: elements.notes.value.trim() || null,
+    created_by: userId,
+  };
+  const { data, error } = await supabaseClient
+    .from("dezmembrari_items")
+    .insert(payload)
+    .select("id, internal_id")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id || !data?.internal_id) {
+    throw new Error("Supabase nu a confirmat articolul nou.");
+  }
+  return data;
+}
+
+/* reincarca lista si deschide articolul creat in panoul de detalii */
+async function showCreatedDesktopCapture(itemId) {
+  dezState.statusFilter = "draft";
+  await loadDezmembrariItems(itemId);
+  if (dezState.selectedId !== null) await loadItemPhotos(dezState.selectedId);
+  if (detailDrawerMedia.matches) dezState.detailOpen = true;
+  render();
+}
+
+/* salveaza articolul, apoi fotografia si thumbnail-ul in R2 cu metadatele existente */
+async function submitDesktopCapture() {
+  const elements = desktopCaptureElements();
+  if (desktopCaptureState.busy) return;
+  if (desktopCaptureState.photos.length < DESKTOP_PHOTO_MINIMUM) {
+    setDesktopCaptureMessage(`Adaugă minim ${DESKTOP_PHOTO_MINIMUM} fotografii înainte de salvare.`, "error");
+    return;
+  }
+
+  desktopCaptureState.busy = true;
+  renderDesktopCaptureModal();
+  setDesktopCaptureMessage("Se creează articolul și se încarcă fotografiile...");
+  let insertedItem = null;
+  let uploadedCount = 0;
+  const totalPhotos = desktopCaptureState.photos.length;
+
+  try {
+    insertedItem = await insertDesktopCaptureItem();
+    const uploadItem = {
+      id: Number(insertedItem.id),
+      internalId: insertedItem.internal_id,
+    };
+    for (let index = 0; index < totalPhotos; index += 1) {
+      const photo = desktopCaptureState.photos[index];
+      setDesktopCaptureMessage(`Se încarcă fotografia ${index + 1} din ${totalPhotos}...`);
+      const uploaded = await uploadDesktopPhotoToR2(uploadItem, photo, index, index === 0);
+      await insertDesktopPhotoMetadata(uploadItem, photo, uploaded, index, index === 0);
+      uploadedCount += 1;
+    }
+
+    await showCreatedDesktopCapture(uploadItem.id);
+    desktopCaptureState.busy = false;
+    closeDesktopCaptureModal();
+    window.alert(`${uploadItem.internalId} a fost salvat cu ${uploadedCount} fotografii.`);
+  } catch (error) {
+    console.error("Captura desktop Dezmembrări nu a putut fi finalizată:", error);
+    if (insertedItem?.id) {
+      try {
+        await showCreatedDesktopCapture(Number(insertedItem.id));
+      } catch (refreshError) {
+        console.error("Lista nu a putut fi reîncărcată după captura parțială:", refreshError);
+      }
+      desktopCaptureState.busy = false;
+      closeDesktopCaptureModal();
+      window.alert(`${insertedItem.internal_id} a fost creat, dar s-au încărcat ${uploadedCount} din ${totalPhotos} fotografii. Completează galeria din panoul de detalii. ${error?.message || ""}`);
+      return;
+    }
+
+    desktopCaptureState.busy = false;
+    renderDesktopCaptureModal();
+    setDesktopCaptureMessage(error?.message || "Articolul nu a putut fi salvat.", "error");
+  }
+}
+
+/* leaga o singura data controalele formularului desktop */
+function initializeDesktopCaptureModal() {
+  const elements = desktopCaptureElements();
+  elements.typeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (desktopCaptureState.busy) return;
+      desktopCaptureState.type = button.dataset.captureType;
+      setDesktopCaptureMessage();
+      renderDesktopCaptureModal();
+    });
+  });
+  elements.photoPicker.addEventListener("click", () => {
+    if (!desktopCaptureState.busy) elements.photoInput.click();
+  });
+  elements.photoInput.addEventListener("change", async () => {
+    const files = Array.from(elements.photoInput.files || []);
+    elements.photoInput.value = "";
+    if (files.length) await addDesktopCapturePhotos(files);
+  });
+  elements.form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitDesktopCapture();
+  });
+  elements.modal.querySelectorAll("[data-close-capture]").forEach((button) => {
+    button.addEventListener("click", closeDesktopCaptureModal);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && elements.modal.classList.contains("is-open")) {
+      event.preventDefault();
+      closeDesktopCaptureModal();
+    }
+  });
 }
 
 /* solicita URL-ul GET semnat numai dupa autorizarea cheii R2 in Edge */
@@ -1853,20 +2160,8 @@ function bindEvents() {
     });
   });
 
-  document.querySelector("#newItemBtn").addEventListener("click", async () => {
-    if (!dezmembrariItems.length) return;
-    dezState.selectedId = dezmembrariItems[0].id;
-    dezState.statusFilter = "draft";
-    if (detailDrawerMedia.matches) dezState.detailOpen = true;
-    render();
-
-    try {
-      await loadItemPhotos(dezState.selectedId);
-    } catch (error) {
-      console.error("Eroare la încărcarea fotografiilor Dezmembrări:", error);
-    }
-    render();
-  });
+  /* butonul principal deschide captura rapida, inclusiv cand lista este goala */
+  document.querySelector("#newItemBtn").addEventListener("click", openDesktopCaptureModal);
 
   document.querySelector("#drawerBackdrop").addEventListener("click", () => {
     dezState.detailOpen = false;
@@ -1899,6 +2194,7 @@ function render() {
 /* porneste pagina si afiseaza erorile de incarcare in UI */
 async function initializeDezmembrari() {
   initializePhotoLightbox();
+  initializeDesktopCaptureModal();
   bindEvents();
   document.querySelector("#itemList").innerHTML = '<div class="dez-empty"><div><strong>Se încarcă...</strong></div></div>';
   document.querySelector("#detailPane").innerHTML = '<div class="dez-empty"><div><strong>Se încarcă detaliile...</strong></div></div>';
@@ -1927,6 +2223,7 @@ async function initializeDezmembrari() {
 
 /* curata URL-urile temporare cand pagina desktop se inchide */
 window.addEventListener("beforeunload", () => {
+  clearDesktopCapturePhotos();
   dezmembrariItems.forEach(revokeItemPhotoUrls);
   thumbnailObjectUrlCache.forEach((thumbnailRequest) => {
     thumbnailRequest.then((objectUrl) => URL.revokeObjectURL(objectUrl)).catch(() => {});
