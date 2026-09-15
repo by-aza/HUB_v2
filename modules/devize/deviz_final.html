@@ -644,6 +644,126 @@
             document.querySelectorAll('[data-uppercase="true"]').forEach(normalizeUppercaseElement);
         };
 
+        /* stare pentru cautarea discreta a masinii, fara interogari la fiecare tasta */
+        let vehicleHistoryLookupPromise = null;
+        let vehicleHistoryLookupPlate = '';
+        let skipNextVehiclePlateBlur = false;
+        let vehicleHistoryStatusTimer = null;
+
+        /* intoarce cea mai recenta valoare completata din istoricul deja sortat */
+        const getLatestVehicleValue = (rows, column) => {
+            const row = (Array.isArray(rows) ? rows : []).find((item) => String(item?.[column] ?? '').trim());
+            return String(row?.[column] ?? '').trim();
+        };
+
+        /* completeaza numai campurile auto care sunt inca goale */
+        const applyVehicleHistoryValues = (values, plate) => {
+            if (normalizePlate(inputNrInmatriculareDevizFinal?.value) !== plate) return 0;
+
+            const fields = [
+                { input: inputClientDevizFinal, key: 'client', value: values.client },
+                { input: inputTipAutoDevizFinal, key: 'tipAuto', value: values.tipAuto },
+                { input: inputSerieVinDevizFinal, key: 'serieVin', value: values.serieVin },
+                { input: inputSerieMotorDevizFinal, key: 'serieMotor', value: values.serieMotor }
+            ];
+
+            let completedCount = 0;
+            fields.forEach(({ input, key, value }) => {
+                if (!input || String(input.value ?? '').trim() || !String(value ?? '').trim()) return;
+                input.value = normalizeUppercaseText(value);
+                devizData[key] = input.value;
+                completedCount += 1;
+            });
+            return completedCount;
+        };
+
+        /* cauta datele masinii in ordinea: Deviz Final, Constatari, Devize */
+        async function lookupVehicleHistory(plateValue) {
+            const plate = normalizePlate(plateValue);
+            if (!plate || plate === 'FaraNumar') return false;
+
+            inputNrInmatriculareDevizFinal.value = plate;
+            devizData.nrInmatriculare = plate;
+
+            if (vehicleHistoryLookupPromise && vehicleHistoryLookupPlate === plate) {
+                return vehicleHistoryLookupPromise;
+            }
+
+            vehicleHistoryLookupPlate = plate;
+            const currentLookupPromise = (async () => {
+                const values = { client: '', tipAuto: '', serieVin: '', serieMotor: '' };
+
+                try {
+                    const { data, error } = await sb
+                        .from('deviz_final_header')
+                        .select('id_deviz_final, client, auto, serie_vin, serie_motor')
+                        .eq('nr_inmatriculare', plate)
+                        .order('id_deviz_final', { ascending: false });
+
+                    if (error) throw error;
+                    values.client = getLatestVehicleValue(data, 'client');
+                    values.tipAuto = getLatestVehicleValue(data, 'auto');
+                    values.serieVin = getLatestVehicleValue(data, 'serie_vin');
+                    values.serieMotor = getLatestVehicleValue(data, 'serie_motor');
+                } catch (error) {
+                    console.error('Eroare lookup auto in deviz_final_header:', error);
+                }
+
+                if (!values.client || !values.tipAuto || !values.serieVin) {
+                    try {
+                        const { data, error } = await sb
+                            .from('constatari')
+                            .select('client, model_masina, serie_vin, created_at')
+                            .eq('nr_inmatriculare', plate)
+                            .order('created_at', { ascending: false });
+
+                        if (error) throw error;
+                        values.client ||= getLatestVehicleValue(data, 'client');
+                        values.tipAuto ||= getLatestVehicleValue(data, 'model_masina');
+                        values.serieVin ||= getLatestVehicleValue(data, 'serie_vin');
+                    } catch (error) {
+                        console.error('Eroare lookup auto in constatari:', error);
+                    }
+                }
+
+                if (!values.tipAuto || !values.serieVin) {
+                    try {
+                        const { data, error } = await sb
+                            .from('devize')
+                            .select('id_deviz, autovehicul, vin')
+                            .eq('nr_inmatriculare', plate)
+                            .order('id_deviz', { ascending: false });
+
+                        if (error) throw error;
+                        values.tipAuto ||= getLatestVehicleValue(data, 'autovehicul');
+                        values.serieVin ||= getLatestVehicleValue(data, 'vin');
+                    } catch (error) {
+                        console.error('Eroare lookup auto in devize:', error);
+                    }
+                }
+
+                const completedCount = applyVehicleHistoryValues(values, plate);
+                if (completedCount > 0) {
+                    const message = 'Date mașină completate din istoric.';
+                    setImportStatus(message, 'success');
+                    window.clearTimeout(vehicleHistoryStatusTimer);
+                    vehicleHistoryStatusTimer = window.setTimeout(() => {
+                        if (importStatus.textContent === message) setImportStatus('');
+                    }, 3000);
+                }
+                return completedCount > 0;
+            })();
+            vehicleHistoryLookupPromise = currentLookupPromise;
+
+            currentLookupPromise.finally(() => {
+                if (vehicleHistoryLookupPromise !== currentLookupPromise) return;
+                vehicleHistoryLookupPromise = null;
+                vehicleHistoryLookupPlate = '';
+            });
+
+            return currentLookupPromise;
+        }
+
         function escapeHtml(unsafe) {
             if (typeof unsafe !== 'string') return unsafe;
             return unsafe
@@ -2309,6 +2429,25 @@
 
             devizData.idDevizEstimativ = normalized;
             inputDevizEstimativ.value = normalized;
+        });
+
+        /* Enter cauta masina si muta focusul la urmatorul camp din Antet */
+        inputNrInmatriculareDevizFinal.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            normalizeUppercaseElement(inputNrInmatriculareDevizFinal);
+            await lookupVehicleHistory(inputNrInmatriculareDevizFinal.value);
+            skipNextVehiclePlateBlur = true;
+            inputSerieVinDevizFinal?.focus();
+        });
+
+        /* Tab sau click in afara pastreaza navigarea normala si porneste cautarea */
+        inputNrInmatriculareDevizFinal.addEventListener('blur', () => {
+            if (skipNextVehiclePlateBlur) {
+                skipNextVehiclePlateBlur = false;
+                return;
+            }
+            lookupVehicleHistory(inputNrInmatriculareDevizFinal.value);
         });
 
         btnImportaDate.addEventListener('click', importEstimatedDeviz);
