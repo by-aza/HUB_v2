@@ -23,6 +23,85 @@
     <section class="detail-pane" id="detailPane"></section>
   </main>
 </div>
+<!-- modalul editabil pentru verificarea și salvarea atomică a devizului final -->
+<div class="final-estimate-modal hidden" id="finalEstimateModal" role="dialog" aria-modal="true" aria-labelledby="finalEstimateTitle" aria-hidden="true">
+  <div class="final-estimate-dialog" tabindex="-1">
+    <!-- antetul modalului și butonul rapid de închidere -->
+    <header class="final-estimate-header">
+      <div>
+        <h2 id="finalEstimateTitle">Previzualizare Deviz final</h2>
+        <p id="finalEstimateSubtitle">—</p>
+      </div>
+      <button class="final-estimate-icon-btn" id="closeFinalEstimateBtn" type="button" aria-label="Închide previzualizarea" title="Închide">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <!-- conținutul intern rămâne scrollabil în interiorul ecranului -->
+    <div class="final-estimate-body">
+      <section class="final-estimate-card">
+        <div class="final-estimate-section-title"><h3>Date deviz</h3></div>
+        <div class="final-estimate-header-grid">
+          <label><span>Client</span><input data-preview-header="client" type="text"></label>
+          <label><span>Tip auto</span><input data-preview-header="auto" type="text"></label>
+          <label><span>Nr. înmatriculare</span><input data-preview-header="nrInmatriculare" type="text"></label>
+          <label><span>Serie caroserie</span><input data-preview-header="serieVin" type="text"></label>
+          <label><span>Serie motor</span><input data-preview-header="serieMotor" type="text"></label>
+          <label><span>Km</span><input data-preview-header="km" type="text" inputmode="numeric"></label>
+          <label><span>Data</span><input data-preview-header="dataDeviz" data-preview-date="true" type="text" inputmode="numeric" placeholder="ZZ.LL.AAAA"></label>
+          <label><span>Termen execuție</span><input data-preview-header="termenExecutie" type="text"></label>
+        </div>
+      </section>
+
+      <!-- secțiunea pozițiilor solicitate și câmpul rezervat pieselor clientului -->
+      <section class="final-estimate-card">
+        <div class="final-estimate-section-title"><h3>Lucrări solicitate de client</h3><span data-preview-count="lucrariSolicitate">0 poziții</span></div>
+        <div class="final-estimate-rows" data-preview-section="lucrariSolicitate"></div>
+        <button class="btn btn-ghost final-estimate-add" type="button" data-preview-add="lucrariSolicitate"><i data-lucide="plus" aria-hidden="true"></i>Adaugă poziție</button>
+        <label class="final-estimate-client-parts"><span>Piese client</span><textarea data-preview-field="pieseClient" rows="2" placeholder="Nu se importă automat în această etapă"></textarea></label>
+      </section>
+
+      <!-- secțiunile populate din rândurile departamentelor selectate -->
+      <section class="final-estimate-card">
+        <div class="final-estimate-section-title"><h3>Defecte suplimentare constatate</h3><span data-preview-count="defecteSuplimentare">0 poziții</span></div>
+        <div class="final-estimate-rows" data-preview-section="defecteSuplimentare"></div>
+        <button class="btn btn-ghost final-estimate-add" type="button" data-preview-add="defecteSuplimentare"><i data-lucide="plus" aria-hidden="true"></i>Adaugă poziție</button>
+      </section>
+
+      <section class="final-estimate-card">
+        <div class="final-estimate-section-title"><h3>Lucrări convenite cu clientul și executate</h3><span data-preview-count="lucrariExecutate">0 poziții</span></div>
+        <div class="final-estimate-rows" data-preview-section="lucrariExecutate"></div>
+        <button class="btn btn-ghost final-estimate-add" type="button" data-preview-add="lucrariExecutate"><i data-lucide="plus" aria-hidden="true"></i>Adaugă poziție</button>
+      </section>
+
+      <section class="final-estimate-card">
+        <div class="final-estimate-section-title"><h3>Piese / materiale</h3><span data-preview-count="pieseMateriale">0 poziții</span></div>
+        <div class="final-estimate-rows" data-preview-section="pieseMateriale"></div>
+        <button class="btn btn-ghost final-estimate-add" type="button" data-preview-add="pieseMateriale"><i data-lucide="plus" aria-hidden="true"></i>Adaugă poziție</button>
+      </section>
+    </div>
+
+    <!-- starea compactă afișată după creare sau după detectarea unui deviz concurent -->
+    <section class="final-estimate-success hidden" id="finalEstimateSuccess" aria-live="polite">
+      <i data-lucide="circle-check-big" aria-hidden="true"></i>
+      <h3 id="finalEstimateSuccessMessage">Devizul final a fost creat.</h3>
+      <div>
+        <button class="btn btn-ghost" id="stayInConstatariBtn" type="button">Rămâi în Constatări</button>
+        <button class="btn btn-primary" id="openSavedFinalEstimateBtn" type="button">Deschide Devizul final</button>
+      </div>
+    </section>
+
+    <!-- subsolul păstrează feedback-ul de salvare și acțiunile previzualizării -->
+    <footer class="final-estimate-footer">
+      <p id="finalEstimateStatus" role="status" aria-live="polite">Verifică datele înainte de salvare.</p>
+      <div>
+        <button class="btn btn-ghost" id="cancelFinalEstimateBtn" type="button">Anulează</button>
+        <button class="btn btn-primary" id="saveFinalEstimateBtn" type="button">Salvează Deviz final</button>
+      </div>
+    </footer>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/constatari_v2.js"></script>

@@ -10,6 +10,7 @@ let servicePeopleLoaded = false;
 let servicePeopleError = false;
 let detailMessage = "";
 let constatariV2AccessGranted = false;
+let canGenerateFinalEstimate = false;
 let auditActorPromise = null;
 let refreshTimer = null;
 let localTimeTimer = null;
@@ -19,7 +20,18 @@ let loadCarsGeneration = 0;
 let _selectionInFlight = false;
 let _detailDirtyListenerAttached = false;
 let _beforeunloadHandler = null;
+let finalEstimatePreview = null;
+let finalEstimatePreviewDirty = false;
+let finalEstimateModalOpen = false;
+let finalEstimateLastFocus = null;
+let finalEstimateOpenGeneration = 0;
+let finalEstimateItemSequence = 0;
+let finalEstimateSaving = false;
+let finalEstimateSavedId = null;
+let finalEstimateLookupGeneration = 0;
+const finalEstimateByConstatare = new Map();
 const departmentRows = new Map();
+const loadedDepartmentCarIds = new Set();
 const departmentAssignments = new Map();
 const waitingIntervals = new Map();
 const auditLogsByCar = new Map();
@@ -891,6 +903,706 @@ function buildConstatarePrintPayload(c) {
     defectiuniClient: c.complaint || "",
   };
 }
+
+/* actualizează iconițele Lucide după randarea conținutului dinamic */
+function refreshLucideIcons() {
+  if (window.lucide?.createIcons) window.lucide.createIcons();
+}
+
+/* formatează identificatorul exact ca editorul existent de Deviz final */
+function formatFinalEstimateId(id) {
+  const numericId = Number(id);
+  return Number.isFinite(numericId) && numericId > 0
+    ? `DF-${String(numericId).padStart(3, "0")}`
+    : "";
+}
+
+/* calea relativă reală de la formular către editorul de Deviz final */
+function getFinalEstimateUrl(id) {
+  return `../devize/deviz_final.html?id=${encodeURIComponent(String(id))}`;
+}
+
+/* deschide documentul existent folosind parametrul ?id deja suportat de editor */
+function openFinalEstimateById(id) {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId) || numericId <= 0) return;
+  window.location.href = getFinalEstimateUrl(numericId);
+}
+
+/* sincronizează acțiunea din antet exclusiv cu vizita selectată în acest moment */
+function updateFinalEstimateButtonState(constatareId, { checking = false, lookupError = false } = {}) {
+  const button = document.querySelector("#finalEstimateBtn");
+  if (!button || Number(selectedId) !== Number(constatareId)) return;
+  const existing = finalEstimateByConstatare.get(Number(constatareId));
+  const formattedId = formatFinalEstimateId(existing?.id_deviz_final);
+  button.disabled = checking || finalEstimateSaving;
+  button.removeAttribute("aria-busy");
+  button.title = "";
+
+  if (checking) {
+    button.setAttribute("aria-busy", "true");
+    button.innerHTML = '<i data-lucide="loader-circle" aria-hidden="true"></i>Se verifică...';
+  } else if (formattedId) {
+    button.innerHTML = `<i data-lucide="external-link" aria-hidden="true"></i>Deschide devizul ${formattedId}`;
+  } else {
+    button.innerHTML = '<i data-lucide="receipt-text" aria-hidden="true"></i>Generează deviz final';
+    if (lookupError) {
+      button.title = "Verificarea devizului existent a eșuat. Apasă pentru reîncercare.";
+    }
+  }
+  refreshLucideIcons();
+}
+
+/* verifică duplicatele numai după constatare_id și ignoră răspunsurile selecțiilor vechi */
+async function refreshFinalEstimateForSelected({ force = false } = {}) {
+  const constatareId = Number(selectedId);
+  if (!Number.isFinite(constatareId) || constatareId <= 0) return undefined;
+  if (!force && finalEstimateByConstatare.has(constatareId)) {
+    updateFinalEstimateButtonState(constatareId);
+    return finalEstimateByConstatare.get(constatareId);
+  }
+
+  const generation = ++finalEstimateLookupGeneration;
+  updateFinalEstimateButtonState(constatareId, { checking: true });
+  try {
+    const { data, error } = await supabaseClient
+      .from("deviz_final_header")
+      .select("id_deviz_final, constatare_id")
+      .eq("constatare_id", constatareId)
+      .maybeSingle();
+    if (error) throw error;
+    if (generation !== finalEstimateLookupGeneration || Number(selectedId) !== constatareId) {
+      return undefined;
+    }
+    const existing = data || null;
+    finalEstimateByConstatare.set(constatareId, existing);
+    updateFinalEstimateButtonState(constatareId);
+    return existing;
+  } catch (error) {
+    if (generation !== finalEstimateLookupGeneration || Number(selectedId) !== constatareId) {
+      return undefined;
+    }
+    finalEstimateByConstatare.delete(constatareId);
+    console.error("Verificare deviz final existent:", error);
+    updateFinalEstimateButtonState(constatareId, { lookupError: true });
+    return undefined;
+  }
+}
+
+/* decide la click între deschiderea documentului existent și previzualizarea unuia nou */
+async function handleFinalEstimateAction() {
+  const constatareId = Number(selectedId);
+  if (!Number.isFinite(constatareId) || constatareId <= 0) return;
+  let existing = finalEstimateByConstatare.get(constatareId);
+  if (!finalEstimateByConstatare.has(constatareId)) {
+    existing = await refreshFinalEstimateForSelected({ force: true });
+    if (existing === undefined) return;
+  }
+  if (existing?.id_deviz_final) {
+    openFinalEstimateById(existing.id_deviz_final);
+    return;
+  }
+  await openFinalEstimatePreview();
+}
+
+/* data locală stabilă YYYY-MM-DD, afișată de browser în formatul local */
+function getLocalDateValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/* transformă data internă ISO în afișarea românească ZZ.LL.AAAA */
+function formatStableDateForPreview(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : "";
+}
+
+/* validează data românească și întoarce forma internă stabilă YYYY-MM-DD */
+function parseRomanianPreviewDate(value) {
+  const match = String(value || "").trim().match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!match) return "";
+  const [, day, month, year] = match;
+  const date = new Date(`${year}-${month}-${day}T00:00:00`);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() + 1 !== Number(month) ||
+    date.getDate() !== Number(day)
+  ) {
+    return "";
+  }
+  return `${year}-${month}-${day}`;
+}
+
+/* separă pozițiile numai pe linii și elimină markerii manuali de listă */
+function splitFinalEstimateLines(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/^[•\-–—]+\s*/, "").trim())
+    .filter(Boolean);
+}
+
+/* creează o poziție independentă de obiectele încărcate din Supabase */
+function createFinalEstimateItem(text, departament) {
+  finalEstimateItemSequence += 1;
+  return {
+    id: `preview-${finalEstimateItemSequence}`,
+    text: String(text || ""),
+    departament: String(departament || "Adăugat manual"),
+  };
+}
+
+/* ordonează departamentele ca taburile, apoi păstrează orice valoare DB suplimentară */
+function getOrderedDepartmentRowsForPreview(constatareId) {
+  const rowsByDepartment = getDepartmentRowsForCar(constatareId);
+  const ordered = [];
+  const consumed = new Set();
+  Object.values(deptData).forEach((dept) => {
+    const row = rowsByDepartment[dept.db];
+    if (!row) return;
+    ordered.push({ row, label: dept.title, key: getDepartmentKeyFromDb(dept.db) });
+    consumed.add(dept.db);
+  });
+  Object.values(rowsByDepartment).forEach((row) => {
+    if (!row || consumed.has(row.departament)) return;
+    ordered.push({
+      row,
+      label: String(row.departament || "Departament"),
+      key: getDepartmentKeyFromDb(row.departament),
+    });
+  });
+  return ordered;
+}
+
+/* construiește snapshot-ul editabil fără referințe către datele formularului original */
+function buildFinalEstimatePreview(selectedConstatare, constatareId) {
+  const requestedSource = "Date mașină & constatări";
+  const preview = {
+    constatareId: Number(constatareId),
+    header: {
+      client: selectedConstatare.client === "—" ? "" : String(selectedConstatare.client || ""),
+      auto: selectedConstatare.model === "—" ? "" : String(selectedConstatare.model || ""),
+      nrInmatriculare:
+        selectedConstatare.plate === "—" ? "" : String(selectedConstatare.plate || ""),
+      serieVin: String(selectedConstatare.vin || ""),
+      serieMotor: "",
+      km:
+        selectedConstatare.kmOut !== "" && selectedConstatare.kmOut != null
+          ? String(selectedConstatare.kmOut)
+          : String(selectedConstatare.kmIn ?? ""),
+      dataDeviz: getLocalDateValue(),
+      termenExecutie: "",
+    },
+    pieseClient: "",
+    lucrariSolicitate: splitFinalEstimateLines(selectedConstatare.complaint).map(
+      (text) => createFinalEstimateItem(text, requestedSource),
+    ),
+    defecteSuplimentare: [],
+    lucrariExecutate: [],
+    pieseMateriale: [],
+  };
+
+  getOrderedDepartmentRowsForPreview(constatareId).forEach(({ row, label, key }) => {
+    splitFinalEstimateLines(row.constatari).forEach((text) => {
+      preview.defecteSuplimentare.push(createFinalEstimateItem(text, label));
+    });
+    splitFinalEstimateLines(row.lucrari_efectuate).forEach((text) => {
+      preview.lucrariExecutate.push(createFinalEstimateItem(text, label));
+    });
+    /* materialele Detailing rămân intenționat în afara devizului */
+    if (key !== "detailing") {
+      splitFinalEstimateLines(row.piese_materiale).forEach((text) => {
+        preview.pieseMateriale.push(createFinalEstimateItem(text, label));
+      });
+    }
+  });
+  return preview;
+}
+
+/* încarcă punctual departamentele numai dacă lista curentă nu le-a încărcat deja */
+async function ensureDepartmentRowsForPreview(constatareId) {
+  const numericId = Number(constatareId);
+  if (loadedDepartmentCarIds.has(numericId)) return;
+  const { data, error } = await supabaseClient
+    .from("constatari_departamente")
+    .select(
+      "id, constatare_id, departament, constatari, lucrari_efectuate, status, updated_at, finalizat_la, piese_materiale, elemente_lucrate",
+    )
+    .eq("constatare_id", numericId);
+  if (error) throw error;
+  const byDept = {};
+  (data || []).forEach((row) => {
+    if (!byDept[row.departament]) byDept[row.departament] = row;
+  });
+  departmentRows.set(numericId, byDept);
+  loadedDepartmentCarIds.add(numericId);
+}
+
+/* marchează exclusiv snapshot-ul devizului ca modificat */
+function markFinalEstimatePreviewDirty() {
+  finalEstimatePreviewDirty = true;
+}
+
+/* creează un buton accesibil cu iconiță pentru rândurile devizului */
+function createFinalEstimateIconButton(icon, label, action, disabled = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "final-estimate-icon-btn";
+  button.dataset.previewAction = action;
+  button.disabled = disabled;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  const iconElement = document.createElement("i");
+  iconElement.setAttribute("data-lucide", icon);
+  iconElement.setAttribute("aria-hidden", "true");
+  button.appendChild(iconElement);
+  return button;
+}
+
+/* randează sigur o secțiune folosind value și textContent, fără HTML din baza de date */
+function renderFinalEstimateSection(sectionKey) {
+  const container = document.querySelector(
+    `[data-preview-section="${sectionKey}"]`,
+  );
+  const count = document.querySelector(`[data-preview-count="${sectionKey}"]`);
+  if (!container || !finalEstimatePreview) return;
+  const items = finalEstimatePreview[sectionKey] || [];
+  container.replaceChildren();
+  if (count) count.textContent = `${items.length} ${items.length === 1 ? "poziție" : "poziții"}`;
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "final-estimate-empty";
+    empty.textContent = "Nu există poziții importate.";
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "final-estimate-row";
+    row.dataset.previewItemId = item.id;
+
+    const badge = document.createElement("span");
+    badge.className = "final-estimate-source";
+    badge.textContent = item.departament;
+    badge.title = item.departament;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "final-estimate-row-input";
+    input.value = item.text;
+    input.dataset.previewRowInput = sectionKey;
+    input.dataset.previewItemId = item.id;
+    input.setAttribute("aria-label", `Poziție ${index + 1} din ${sectionKey}`);
+
+    const actions = document.createElement("div");
+    actions.className = "final-estimate-row-actions";
+    actions.append(
+      createFinalEstimateIconButton("arrow-up", "Mută poziția în sus", "up", index === 0),
+      createFinalEstimateIconButton(
+        "arrow-down",
+        "Mută poziția în jos",
+        "down",
+        index === items.length - 1,
+      ),
+      createFinalEstimateIconButton("trash-2", "Șterge poziția", "delete"),
+    );
+    row.append(badge, input, actions);
+    container.appendChild(row);
+  });
+}
+
+/* completează toate câmpurile și listele modalului din snapshot */
+function renderFinalEstimatePreview() {
+  if (!finalEstimatePreview) return;
+  const subtitle = document.querySelector("#finalEstimateSubtitle");
+  const car = cars.find((item) => item.id === finalEstimatePreview.constatareId);
+  if (subtitle) {
+    subtitle.textContent = `${finalEstimatePreview.header.nrInmatriculare || "—"} · Fișa ${car?.file || "—"}`;
+  }
+  document.querySelectorAll("[data-preview-header]").forEach((input) => {
+    const value = finalEstimatePreview.header[input.dataset.previewHeader] ?? "";
+    input.value = input.dataset.previewDate === "true"
+      ? formatStableDateForPreview(value)
+      : value;
+  });
+  const clientParts = document.querySelector('[data-preview-field="pieseClient"]');
+  if (clientParts) clientParts.value = finalEstimatePreview.pieseClient;
+  ["lucrariSolicitate", "defecteSuplimentare", "lucrariExecutate", "pieseMateriale"].forEach(
+    renderFinalEstimateSection,
+  );
+  refreshLucideIcons();
+}
+
+/* mesajul din subsol oferă feedback fără să reconstruiască sau să închidă previzualizarea */
+function setFinalEstimateStatus(message, state = "") {
+  const status = document.querySelector("#finalEstimateStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-error", state === "error");
+  status.classList.toggle("is-saving", state === "saving");
+}
+
+/* readuce modalul în starea editabilă înaintea fiecărei previzualizări noi */
+function resetFinalEstimateModalView() {
+  finalEstimateSavedId = null;
+  const body = document.querySelector("#finalEstimateModal .final-estimate-body");
+  const footer = document.querySelector("#finalEstimateModal .final-estimate-footer");
+  const success = document.querySelector("#finalEstimateSuccess");
+  body?.classList.remove("hidden");
+  footer?.classList.remove("hidden");
+  success?.classList.add("hidden");
+  setFinalEstimateStatus("Verifică datele înainte de salvare.");
+  const saveButton = document.querySelector("#saveFinalEstimateBtn");
+  if (saveButton) {
+    saveButton.disabled = false;
+    saveButton.textContent = "Salvează Deviz final";
+  }
+}
+
+/* blochează închiderea și editarea accidentală cât timp apelul RPC este în curs */
+function setFinalEstimateSavingState(isSaving) {
+  finalEstimateSaving = isSaving;
+  const body = document.querySelector("#finalEstimateModal .final-estimate-body");
+  if (body) body.inert = isSaving;
+  const saveButton = document.querySelector("#saveFinalEstimateBtn");
+  const cancelButton = document.querySelector("#cancelFinalEstimateBtn");
+  const closeButton = document.querySelector("#closeFinalEstimateBtn");
+  if (saveButton) {
+    saveButton.disabled = isSaving;
+    saveButton.textContent = isSaving ? "Se salvează..." : "Salvează Deviz final";
+  }
+  if (cancelButton) cancelButton.disabled = isSaving;
+  if (closeButton) closeButton.disabled = isSaving;
+  if (isSaving) setFinalEstimateStatus("Se salvează antetul și liniile...", "saving");
+}
+
+/* normalizează payload-ul final fără a reîncărca datele și fără a inventa prețuri */
+function buildFinalEstimateSavePayload() {
+  const constatareId = Number(selectedId);
+  if (
+    !finalEstimatePreview ||
+    !Number.isFinite(constatareId) ||
+    constatareId <= 0 ||
+    constatareId !== Number(finalEstimatePreview.constatareId)
+  ) {
+    throw new Error("Constatarea selectată nu este validă pentru această previzualizare.");
+  }
+
+  const header = finalEstimatePreview.header || {};
+  const dateInput = document.querySelector('[data-preview-date="true"]');
+  const dataDeviz = parseRomanianPreviewDate(dateInput?.value || "");
+  if (!dataDeviz) throw new Error("Data devizului trebuie completată în formatul ZZ.LL.AAAA.");
+
+  const registration = normalizePlate(String(header.nrInmatriculare || "").trim());
+  if (!registration) throw new Error("Numărul de înmatriculare este obligatoriu.");
+
+  const lines = [];
+  const appendLines = (items, section, options = {}) => {
+    const normalizedItems = (items || [])
+      .map((item) => ({
+        denumire: String(item?.text || "").trim(),
+        detalii: String(item?.departament || "").trim(),
+      }))
+      .filter((item) => item.denumire);
+    normalizedItems.forEach((item, index) => {
+      const line = {
+        sectiune: section,
+        nr_crt: index + 1,
+        denumire: item.denumire,
+      };
+      if (options.keepSource && item.detalii) line.detalii = item.detalii;
+      if (options.um) line.um = options.um;
+      lines.push(line);
+    });
+  };
+
+  appendLines(finalEstimatePreview.lucrariSolicitate, "lucrari");
+  appendLines(finalEstimatePreview.defecteSuplimentare, "constatari", { keepSource: true });
+  appendLines(finalEstimatePreview.lucrariExecutate, "manopera", { keepSource: true });
+  appendLines(finalEstimatePreview.pieseMateriale, "piese", { keepSource: true, um: "buc" });
+  if (!lines.length) throw new Error("Devizul trebuie să conțină cel puțin o poziție completată.");
+
+  return {
+    constatareId,
+    header: {
+      data_deviz: dataDeviz,
+      client: String(header.client || "").trim(),
+      auto: String(header.auto || "").trim(),
+      nr_inmatriculare: registration,
+      serie_vin: String(header.serieVin || "").trim(),
+      serie_motor: String(header.serieMotor || "").trim(),
+      km: String(header.km || "").trim(),
+      termen_executie: String(header.termenExecutie || "").trim(),
+    },
+    lines,
+  };
+}
+
+/* afișează confirmarea compactă și păstrează ID-ul pentru acțiunea de deschidere */
+function showFinalEstimateSuccess(id, alreadyExisted = false) {
+  const numericId = Number(id);
+  const formattedId = formatFinalEstimateId(numericId);
+  if (!formattedId) return;
+  finalEstimateSavedId = numericId;
+  finalEstimatePreviewDirty = false;
+  document.querySelector("#finalEstimateModal .final-estimate-body")?.classList.add("hidden");
+  document.querySelector("#finalEstimateModal .final-estimate-footer")?.classList.add("hidden");
+  document.querySelector("#finalEstimateSuccess")?.classList.remove("hidden");
+  const message = document.querySelector("#finalEstimateSuccessMessage");
+  if (message) {
+    message.textContent = alreadyExisted
+      ? `Devizul final ${formattedId} există deja pentru această constatare.`
+      : `Devizul final ${formattedId} a fost creat.`;
+  }
+  refreshLucideIcons();
+}
+
+/* salvează atomic prin RPC; orice eroare PostgreSQL anulează antetul și liniile */
+async function saveFinalEstimate() {
+  if (finalEstimateSaving || !finalEstimatePreview) return;
+  let payload;
+  try {
+    payload = buildFinalEstimateSavePayload();
+  } catch (error) {
+    setFinalEstimateStatus(error.message, "error");
+    alert(error.message);
+    return;
+  }
+
+  setFinalEstimateSavingState(true);
+  let resolvedExisting = false;
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "create_deviz_final_from_constatare",
+      {
+        p_constatare_id: payload.constatareId,
+        p_header: payload.header,
+        p_lines: payload.lines,
+      },
+    );
+    if (error) throw error;
+    const savedId = Number(data);
+    if (!Number.isFinite(savedId) || savedId <= 0) {
+      throw new Error("RPC-ul nu a returnat un id_deviz_final valid.");
+    }
+    const linkedEstimate = {
+      id_deviz_final: savedId,
+      constatare_id: payload.constatareId,
+    };
+    finalEstimateByConstatare.set(payload.constatareId, linkedEstimate);
+    updateFinalEstimateButtonState(payload.constatareId);
+    showFinalEstimateSuccess(savedId);
+    resolvedExisting = true;
+  } catch (error) {
+    console.error("Salvare atomică Deviz final:", error);
+    const duplicateConflict =
+      error?.code === "23505" || /deja|duplicate|unique/i.test(String(error?.message || ""));
+    if (duplicateConflict) {
+      const existing = await refreshFinalEstimateForSelected({ force: true });
+      if (existing?.id_deviz_final) {
+        showFinalEstimateSuccess(existing.id_deviz_final, true);
+        resolvedExisting = true;
+      }
+    }
+    if (!resolvedExisting) {
+      const message = error?.message || "Devizul final nu a putut fi salvat.";
+      setFinalEstimateStatus(message, "error");
+      alert(`Devizul final nu a fost salvat. ${message}`);
+    }
+  } finally {
+    setFinalEstimateSavingState(false);
+    updateFinalEstimateButtonState(payload.constatareId);
+    if (resolvedExisting) {
+      document.querySelector("#finalEstimateModal .final-estimate-footer")?.classList.add("hidden");
+    }
+  }
+}
+
+/* închide modalul și avertizează numai când snapshot-ul a fost editat */
+function closeFinalEstimatePreview() {
+  if (!finalEstimateModalOpen) return;
+  if (finalEstimateSaving) return;
+  if (
+    finalEstimatePreviewDirty &&
+    !window.confirm("Previzualizarea conține modificări nesalvate. Doriți să o închideți?")
+  ) {
+    return;
+  }
+  finalEstimateOpenGeneration += 1;
+  finalEstimateModalOpen = false;
+  finalEstimatePreviewDirty = false;
+  finalEstimatePreview = null;
+  finalEstimateSavedId = null;
+  const modal = document.querySelector("#finalEstimateModal");
+  modal?.classList.add("hidden");
+  modal?.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("final-estimate-open");
+  if (finalEstimateLastFocus?.isConnected) finalEstimateLastFocus.focus();
+  finalEstimateLastFocus = null;
+}
+
+/* deschide previzualizarea pentru ID-ul numeric selectat, nu pentru numărul auto */
+async function openFinalEstimatePreview() {
+  const constatareId = Number(selectedId);
+  if (!Number.isFinite(constatareId)) return;
+  if (hasUnsavedChanges) {
+    const shouldReload = window.confirm(
+      "Există modificări nesalvate. Reîncărcați datele salvate înainte de generarea previzualizării?",
+    );
+    if (!shouldReload) return;
+    clearDirtyState();
+    editing = false;
+    await loadCars(constatareId);
+  }
+
+  const generation = ++finalEstimateOpenGeneration;
+  const button = document.querySelector("#finalEstimateBtn");
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  }
+  try {
+    await ensureDepartmentRowsForPreview(constatareId);
+    if (generation !== finalEstimateOpenGeneration) return;
+    if (Number(selectedId) !== constatareId) return;
+    const selectedConstatare = cars.find((item) => item.id === constatareId);
+    if (!selectedConstatare) throw new Error(`Constatarea ${constatareId} nu mai este disponibilă.`);
+    finalEstimatePreview = buildFinalEstimatePreview(selectedConstatare, constatareId);
+    finalEstimatePreviewDirty = false;
+    finalEstimateModalOpen = true;
+    finalEstimateLastFocus = button || document.activeElement;
+    resetFinalEstimateModalView();
+    renderFinalEstimatePreview();
+    const modal = document.querySelector("#finalEstimateModal");
+    modal?.classList.remove("hidden");
+    modal?.setAttribute("aria-hidden", "false");
+    document.body.classList.add("final-estimate-open");
+    document.querySelector("#closeFinalEstimateBtn")?.focus();
+  } catch (error) {
+    console.error("Previzualizare deviz final:", error);
+    alert("Nu s-au putut încărca datele pentru previzualizarea devizului final.");
+  } finally {
+    if (button?.isConnected) {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
+  }
+}
+
+/* evenimente delegate unice pentru editare, adăugare, ștergere și reordonare */
+function setupFinalEstimatePreview() {
+  const modal = document.querySelector("#finalEstimateModal");
+  if (!modal || modal.dataset.listenersReady === "true") return;
+  modal.dataset.listenersReady = "true";
+  document.querySelector("#closeFinalEstimateBtn")?.addEventListener("click", closeFinalEstimatePreview);
+  document.querySelector("#cancelFinalEstimateBtn")?.addEventListener("click", closeFinalEstimatePreview);
+  document.querySelector("#saveFinalEstimateBtn")?.addEventListener("click", saveFinalEstimate);
+  document.querySelector("#stayInConstatariBtn")?.addEventListener("click", closeFinalEstimatePreview);
+  document.querySelector("#openSavedFinalEstimateBtn")?.addEventListener("click", () => {
+    openFinalEstimateById(finalEstimateSavedId);
+  });
+
+  modal.addEventListener("input", (event) => {
+    if (!finalEstimatePreview) return;
+    const target = event.target;
+    if (target.matches("[data-preview-header]")) {
+      if (target.dataset.previewDate === "true") {
+        const stableDate = parseRomanianPreviewDate(target.value);
+        target.classList.toggle("is-invalid", !stableDate);
+        target.setAttribute("aria-invalid", stableDate ? "false" : "true");
+        if (stableDate) finalEstimatePreview.header.dataDeviz = stableDate;
+      } else {
+        finalEstimatePreview.header[target.dataset.previewHeader] = target.value;
+      }
+      markFinalEstimatePreviewDirty();
+      return;
+    }
+    if (target.matches('[data-preview-field="pieseClient"]')) {
+      finalEstimatePreview.pieseClient = target.value;
+      markFinalEstimatePreviewDirty();
+      return;
+    }
+    if (target.matches("[data-preview-row-input]")) {
+      const items = finalEstimatePreview[target.dataset.previewRowInput] || [];
+      const item = items.find((entry) => entry.id === target.dataset.previewItemId);
+      if (item) item.text = target.value;
+      markFinalEstimatePreviewDirty();
+    }
+  });
+
+  /* normalizează vizual data validă la ieșirea din câmp */
+  modal.addEventListener("focusout", (event) => {
+    const target = event.target;
+    if (!finalEstimatePreview || target.dataset?.previewDate !== "true") return;
+    const stableDate = parseRomanianPreviewDate(target.value);
+    if (!stableDate) return;
+    finalEstimatePreview.header.dataDeviz = stableDate;
+    target.value = formatStableDateForPreview(stableDate);
+    target.classList.remove("is-invalid");
+    target.setAttribute("aria-invalid", "false");
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeFinalEstimatePreview();
+      return;
+    }
+    const addButton = event.target.closest("[data-preview-add]");
+    if (addButton && finalEstimatePreview) {
+      const sectionKey = addButton.dataset.previewAdd;
+      finalEstimatePreview[sectionKey].push(createFinalEstimateItem("", "Adăugat manual"));
+      markFinalEstimatePreviewDirty();
+      renderFinalEstimateSection(sectionKey);
+      refreshLucideIcons();
+      const inputs = modal.querySelectorAll(`[data-preview-row-input="${sectionKey}"]`);
+      inputs[inputs.length - 1]?.focus();
+      return;
+    }
+
+    const actionButton = event.target.closest("[data-preview-action]");
+    const row = actionButton?.closest("[data-preview-item-id]");
+    if (!actionButton || !row || !finalEstimatePreview) return;
+    const section = row.closest("[data-preview-section]");
+    const sectionKey = section?.dataset.previewSection;
+    const items = finalEstimatePreview[sectionKey] || [];
+    const index = items.findIndex((item) => item.id === row.dataset.previewItemId);
+    if (index < 0) return;
+    const action = actionButton.dataset.previewAction;
+    if (action === "delete") items.splice(index, 1);
+    if (action === "up" && index > 0) [items[index - 1], items[index]] = [items[index], items[index - 1]];
+    if (action === "down" && index < items.length - 1)
+      [items[index + 1], items[index]] = [items[index], items[index + 1]];
+    markFinalEstimatePreviewDirty();
+    renderFinalEstimateSection(sectionKey);
+    refreshLucideIcons();
+  });
+
+  modal.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeFinalEstimatePreview();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      modal.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), [tabindex="0"]'),
+    ).filter((element) => element.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+}
 function updateFilterCounts() {
   const counts = {
     all: cars.length,
@@ -964,6 +1676,8 @@ function renderList() {
         try {
           clearDirtyState();
           selectedId = nextId;
+          /* o selecție explicită cere o verificare nouă, fără starea vehiculului anterior */
+          finalEstimateByConstatare.delete(nextId);
           creating = false;
           editing = false;
           activeTab = "general";
@@ -1130,7 +1844,12 @@ function renderDetail() {
   }
   const c = cars.find((x) => x.id === selectedId);
   if (!c) {
-    pane.innerHTML = `<div class="empty"><div><strong>${listErrorMessage ? "Nu s-au putut încărca detaliile" : "Nicio mașină selectată"}</strong><div>${listErrorMessage ? "Verifică consola pentru detalii." : "Selectează o constatare din listă."}</div></div></div>`;
+    /* fără selecție, acțiunea de deviz rămâne vizibilă dar dezactivată pentru utilizatorii autorizați */
+    const disabledFinalEstimateButton = canGenerateFinalEstimate
+      ? '<div class="detail-header"><div class="header-tools"><button class="btn btn-primary final-estimate-trigger" type="button" disabled><i data-lucide="receipt-text" aria-hidden="true"></i>Generează deviz final</button></div></div>'
+      : "";
+    pane.innerHTML = `${disabledFinalEstimateButton}<div class="empty"><div><strong>${listErrorMessage ? "Nu s-au putut încărca detaliile" : "Nicio mașină selectată"}</strong><div>${listErrorMessage ? "Verifică consola pentru detalii." : "Selectează o constatare din listă."}</div></div></div>`;
+    refreshLucideIcons();
     return;
   }
   const tabNames = [
@@ -1142,7 +1861,18 @@ function renderDetail() {
     ["detailing", "Detailing"],
     ["history", "Istoric"],
   ];
-  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools"><div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
+  /* actiunea de deviz este vizibilă numai cu permisiunea existentă deviz_final */
+  const linkedFinalEstimate = finalEstimateByConstatare.get(Number(c.id));
+  const linkedFinalEstimateLabel = formatFinalEstimateId(linkedFinalEstimate?.id_deviz_final);
+  const finalEstimateButton = canGenerateFinalEstimate
+    ? `<button class="btn btn-primary final-estimate-trigger" id="finalEstimateBtn" type="button" ${Number.isFinite(Number(c.id)) ? "" : "disabled"}><i data-lucide="${linkedFinalEstimateLabel ? "external-link" : "receipt-text"}" aria-hidden="true"></i>${linkedFinalEstimateLabel ? `Deschide devizul ${linkedFinalEstimateLabel}` : "Generează deviz final"}</button>`
+    : "";
+  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools">${finalEstimateButton}<div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
+  const finalEstimateBtn = document.querySelector("#finalEstimateBtn");
+  if (finalEstimateBtn) {
+    finalEstimateBtn.onclick = handleFinalEstimateAction;
+    void refreshFinalEstimateForSelected();
+  }
   const printBtn = document.querySelector("#printMenuBtn");
   const printMenu = document.querySelector("#printMenu");
   if (printBtn && printMenu) {
@@ -1292,6 +2022,7 @@ function renderDetail() {
 
   /* atașează listeneri pentru normalizare și avertismente virgule */
   attachAllMultilineListeners();
+  refreshLucideIcons();
 }
 function render() {
   updateFilterCounts();
@@ -1300,6 +2031,7 @@ function render() {
 }
 async function loadDepartmentRows(constatareIds) {
   departmentRows.clear();
+  loadedDepartmentCarIds.clear();
   if (!constatareIds.length) return;
   const { data, error } = await supabaseClient
     .from("constatari_departamente")
@@ -1312,6 +2044,8 @@ async function loadDepartmentRows(constatareIds) {
     if (!byDept[row.departament]) byDept[row.departament] = row;
     departmentRows.set(constatareId, byDept);
   });
+  /* marchează inclusiv constatările fără rânduri departamentale drept încărcate */
+  constatareIds.forEach((id) => loadedDepartmentCarIds.add(Number(id)));
 }
 async function loadDepartmentAssignments(constatareIds) {
   departmentAssignments.clear();
@@ -1462,6 +2196,7 @@ async function loadServicePeople() {
   }
 }
 function refreshLocalTimes() {
+  if (finalEstimateModalOpen) return;
   cars.forEach((car) => {
     car.days = formatServiceDuration(car.created_at, car.completed_at);
   });
@@ -1473,6 +2208,7 @@ function startPeriodicRefresh() {
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
       if (creating) return;
+      if (finalEstimateModalOpen) return;
       if (activeLoadCarsPromise) return;
       loadCars(selectedId, { preserveActiveInput: true });
     }, 15000);
@@ -1510,6 +2246,9 @@ async function ensureConstatariV2Access() {
     .eq("id", user.id)
     .single();
   if (error) throw error;
+  /* aceeași regulă folosită în HUB: administrator sau permisiunea deviz_final */
+  canGenerateFinalEstimate =
+    Number(profile?.rol_id) === 1 || profile?.permissions?.deviz_final === true;
   if (!hasConstatariAccess(profile)) {
     window.location.href = "../../index.html";
     return false;
@@ -1522,6 +2261,7 @@ async function bootstrapConstatariV2() {
     if (!allowed) return;
     constatariV2AccessGranted = true;
     attachDirtyListener();
+    setupFinalEstimatePreview();
     loadServicePeople();
     setupPrintMenuClose();
     await loadCars();
