@@ -362,7 +362,8 @@ button {
 .vehicle-title-line {
     display: flex;
     align-items: center;
-    gap: 10px
+    gap: 10px;
+    flex-wrap: wrap
 }
 
 .vehicle-title {
@@ -379,7 +380,9 @@ button {
 .header-tools {
     display: flex;
     gap: 7px;
-    margin-left: auto
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end
 }
 
 /* taburile pentru sectiunile constatarii */
@@ -956,6 +959,333 @@ textarea.control {
     text-align: center
 }
 
+/* butonul de generare din antet, cu iconita aliniata la text */
+.final-estimate-trigger,
+.final-estimate-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px
+}
+
+.final-estimate-trigger svg,
+.final-estimate-add svg,
+.final-estimate-icon-btn svg,
+.final-estimate-row-actions svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2
+}
+
+/* blocheaza scroll-ul paginii cat timp previzualizarea este deschisa */
+body.final-estimate-open {
+    overflow: hidden
+}
+
+/* stratul intunecat al modalului pentru deviz */
+.final-estimate-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: #020812c7;
+    backdrop-filter: blur(3px)
+}
+
+/* containerul mare, limitat la inaltimea ecranului */
+.final-estimate-dialog {
+    display: flex;
+    width: min(100%, 1180px);
+    max-height: 92vh;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    background: #0d1726;
+    box-shadow: 0 28px 80px #000a;
+    outline: none
+}
+
+/* antetul fix al previzualizarii */
+.final-estimate-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line);
+    background: #101b2b
+}
+
+.final-estimate-header h2 {
+    margin: 0;
+    font-size: 18px
+}
+
+.final-estimate-header p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700
+}
+
+/* butoanele patrate pentru inchidere si reordonare */
+.final-estimate-icon-btn {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #334155;
+    border-radius: 7px;
+    background: #111e30;
+    color: #dbe7f5
+}
+
+.final-estimate-icon-btn:hover:not(:disabled) {
+    border-color: var(--cyan);
+    color: #a5f3fc
+}
+
+.final-estimate-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: .35
+}
+
+/* zona scrollabila care contine cardurile editabile */
+.final-estimate-body {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 18px
+}
+
+/* cardurile compacte din interiorul previzualizarii */
+.final-estimate-card {
+    padding: 13px;
+    border: 1px solid #26364d;
+    border-radius: 9px;
+    background: #08121f99
+}
+
+.final-estimate-card + .final-estimate-card {
+    margin-top: 12px
+}
+
+/* titlul fiecarei sectiuni si numarul de pozitii */
+.final-estimate-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px
+}
+
+.final-estimate-section-title h3 {
+    margin: 0;
+    font-size: 14px
+}
+
+.final-estimate-section-title span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 750
+}
+
+/* grila responsiva pentru datele din antetul devizului */
+.final-estimate-header-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px
+}
+
+.final-estimate-header-grid label,
+.final-estimate-client-parts {
+    display: grid;
+    gap: 5px;
+    min-width: 0
+}
+
+.final-estimate-header-grid label span,
+.final-estimate-client-parts span {
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 750
+}
+
+/* campurile editabile ale modalului */
+.final-estimate-header-grid input,
+.final-estimate-client-parts textarea,
+.final-estimate-row-input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #2a3b53;
+    border-radius: 7px;
+    background: #07111e;
+    color: var(--text);
+    outline: none
+}
+
+.final-estimate-header-grid input {
+    min-height: 36px;
+    padding: 7px 9px
+}
+
+.final-estimate-client-parts textarea {
+    min-height: 54px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    resize: vertical
+}
+
+.final-estimate-header-grid input:focus,
+.final-estimate-client-parts textarea:focus,
+.final-estimate-row-input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px #22d3ee18
+}
+
+/* marcajul discret pentru o dată introdusă într-un format invalid */
+.final-estimate-header-grid input.is-invalid {
+    border-color: #fb7185;
+    box-shadow: 0 0 0 2px #fb71851a
+}
+
+/* lista pozitiilor importate sau adaugate manual */
+.final-estimate-rows {
+    display: grid;
+    gap: 7px
+}
+
+.final-estimate-row {
+    display: grid;
+    grid-template-columns: minmax(105px, max-content) minmax(180px, 1fr) max-content;
+    align-items: center;
+    gap: 8px
+}
+
+/* eticheta sursei departamentale */
+.final-estimate-source {
+    max-width: 190px;
+    overflow: hidden;
+    padding: 4px 7px;
+    border: 1px solid #334155;
+    border-radius: 999px;
+    background: #162235;
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.final-estimate-row-input {
+    min-height: 34px;
+    padding: 7px 9px
+}
+
+/* controalele pentru mutare si stergere */
+.final-estimate-row-actions {
+    display: flex;
+    gap: 5px
+}
+
+.final-estimate-row-actions .final-estimate-icon-btn {
+    width: 30px;
+    height: 30px
+}
+
+.final-estimate-row-actions [data-preview-action="delete"] {
+    border-color: #9f123955;
+    color: #fda4af
+}
+
+/* starea goala a unei sectiuni fara pozitii */
+.final-estimate-empty {
+    margin: 0;
+    padding: 8px 0;
+    color: var(--muted);
+    font-size: 12px
+}
+
+.final-estimate-add {
+    height: 32px;
+    margin-top: 9px;
+    padding: 0 10px;
+    color: #a5f3fc
+}
+
+/* subsolul fix cu mesajul de siguranta si actiunile modalului */
+.final-estimate-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line);
+    background: #101b2b
+}
+
+.final-estimate-footer p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px
+}
+
+.final-estimate-footer > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px
+}
+
+/* culorile mesajului de stare pentru salvarea devizului */
+#finalEstimateStatus.is-error {
+    color: #fda4af
+}
+
+#finalEstimateStatus.is-saving {
+    color: #a5f3fc
+}
+
+/* confirmarea compactă afișată după salvare sau conflict concurent */
+.final-estimate-success {
+    display: grid;
+    place-items: center;
+    gap: 14px;
+    padding: 42px 20px;
+    text-align: center
+}
+
+.final-estimate-success > svg {
+    width: 44px;
+    height: 44px;
+    color: #4ade80
+}
+
+.final-estimate-success h3 {
+    margin: 0;
+    font-size: 18px
+}
+
+.final-estimate-success > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px
+}
+
+/* clasa utilitară trebuie să prevaleze și pentru starea de succes cu display grid */
+.final-estimate-success.hidden {
+    display: none
+}
+
 /* badge animat pentru sectiuni finalizate */
 .ready-badge {
     display: inline-flex;
@@ -992,6 +1322,10 @@ textarea.control {
     .general-top-grid .section {
         height: auto
     }
+
+    .final-estimate-header-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
 }
 
 /* adaptare pentru mobil: formularele si antetele devin pe o coloana */
@@ -1027,6 +1361,50 @@ textarea.control {
 
     .dept-fields .parts-half {
         grid-column: auto
+    }
+
+    /* modalul devizului ocupa aproape tot ecranul pe mobil */
+    .final-estimate-modal {
+        padding: 7px
+    }
+
+    .final-estimate-dialog {
+        max-height: 96vh
+    }
+
+    .final-estimate-header,
+    .final-estimate-body,
+    .final-estimate-footer {
+        padding-left: 12px;
+        padding-right: 12px
+    }
+
+    .final-estimate-header-grid,
+    .final-estimate-row {
+        grid-template-columns: 1fr
+    }
+
+    .final-estimate-source {
+        width: max-content;
+        max-width: 100%
+    }
+
+    .final-estimate-row-actions {
+        justify-content: flex-end
+    }
+
+    .final-estimate-footer {
+        align-items: stretch;
+        flex-direction: column
+    }
+
+    .final-estimate-footer > div,
+    .final-estimate-footer .btn {
+        width: 100%
+    }
+
+    .final-estimate-footer > div {
+        flex-direction: column
     }
 }
 
