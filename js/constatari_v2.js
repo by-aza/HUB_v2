@@ -28,12 +28,21 @@ const deptData = {
   electric: { title: "Electrică", db: "Electrica", hasElements: false },
   paint: { title: "Vopsitorie", db: "Vopsitorie", hasElements: true },
   prep: { title: "Pregătire", db: "Tinichigerie/Pregatire", hasElements: true },
+  /* configurarea departamentului Detailing; formularul compact nu expune piese sau elemente */
+  detailing: {
+    title: "Detailing",
+    db: "Detailing",
+    hasElements: false,
+    compactFields: true,
+  },
 };
 const assignmentDepartments = {
   mechanic: ["Mecanica"],
   electric: ["Electrica"],
   paint: ["Vopsitorie"],
   prep: ["Tinichigerie/Pregatire"],
+  /* denumirea exactă folosită în service_personal pentru Detailing */
+  detailing: ["Detailing"],
 };
 function escapeHtml(value) {
   return String(value || "")
@@ -189,6 +198,15 @@ const MULTILINE_FIELD_CONFIG = {
     placeholder:
       "Introduceți fiecare material pe un rând separat:\n\nHârtie abrazivă\nGrund\nBandă de mascare",
   },
+  /* exemplele Detailing rămân exclusiv placeholder și nu sunt salvate */
+  detailing_constatari: {
+    placeholder:
+      "Introduceți fiecare problemă pe un rând separat:\n\nUșă șofer zgâriată, necesită polish\nJantele necesită polish\nPlasticele interioare prezintă zgârieturi",
+  },
+  detailing_lucrari: {
+    placeholder:
+      "Introduceți fiecare serviciu sau lucrare pe un rând separat:\n\nPolish ușă șofer\nPolish faruri\nAplicare folie geamuri spate și lunetă",
+  },
 };
 
 /* normalizează liniile de text: trim, elimină markere listă, spații duplicate, uppercase ro-RO */
@@ -281,6 +299,11 @@ function attachAllMultilineListeners() {
       constatari: "prep_constatari",
       lucrari: "prep_lucrari",
       piese: "prep_piese",
+    },
+    /* listenerii comuni pentru cele două câmpuri Detailing */
+    detailing: {
+      constatari: "detailing_constatari",
+      lucrari: "detailing_lucrari",
     },
   };
 
@@ -454,6 +477,7 @@ function normalizeDepartmentLabel(value) {
   ) {
     return "prep";
   }
+  if (normalized === "detailing") return "detailing";
   return "";
 }
 function getDepartmentKeyFromDb(value) {
@@ -714,7 +738,7 @@ function getEditableDepartmentPayload(constatareId, key) {
   const status = mapDepartmentStatusToDb(
     document.querySelector("#deptStatus")?.value || "",
   );
-  /* normalizează și actualizează vizual TOATE câmpurile țintite (incl. piese_materiale) */
+  /* normalizează și actualizează vizual câmpurile prezente în departamentul activ */
   const normalizeAndSync = (field) => {
     const el = document.querySelector(`[data-dept-key="${field}"]`);
     const raw = el ? el.value : "";
@@ -726,24 +750,34 @@ function getEditableDepartmentPayload(constatareId, key) {
   };
   const constatariVal = normalizeAndSync("constatari");
   const lucrariVal = normalizeAndSync("lucrari_efectuate");
-  const elementeVal = dept.hasElements ? normalizeAndSync("elemente_lucrate") : null;
-  const pieseVal = normalizeAndSync("piese_materiale");
   const nowIso = new Date().toISOString();
-  return {
+  const payload = {
     constatare_id: constatareId,
     departament: dept.db,
     constatari: constatariVal,
     lucrari_efectuate: lucrariVal,
-    piese_materiale: pieseVal,
-    elemente_lucrate: elementeVal,
     status,
     updated_at: nowIso,
     finalizat_la: status === "Finalizat" ? nowIso : null,
   };
+
+  /* departamentele clasice păstrează câmpurile existente; Detailing nu le suprascrie */
+  if (!dept.compactFields) {
+    payload.piese_materiale = normalizeAndSync("piese_materiale");
+    payload.elemente_lucrate = dept.hasElements
+      ? normalizeAndSync("elemente_lucrate")
+      : null;
+  }
+  return payload;
 }
 async function saveDepartment(constatareId, key) {
   const payload = getEditableDepartmentPayload(constatareId, key);
   const dept = deptData[key];
+  /* atribuie salvarea Detailing utilizatorului autentificat, fără a afecta celelalte departamente */
+  if (key === "detailing") {
+    const actor = await getAuditActor();
+    payload.actualizat_de = actor.user_id || null;
+  }
   const { data: existingRow, error: lookupError } = await supabaseClient
     .from("constatari_departamente")
     .select("id, status")
@@ -751,6 +785,15 @@ async function saveDepartment(constatareId, key) {
     .eq("departament", payload.departament)
     .maybeSingle();
   if (lookupError) throw lookupError;
+
+  /* deschiderea și salvarea formularului Detailing gol nu creează un rând inutil */
+  const isEmptyDefaultDetailing =
+    key === "detailing" &&
+    !existingRow?.id &&
+    !payload.constatari &&
+    !payload.lucrari_efectuate &&
+    payload.status === "De făcut";
+  if (isEmptyDefaultDetailing) return;
 
   if (existingRow?.id) {
     const { error } = await supabaseClient
@@ -982,6 +1025,11 @@ function deptContent(key, c) {
       lucrari_efectuate: "prep_lucrari",
       piese_materiale: "prep_piese",
     },
+    /* etichetele și placeholder-ele specifice formularului Detailing */
+    detailing: {
+      constatari: "detailing_constatari",
+      lucrari_efectuate: "detailing_lucrari",
+    },
   };
   const fieldConfig = deptFieldConfigMap[key] || {};
 
@@ -994,10 +1042,19 @@ function deptContent(key, c) {
     return `<div class="field ${extra}"><label>${label}</label><textarea class="control" data-dept-key="${dataKey}"${placeholderAttr}>${escapeHtml(row[dataKey] || "")}</textarea>${helperHtml}</div>`;
   };
 
-  const fields = d.hasElements
-    ? `${field("Elemente lucrate", "elemente_lucrate")}${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale")}`
-    : `${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale", "parts-half")}`;
-  return `${message}<div class="dept-note">Sesizare client: ${escapeHtml(c.complaint || "—").replaceAll("\n", " · ")}</div><div class="section dept-header-section"><div class="dept-header-row"><div class="dept-header-title">${d.title}</div><div class="dept-responsibles">Responsabili: ${people.length ? escapeHtml(people.join(" | ")) : "Nerepartizat"}</div><div class="section-status"><select class="control dept-status-select" id="deptStatus"><option ${statusUi === "⚪ De făcut" ? "selected" : ""}>⚪ De făcut</option><option ${statusUi === "🔵 În lucru" ? "selected" : ""}>🔵 În lucru</option><option ${statusUi === "🟠 Așteptare piese" ? "selected" : ""}>🟠 Așteptare piese</option><option ${statusUi === "🟢 Finalizat" ? "selected" : ""}>🟢 Finalizat</option></select></div></div></div><div class="section"><div class="section-title">Constatare și lucrare</div><div class="dept-fields ${d.hasElements ? "dept-fields-four" : "dept-fields-three"}">${fields}</div></div><div class="section photos-row"><div class="photos-title">Poze</div><div class="photos-soon">În curând</div><button class="btn btn-ghost" disabled>Adaugă poze</button></div>`;
+  const fields = d.compactFields
+    ? `${field("Starea vehiculului / Defecțiuni constatate", "constatari")}${field("Servicii / lucrări efectuate", "lucrari_efectuate")}`
+    : d.hasElements
+      ? `${field("Elemente lucrate", "elemente_lucrate")}${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale")}`
+      : `${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale", "parts-half")}`;
+  /* Detailing afișează numai controalele departamentale cerute, fără date generale sau poze */
+  const complaintNote = d.compactFields
+    ? ""
+    : `<div class="dept-note">Sesizare client: ${escapeHtml(c.complaint || "—").replaceAll("\n", " · ")}</div>`;
+  const photosSection = d.compactFields
+    ? ""
+    : '<div class="section photos-row"><div class="photos-title">Poze</div><div class="photos-soon">În curând</div><button class="btn btn-ghost" disabled>Adaugă poze</button></div>';
+  return `${message}${complaintNote}<div class="section dept-header-section"><div class="dept-header-row"><div class="dept-header-title">${d.title}</div><div class="dept-responsibles">Responsabili: ${people.length ? escapeHtml(people.join(" | ")) : "Nerepartizat"}</div><div class="section-status"><select class="control dept-status-select" id="deptStatus"><option ${statusUi === "⚪ De făcut" ? "selected" : ""}>⚪ De făcut</option><option ${statusUi === "🔵 În lucru" ? "selected" : ""}>🔵 În lucru</option><option ${statusUi === "🟠 Așteptare piese" ? "selected" : ""}>🟠 Așteptare piese</option><option ${statusUi === "🟢 Finalizat" ? "selected" : ""}>🟢 Finalizat</option></select></div></div></div><div class="section"><div class="section-title">Constatare și lucrare</div><div class="dept-fields ${d.hasElements ? "dept-fields-four" : "dept-fields-three"}">${fields}</div></div>${photosSection}`;
 }
 function historyContent(c) {
   const logs = auditLogsByCar.get(Number(c.id)) || [];
@@ -1082,6 +1139,7 @@ function renderDetail() {
     ["electric", "Electrică"],
     ["paint", "Vopsitorie"],
     ["prep", "Pregătire"],
+    ["detailing", "Detailing"],
     ["history", "Istoric"],
   ];
   pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools"><div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
@@ -1260,7 +1318,7 @@ async function loadDepartmentAssignments(constatareIds) {
   if (!constatareIds.length) return;
   const { data, error } = await supabaseClient
     .from("constatari_repartizari")
-    .select("constatare_id, service_personal:service_personal_id(id, nume, departament)")
+    .select("constatare_id, service_personal:service_personal_id(id, nume, departament, activ)")
     .in("constatare_id", constatareIds)
     .eq("activ", true)
     .is("retras_la", null);
@@ -1270,6 +1328,8 @@ async function loadDepartmentAssignments(constatareIds) {
       ? row.service_personal[0]
       : row.service_personal;
     const key = getDepartmentKeyFromDb(person?.departament);
+    /* Detailing afișează numai personal activ din departamentul corespunzător */
+    if (key === "detailing" && person?.activ === false) return;
     const dept = deptData[key]?.db;
     if (!dept) return;
     const constatareId = Number(row.constatare_id);
