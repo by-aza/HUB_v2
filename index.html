@@ -300,6 +300,11 @@
         font-weight: 800;
         letter-spacing: .06em;
       }
+      /* evidențiază discret modulele aflate exclusiv în etapa demo */
+      .nav-demo-item { color: #f7c963 !important; }
+      .nav-demo-item i { color: #f5b32b; }
+      /* badge-ul galben diferențiază demo-ul de modulele noi de producție */
+      .nav-demo-badge { margin-left: auto; border: 1px solid rgba(245, 179, 43, 0.45); border-radius: 999px; padding: 1px 5px; color: #f5b32b; background: rgba(245, 179, 43, 0.14); font-size: 9px; font-weight: 800; letter-spacing: .06em; }
       .notifications-scroll-lock {
         overflow: hidden;
       }
@@ -900,6 +905,8 @@
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
             { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh", isNew: true },
+            /* modul demo fără conexiune Supabase sau persistență */
+            { id: "clienti-notificari", label: "Clienți & Notificări", icon: "users-round", url: "modules/devize/clienti-notificari.html", isDemo: true },
           ],
         },
         {
@@ -1208,8 +1215,10 @@
                     const permissionFallbackAttr = item.permission && permissionFallbackMap[item.permission]
                       ? `data-permission-fallback="${permissionFallbackMap[item.permission]}"`
                       : '';
-                    const newClass = item.isNew ? 'nav-new-item' : '';
-                    const newBadge = item.isNew ? '<span class="nav-new-badge">NEW</span>' : '';
+                    const newClass = item.isDemo ? 'nav-demo-item' : item.isNew ? 'nav-new-item' : '';
+                    const newBadge = item.isDemo
+                      ? '<span class="nav-demo-badge">DEMO</span>'
+                      : item.isNew ? '<span class="nav-new-badge">NEW</span>' : '';
                     return `
                     <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
                       <a href="${resolveNavigationUrl(item)}" data-id="${item.id}" title="${item.label}"

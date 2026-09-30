@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14161c" />
+    <title>Clienți &amp; Notificări — DEMO</title>
+    <meta name="description" content="Demo intern pentru evidența clienților, vehiculelor și notificărilor." />
+    <link rel="icon" type="image/png" href="../../icons/192x192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../../css/clienti-notificari.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <!-- antetul compact al modulului demo -->
+    <header class="cn-topbar">
+      <!-- butonul urmează modelul vizual existent din avans.html -->
+      <a href="../../index.html" class="cn-back-link">
+        <i data-lucide="arrow-left"></i><span>Înapoi</span>
+      </a>
+      <div class="cn-brand">
+        <span class="cn-brand-icon"><i data-lucide="users-round"></i></span>
+        <div>
+          <div class="cn-title-line">
+            <h1>Clienți &amp; Notificări</h1>
+            <span class="cn-demo-badge">DEMO</span>
+          </div>
+          <p>Evidență clienți, vehicule și termene de notificare</p>
+        </div>
+      </div>
+      <div class="cn-header-actions">
+        <label class="cn-global-search">
+          <i data-lucide="search"></i>
+          <input id="globalSearch" type="search" placeholder="Caută client, telefon, email, nr. auto sau VIN..." autocomplete="off" />
+          <kbd>/</kbd>
+        </label>
+        <button id="newClientBtn" class="cn-button cn-button-primary" type="button"><i data-lucide="plus"></i> Client nou</button>
+      </div>
+    </header>
+
+    <main class="cn-page">
+      <!-- avertizarea explică lipsa intenționată a persistenței -->
+      <div class="cn-demo-notice"><i data-lucide="flask-conical"></i><span><strong>Versiune demo</strong> — datele se resetează la reîncărcarea paginii.</span></div>
+
+      <!-- indicatorii sunt calculați exclusiv din datele mock -->
+      <section id="kpiGrid" class="cn-kpi-grid" aria-label="Indicatori principali"></section>
+
+      <!-- excepțiile duc direct la clientul corespunzător -->
+      <section class="cn-section cn-attention-section">
+        <div class="cn-section-heading">
+          <div>
+            <h2>Necesită atenție <span id="attentionCount" class="cn-count-badge">0</span></h2>
+            <p>Excepții și termene care merită verificate</p>
+          </div>
+        </div>
+        <div id="attentionGrid" class="cn-attention-grid"></div>
+      </section>
+
+      <!-- spațiul principal combină lista și fișa clientului -->
+      <div id="workspace" class="cn-workspace">
+        <section class="cn-panel cn-table-panel">
+          <div class="cn-section-heading cn-table-heading">
+            <div>
+              <h2>Clienți și vehicule <span id="clientTotal" class="cn-muted-count"></span></h2>
+              <p>Lista clienților și a următorului termen pentru fiecare vehicul</p>
+            </div>
+            <button id="resetFiltersBtn" class="cn-button cn-button-ghost" type="button"><i data-lucide="rotate-ccw"></i> Resetează</button>
+          </div>
+
+          <!-- filtrele de pagină nu modifică preferințele individuale -->
+          <div class="cn-filters">
+            <div id="deadlineTabs" class="cn-filter-tabs" role="group" aria-label="Filtru termen">
+              <button class="is-active" data-window="all" type="button">Toți</button>
+              <button data-window="30" type="button">30 zile</button>
+              <button data-window="15" type="button">15 zile</button>
+              <button data-window="5" type="button">5 zile</button>
+              <button data-window="0" type="button">Astăzi / 0 zile</button>
+              <button data-window="expired" type="button">Expirate</button>
+              <button data-window="problems" type="button">Probleme notificări</button>
+            </div>
+            <div class="cn-select-filters">
+              <label><span class="sr-only">Tip reminder</span><select id="typeFilter"><option value="all">Toate tipurile</option><option>ITP</option><option>RCA</option><option>Revizie</option><option>Schimb ulei</option><option>Personalizat</option></select></label>
+              <label><span class="sr-only">Canal</span><select id="channelFilter"><option value="all">Toate canalele</option><option>WhatsApp</option><option>Email</option><option>SMS</option></select></label>
+              <label><span class="sr-only">Status</span><select id="statusFilter"><option value="all">Toate statusurile</option><option>Programat</option><option>Urgent</option><option>Activ</option><option>Expirat</option><option>Eșuat</option><option>Fără acord</option></select></label>
+            </div>
+          </div>
+
+          <!-- tabelul permite scroll orizontal pe ecrane înguste -->
+          <div class="cn-table-wrap">
+            <table>
+              <thead><tr><th>Client</th><th>Telefon</th><th>Vehicul</th><th>Nr. înmatriculare</th><th>Următorul termen</th><th>Data</th><th>Canal</th><th>Status</th></tr></thead>
+              <tbody id="clientsTableBody"></tbody>
+            </table>
+            <div id="emptyState" class="cn-empty-state" hidden><i data-lucide="search-x"></i><strong>Niciun rezultat</strong><span>Modifică termenul de căutare sau filtrele selectate.</span></div>
+          </div>
+          <footer class="cn-table-footer">
+            <span>Afișate <strong id="visibleCount">0</strong> înregistrări din <strong id="allRowsCount">0</strong></span>
+            <!-- paginarea păstrează rândurile client + vehicul separate -->
+            <nav id="pagination" class="cn-pagination" aria-label="Paginare clienți"></nav>
+          </footer>
+        </section>
+
+        <!-- panoul lateral este completat dinamic la selectarea unui client -->
+        <aside id="clientDrawer" class="cn-panel cn-drawer" aria-label="Detalii client"></aside>
+      </div>
+
+      <!-- bara verde este doar o simulare vizuală a automatizării viitoare -->
+      <footer class="cn-automation-bar">
+        <span class="cn-automation-icon"><i data-lucide="flask-conical"></i></span>
+        <span class="cn-automation-copy"><strong>Automatizare DEMO</strong><small>Simulare notificări — nu se efectuează trimiteri reale.</small></span>
+        <span class="cn-automation-times"><span>Ultima verificare: <b>azi, 07:00</b></span><span>Următoarea verificare: <b>mâine, 07:00</b></span></span>
+        <button id="automationSettingsBtn" class="cn-automation-settings" type="button">Setări automatizare <i data-lucide="settings-2"></i></button>
+      </footer>
+    </main>
+
+    <!-- modal reutilizat pentru client nou și editare client -->
+    <div id="clientModal" class="cn-modal-overlay" hidden>
+      <div class="cn-modal cn-client-modal" role="dialog" aria-modal="true" aria-labelledby="clientModalTitle">
+        <header class="cn-modal-header">
+          <div><span class="cn-eyebrow">ÎNREGISTRARE DEMO</span><h2 id="clientModalTitle">Adaugă client</h2><p>Datele vor exista doar până la reîncărcarea paginii.</p></div>
+          <button class="cn-icon-button" data-close-modal="clientModal" type="button" aria-label="Închide"><i data-lucide="x"></i></button>
+        </header>
+        <form id="clientForm">
+          <div class="cn-modal-body">
+            <!-- datele de contact ale clientului -->
+            <section class="cn-form-section"><h3>Date client</h3><div class="cn-form-grid cn-grid-3">
+              <label class="cn-field"><span>Nume complet *</span><input name="name" required placeholder="ex. Ana Popescu" /></label>
+              <label class="cn-field"><span>Telefon</span><input name="phone" inputmode="tel" placeholder="07xx xxx xxx" /></label>
+              <label class="cn-field"><span>Email</span><input name="email" type="email" placeholder="email@exemplu.ro" /></label>
+            </div></section>
+
+            <!-- canalele pot fi activate independent în această sesiune demo -->
+            <section class="cn-form-section"><h3>Canale de notificare</h3><div class="cn-channel-options">
+              <label><input type="checkbox" name="channels" value="WhatsApp" checked /><span><i data-lucide="message-circle"></i>WhatsApp</span></label>
+              <label><input type="checkbox" name="channels" value="Email" /><span><i data-lucide="mail"></i>Email</span></label>
+              <label><input type="checkbox" name="channels" value="SMS" /><span><i data-lucide="smartphone"></i>SMS</span></label>
+            </div><label class="cn-check-line"><input name="consent" type="checkbox" checked /> Clientul și-a dat acordul pentru notificări</label></section>
+
+            <!-- preferințele clientului sunt distincte de filtrele paginii -->
+            <section class="cn-form-section"><div class="cn-form-title-line"><h3>Notifică înainte cu</h3><span class="cn-experimental">PREFERINȚĂ EXPERIMENTALĂ</span></div><div class="cn-timing-options">
+              <label><input type="checkbox" name="timing" value="30" checked /><span>30 zile</span></label>
+              <label><input type="checkbox" name="timing" value="15" /><span>15 zile</span></label>
+              <label><input type="checkbox" name="timing" value="5" checked /><span>5 zile</span></label>
+              <label><input type="checkbox" name="timing" value="0" /><span>În ziua termenului</span></label>
+            </div></section>
+
+            <!-- primul vehicul se salvează împreună cu clientul nou -->
+            <section id="vehicleFormSection" class="cn-form-section"><h3>Vehicul</h3><div class="cn-form-grid cn-grid-5">
+              <label class="cn-field"><span>Marcă</span><input name="make" placeholder="ex. Dacia" /></label>
+              <label class="cn-field"><span>Model</span><input name="model" placeholder="ex. Logan" /></label>
+              <label class="cn-field"><span>An</span><input name="year" type="number" min="1950" max="2100" placeholder="2022" /></label>
+              <label class="cn-field"><span>Nr. înmatriculare</span><input name="plate" placeholder="CT 12-ABC" /></label>
+              <label class="cn-field cn-span-2"><span>VIN</span><input name="vin" maxlength="17" placeholder="17 caractere" /></label>
+            </div></section>
+
+            <!-- datele termenelor sunt opționale -->
+            <section id="reminderFormSection" class="cn-form-section"><h3>Termene</h3><div class="cn-form-grid cn-grid-4">
+              <label class="cn-field"><span>ITP</span><input name="itp" type="date" /></label>
+              <label class="cn-field"><span>RCA</span><input name="rca" type="date" /></label>
+              <label class="cn-field"><span>Revizie</span><input name="revision" type="date" /></label>
+              <label class="cn-field"><span>Schimb ulei</span><input name="oil" type="date" /></label>
+            </div>
+              <!-- lista permite mai multe notificări personalizate la clientul nou -->
+              <div id="customReminders"></div>
+              <button id="addCustomReminderBtn" class="cn-link-button cn-custom-add" type="button"><i data-lucide="plus"></i> Adaugă notificare personalizată</button>
+            </section>
+          </div>
+          <footer class="cn-modal-footer"><button class="cn-button cn-button-ghost" data-close-modal="clientModal" type="button">Anulează</button><button class="cn-button cn-button-primary" type="submit"><i data-lucide="check"></i> Salvează clientul</button></footer>
+        </form>
+      </div>
+    </div>
+
+    <!-- modal compact pentru adăugarea unui vehicul -->
+    <div id="vehicleModal" class="cn-modal-overlay" hidden>
+      <div class="cn-modal cn-small-modal" role="dialog" aria-modal="true" aria-labelledby="vehicleModalTitle">
+        <header class="cn-modal-header"><div><span class="cn-eyebrow">VEHICUL DEMO</span><h2 id="vehicleModalTitle">Adaugă vehicul</h2></div><button class="cn-icon-button" data-close-modal="vehicleModal" type="button" aria-label="Închide"><i data-lucide="x"></i></button></header>
+        <form id="vehicleForm"><div class="cn-modal-body"><div class="cn-form-grid cn-grid-2">
+          <label class="cn-field"><span>Marcă *</span><input name="make" required /></label><label class="cn-field"><span>Model *</span><input name="model" required /></label>
+          <label class="cn-field"><span>An</span><input name="year" type="number" min="1950" max="2100" /></label><label class="cn-field"><span>Nr. înmatriculare *</span><input name="plate" required placeholder="CT 12-ABC" /></label>
+          <label class="cn-field cn-span-2"><span>VIN</span><input name="vin" maxlength="17" /></label>
+        </div></div><footer class="cn-modal-footer"><button class="cn-button cn-button-ghost" data-close-modal="vehicleModal" type="button">Anulează</button><button class="cn-button cn-button-primary" type="submit">Adaugă vehiculul</button></footer></form>
+      </div>
+    </div>
+
+    <!-- reminderul se adaugă direct vehiculului selectat -->
+    <div id="reminderModal" class="cn-modal-overlay" hidden>
+      <div class="cn-modal cn-small-modal" role="dialog" aria-modal="true" aria-labelledby="reminderModalTitle">
+        <header class="cn-modal-header"><div><span class="cn-eyebrow">REMINDER ÎN MEMORIE</span><h2 id="reminderModalTitle">Adaugă termen</h2><p id="reminderVehicleLabel"></p></div><button class="cn-icon-button" data-close-modal="reminderModal" type="button" aria-label="Închide"><i data-lucide="x"></i></button></header>
+        <form id="reminderForm"><div class="cn-modal-body"><div class="cn-form-grid cn-grid-2 cn-reminder-form-grid">
+          <label class="cn-field"><span>Tip termen *</span><select id="reminderType" name="type" required><option>ITP</option><option>RCA</option><option>Revizie</option><option>Schimb ulei</option><option>Personalizat</option></select></label>
+          <label class="cn-field"><span>Data termenului *</span><input name="date" type="date" required /></label>
+          <label id="customReminderNameField" class="cn-field cn-span-2" hidden><span>Denumire *</span><input name="label" placeholder="ex. Verificare distribuție" /></label>
+          <label class="cn-field cn-span-2"><span>Observații (opțional)</span><textarea name="notes" placeholder="Detalii utile pentru echipă..."></textarea></label>
+        </div></div><footer class="cn-modal-footer"><button class="cn-button cn-button-ghost" data-close-modal="reminderModal" type="button">Anulează</button><button class="cn-button cn-button-primary" type="submit"><i data-lucide="plus"></i>Adaugă reminder</button></footer></form>
+      </div>
+    </div>
+
+    <!-- dialog general pentru simulări, notițe și previzualizări -->
+    <div id="actionModal" class="cn-modal-overlay" hidden>
+      <div class="cn-modal cn-action-modal" role="dialog" aria-modal="true" aria-labelledby="actionModalTitle">
+        <header class="cn-modal-header"><div><span id="actionEyebrow" class="cn-eyebrow">ACȚIUNE DEMO</span><h2 id="actionModalTitle">Previzualizare</h2></div><button class="cn-icon-button" data-close-modal="actionModal" type="button" aria-label="Închide"><i data-lucide="x"></i></button></header>
+        <div id="actionModalBody" class="cn-modal-body"></div>
+        <footer class="cn-modal-footer"><button class="cn-button cn-button-primary" data-close-modal="actionModal" type="button">Am înțeles</button></footer>
+      </div>
+    </div>
+
+    <!-- mesajele scurte confirmă modificările făcute în memorie -->
+    <div id="toast" class="cn-toast" role="status" aria-live="polite"></div>
+    <script src="../../js/clienti-notificari.js"></script>
+  </body>
+</html>
