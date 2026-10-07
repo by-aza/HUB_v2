@@ -6,6 +6,11 @@ let selectedId = 1,
   creating = false;
 /* draft local primit din C&N; nu este scris în Supabase înainte de salvare */
 let cnConstatareDraft = null;
+/* starea lookup-ului manual rămâne locală și nu scrie nimic înainte de Salvare */
+let manualPlateLookupLinks = null;
+let manualPlateAutofill = null;
+let manualPlateLookupPromise = null;
+let manualPlateLookupGeneration = 0;
 let listErrorMessage = "";
 let servicePeople = [];
 let servicePeopleLoaded = false;
@@ -1255,6 +1260,139 @@ function mapCnPayloadToDraft(payload) {
   };
 }
 
+
+/* actualizează mesajul compact al căutării C&N din formularul de draft */
+function setManualPlateLookupMessage(message = "", tone = "") {
+  const status = document.getElementById("plateLookupStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.className = "plate-lookup-status" + (tone ? " is-" + tone : "") + (message ? "" : " hidden");
+}
+
+/* elimină legăturile vechi și curăță doar valorile care au fost completate automat */
+function clearManualPlateLookup({ clearAutofill = true } = {}) {
+  manualPlateLookupGeneration += 1;
+  manualPlateLookupLinks = null;
+  if (cnConstatareDraft) {
+    cnConstatareDraft.clientId = null;
+    cnConstatareDraft.vehicleId = null;
+  }
+  if (clearAutofill && manualPlateAutofill) {
+    Object.entries(manualPlateAutofill.values).forEach(([key, oldValue]) => {
+      const input = document.querySelector("[data-key=\"" + key + "\"]");
+      if (input && input.value === oldValue) input.value = "";
+    });
+  }
+  manualPlateAutofill = null;
+  setManualPlateLookupMessage();
+}
+
+/* citește exact vehiculul, clientul și telefonul principal fără INSERT sau UPDATE */
+async function lookupNewConstatareVehicle(plateInput) {
+  const normalizedPlate = normalizePlate(plateInput?.value);
+  if (plateInput) plateInput.value = normalizedPlate;
+  if (!normalizedPlate) {
+    clearManualPlateLookup();
+    return;
+  }
+  if (manualPlateLookupLinks?.plate !== normalizedPlate) clearManualPlateLookup();
+  const generation = ++manualPlateLookupGeneration;
+  setManualPlateLookupMessage("Se caută vehiculul în C&N…", "loading");
+  try {
+    const { data: vehicles, error: vehicleError } = await supabaseClient
+      .from("clienti_vehicule")
+      .select("id, client_id, nr_inmatriculare, marca_model, serie_vin, kilometraj_curent")
+      .eq("nr_inmatriculare", normalizedPlate)
+      .limit(2);
+    if (vehicleError) throw vehicleError;
+    if (generation !== manualPlateLookupGeneration || normalizePlate(plateInput?.value) !== normalizedPlate) return;
+    if ((vehicles || []).length > 1) {
+      setManualPlateLookupMessage("Numărul " + normalizedPlate + " corespunde mai multor vehicule în C&N. Verifică manual datele.", "warning");
+      return;
+    }
+    const vehicle = vehicles?.[0];
+    if (!vehicle) {
+      setManualPlateLookupMessage();
+      return;
+    }
+    if (!vehicle.client_id) {
+      setManualPlateLookupMessage("Vehiculul " + normalizedPlate + " nu are un client asociat în C&N. Verifică manual datele.", "warning");
+      return;
+    }
+    const [{ data: client, error: clientError }, { data: contacts, error: contactsError }] = await Promise.all([
+      supabaseClient.from("clienti").select("id, nume").eq("id", vehicle.client_id).maybeSingle(),
+      supabaseClient.from("clienti_contacte").select("id, valoare, este_principal").eq("client_id", vehicle.client_id).eq("tip", "telefon").order("id", { ascending: true }),
+    ]);
+    if (clientError) throw clientError;
+    if (contactsError) throw contactsError;
+    if (generation !== manualPlateLookupGeneration || normalizePlate(plateInput?.value) !== normalizedPlate) return;
+    if (!client) {
+      setManualPlateLookupMessage("Clientul asociat vehiculului " + normalizedPlate + " nu mai există. Verifică manual datele.", "warning");
+      return;
+    }
+    const primaryPhones = (contacts || []).filter((contact) => contact.este_principal === true || contact.este_principal === 1 || contact.este_principal === "true");
+    const values = {
+      model: normalizeUpperTrim(vehicle.marca_model),
+      vin: normalizeCnVin(vehicle.serie_vin),
+      client: normalizeUpperTrim(client.nume),
+      phone: primaryPhones.length === 1 ? String(primaryPhones[0].valoare || "").trim() : "",
+      kmIn: formatKm(parseNullableKm(vehicle.kilometraj_curent)),
+    };
+    Object.entries(values).forEach(([key, value]) => {
+      const input = document.querySelector("[data-key=\"" + key + "\"]");
+      if (input) input.value = value;
+    });
+    manualPlateLookupLinks = { clientId: client.id, vehicleId: vehicle.id, plate: normalizedPlate };
+    manualPlateAutofill = { plate: normalizedPlate, values };
+    if (cnConstatareDraft) {
+      cnConstatareDraft.clientId = client.id;
+      cnConstatareDraft.vehicleId = vehicle.id;
+    }
+    if (primaryPhones.length > 1) {
+      setManualPlateLookupMessage("Vehicul găsit, dar clientul are mai multe telefoane principale. Verifică telefonul manual.", "warning");
+      return;
+    }
+    setManualPlateLookupMessage("Datele existente au fost precompletate din C&N.", "success");
+  } catch (error) {
+    if (generation !== manualPlateLookupGeneration) return;
+    console.error("Lookup vehicul C&N pentru constatarea nouă:", error);
+    setManualPlateLookupMessage("Datele C&N nu au putut fi verificate. Completează și verifică manual formularul.", "warning");
+  }
+}
+
+/* atașează normalizarea și lookup-ul numai câmpului din constatarea nouă */
+function attachNewConstatarePlateLookup() {
+  const plateInput = document.querySelector('[data-key="plate"]');
+  if (!creating || !plateInput) return;
+  if (cnConstatareDraft?.clientId && cnConstatareDraft?.vehicleId && !manualPlateLookupLinks) {
+    const values = {};
+    ["model", "vin", "client", "phone", "kmIn"].forEach((key) => {
+      values[key] = document.querySelector("[data-key=\"" + key + "\"]")?.value || "";
+    });
+    manualPlateLookupLinks = { clientId: cnConstatareDraft.clientId, vehicleId: cnConstatareDraft.vehicleId, plate: normalizePlate(plateInput.value) };
+    manualPlateAutofill = { plate: normalizePlate(plateInput.value), values };
+  }
+  const runLookup = () => {
+    const promise = lookupNewConstatareVehicle(plateInput);
+    manualPlateLookupPromise = promise;
+    promise.finally(() => {
+      if (manualPlateLookupPromise === promise) manualPlateLookupPromise = null;
+    });
+    return promise;
+  };
+  plateInput.addEventListener("input", () => {
+    const nextPlate = normalizePlate(plateInput.value);
+    if (manualPlateLookupLinks && nextPlate !== manualPlateLookupLinks.plate) clearManualPlateLookup();
+    else manualPlateLookupGeneration += 1;
+  });
+  plateInput.addEventListener("blur", runLookup);
+  plateInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    runLookup();
+  });
+}
+
 async function getOpenAsteptareInterval(constatareId) {
   const { data, error } = await supabaseClient
     .from("constatari_asteptare_piese")
@@ -2284,6 +2422,7 @@ function renderList() {
           selectedId = nextId;
           /* o selecție explicită cere o verificare nouă, fără starea vehiculului anterior */
           finalEstimateByConstatare.delete(nextId);
+          clearManualPlateLookup();
           cnConstatareDraft = null;
           creating = false;
           editing = false;
@@ -2310,7 +2449,7 @@ function generalContent(c, isNew = false) {
   const complaintPlaceholder = MULTILINE_FIELD_CONFIG.complaint.placeholder;
   const complaintFieldHtml = `<div class="field full"><label>Defecțiuni reclamate</label><textarea class="control" data-key="complaint" placeholder="${escapeHtml(complaintPlaceholder)}" ${disabled}>${c.complaint || ""}</textarea>${buildMultilineHelperHtml("complaint")}</div>`;
 
-  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div></div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
+  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div>${isNew ? '<div id="plateLookupStatus" class="plate-lookup-status hidden" role="status" aria-live="polite"></div>' : ""}</div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
 }
 function deptContent(key, c) {
   const d = deptData[key];
@@ -2405,6 +2544,7 @@ function renderDetail() {
     document.querySelector("#cancelBtn").onclick = () => {
       if (!confirmDiscardUnsaved()) return;
       clearDirtyState();
+      clearManualPlateLookup();
       cnConstatareDraft = null;
       creating = false;
       render();
@@ -2415,14 +2555,17 @@ function renderDetail() {
       createBtn.disabled = true;
       createBtn.textContent = "Se salvează...";
       try {
+        if (manualPlateLookupPromise) await manualPlateLookupPromise;
         const payload = getEditableCarPayload({ includeKmOut: false });
         /* păstrează legăturile exacte primite din dosarul C&N, fără identificare după text */
-        if (cnConstatareDraft?.clientId && cnConstatareDraft?.vehicleId) {
-          payload.client_id = cnConstatareDraft.clientId;
-          payload.vehicle_id = cnConstatareDraft.vehicleId;
+        const draftLinks = manualPlateLookupLinks || cnConstatareDraft;
+        if (draftLinks?.clientId && draftLinks?.vehicleId) {
+          payload.client_id = draftLinks.clientId;
+          payload.vehicle_id = draftLinks.vehicleId;
         }
         const { id, cnWarning } = await createNewConstatareRecord(payload);
         clearDirtyState();
+        clearManualPlateLookup();
         cnConstatareDraft = null;
         creating = false;
         editing = false;
@@ -2438,6 +2581,8 @@ function renderDetail() {
         createBtn.textContent = originalText;
       }
     };
+    attachNewConstatarePlateLookup();
+    attachAllMultilineListeners();
     return;
   }
   const c = cars.find((x) => x.id === selectedId);
@@ -2928,6 +3073,12 @@ async function ensureConstatariV2Access() {
   }
   return true;
 }
+/* citește selecția directă a unei fișe fără a afecta deschiderea normală a paginii */
+function readRequestedConstatareId() {
+  const value = Number(new URLSearchParams(window.location.search).get("constatare_id"));
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
 async function bootstrapConstatariV2() {
   try {
     const allowed = await ensureConstatariV2Access();
@@ -2937,13 +3088,17 @@ async function bootstrapConstatariV2() {
     setupFinalEstimatePreview();
     loadServicePeople();
     setupPrintMenuClose();
+    const requestedConstatareId = readRequestedConstatareId();
     const cnRequest = consumeCnConstatareRequest();
-    await loadCars();
+    /* loadCars selectează ID-ul cerut dacă există și revine normal la primul rând dacă lipsește */
+    await loadCars(requestedConstatareId);
     if (cnRequest) {
       try {
         /* deschide un draft local; INSERT-ul și nr_fisa apar numai la click pe Salvează */
         const payload = await buildConstatarePayloadFromCn(cnRequest);
         cnConstatareDraft = mapCnPayloadToDraft(payload);
+        manualPlateLookupLinks = null;
+        manualPlateAutofill = null;
         creating = true;
         editing = false;
         activeTab = "general";
@@ -2967,6 +3122,7 @@ document.querySelector("#newBtn").onclick = () => {
   if (!confirmDiscardUnsaved()) return;
   clearDirtyState();
   if (!servicePeopleLoaded) loadServicePeople();
+  clearManualPlateLookup();
   cnConstatareDraft = null;
   creating = true;
   editing = false;
