@@ -670,8 +670,9 @@
                     <input type="text" id="avansModel" required class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Nr. Înmatriculare</label>
-                    <input type="text" id="avansNr" required onblur="this.value = normalizeazaNrInmatriculare(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all font-mono tracking-wider">
+                    <!-- numărul este opțional și se normalizează înainte de asocierea cu vehiculul C&N -->
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Nr. Înmatriculare (opțional)</label>
+                    <input type="text" id="avansNr" onblur="this.value = normalizeazaNrInmatriculare(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-slate-100 focus:outline-none focus:border-blue-500 transition-all font-mono tracking-wider">
                 </div>
                 <div id="initialPaymentFields" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -835,6 +836,20 @@
             return String(value || '')
                 .toUpperCase()
                 .replace(/[^A-Z0-9]/g, '');
+        }
+
+        /* caută numai potrivirea exactă din C&N și acceptă asocierea doar când vehiculul este unic */
+        async function findCnVehicleId(nrInmatriculareNormalized) {
+            if (!nrInmatriculareNormalized) return null;
+
+            const { data, error } = await sb
+                .from('clienti_vehicule')
+                .select('id')
+                .eq('nr_inmatriculare', nrInmatriculareNormalized)
+                .limit(2);
+
+            if (error) throw error;
+            return data?.length === 1 ? data[0].id : null;
         }
 
         async function getAuditActor() {
@@ -1248,23 +1263,18 @@
             const nrInmatriculareNormalized = normalizeazaNrInmatriculare(avansNrInput.value);
             avansNrInput.value = nrInmatriculareNormalized;
 
-            if (!nrInmatriculareNormalized) {
-                console.error('Numărul de înmatriculare este gol după normalizare.');
-                alert('Numărul de înmatriculare este invalid.');
-                btn.disabled = false;
-                btn.textContent = originalText;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                return;
-            }
-
             const payload = {
                 data_crearii: document.getElementById('avansData').value,
                 model_masina: document.getElementById('avansModel').value.trim(),
-                nr_inmatriculare: nrInmatriculareNormalized,
+                nr_inmatriculare: nrInmatriculareNormalized || null,
                 observatii: document.getElementById('avansObservatii').value.trim() || null,
             };
 
             try {
+                /* lipsa unei potriviri C&N nu blochează avansul și lasă explicit legătura goală */
+                const vehicleId = await findCnVehicleId(nrInmatriculareNormalized);
+                payload.vehicle_id = vehicleId;
+
                 if (editingAvansId) {
                     const { error } = await sb
                         .from('evidente_avansuri')
@@ -1314,6 +1324,7 @@
                 }
                 closeModal();
                 await fetchAvansuri();
+                setStatusMessage(vehicleId ? 'Vehicul C&N identificat' : 'Avans nelegat de C&N');
             } catch (err) {
                 console.error('Error saving avans:', err);
                 alert('Eroare la salvare: ' + (err.message || 'Server error'));

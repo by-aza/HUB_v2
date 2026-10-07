@@ -4,6 +4,8 @@ let selectedId = 1,
   activeFilter = "all",
   editing = false,
   creating = false;
+/* draft local primit din C&N; nu este scris în Supabase înainte de salvare */
+let cnConstatareDraft = null;
 let listErrorMessage = "";
 let servicePeople = [];
 let servicePeopleLoaded = false;
@@ -114,7 +116,7 @@ function formatServiceDays(startValue, endValue) {
 function normalizePlate(value) {
   return String(value || "")
     .toUpperCase()
-    .replace(/[\s-]+/g, "");
+    .replace(/[^A-Z0-9]/g, "");
 }
 function normalizeUpperTrim(value) {
   return String(value || "").trim().toUpperCase();
@@ -646,6 +648,507 @@ function getEditableCarPayload(options = {}) {
   if (clientInput) clientInput.value = payload.client;
   return payload;
 }
+/* normalizează valorile folosite numai pentru identificarea sigură în Clienți & Notificări */
+function normalizeCnVin(value) {
+  return normalizeUpperTrim(value).replace(/[^A-Z0-9]/g, "");
+}
+function normalizeCnPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.startsWith("00") ? digits.slice(2) : digits;
+}
+
+/* citește toate paginile necesare pentru comparații normalizate în browser */
+async function fetchAllCnRows(table, columns) {
+  const pageSize = 1000;
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseClient
+      .from(table)
+      .select(columns)
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if ((data || []).length < pageSize) return rows;
+  }
+}
+
+/* confirmă explicit update-ul pentru ca un rând blocat de permisiuni să nu pară salvat */
+async function updateCnRow(table, id, values) {
+  const { data, error } = await supabaseClient
+    .from(table)
+    .update(values)
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (error) throw error;
+  if (!data?.id) throw new Error(`Update-ul din ${table} nu a fost confirmat.`);
+  return data;
+}
+
+/* generează următorul cod CL-xxxxx și reîncearcă numai coliziunile de cod */
+async function createCnClient(payload) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const clients = await fetchAllCnRows("clienti", "id, cod_client");
+    const maxCode = clients.reduce((max, row) => {
+      const match = String(row.cod_client || "").match(/^CL-(\d{5})$/i);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    const clientPayload = {
+      cod_client: `CL-${String(maxCode + 1).padStart(5, "0")}`,
+      nume: payload.client || null,
+      tip_client: "persoana",
+      sursa_creare: "constatare",
+      status_profil: [payload.client, payload.telefon, payload.nr_inmatriculare, payload.serie_vin, payload.model_masina].every((value) => String(value || "").trim()) ? "complet" : "de_completat",
+    };
+    const { data, error } = await supabaseClient
+      .from("clienti")
+      .insert(clientPayload)
+      .select("id, cod_client")
+      .single();
+    if (!error) return data;
+    if (error.code !== "23505") throw error;
+  }
+  throw new Error("Nu s-a putut genera un cod client unic după 3 încercări.");
+}
+
+/* leagă numai avansurile vechi fără vehicul care au același număr auto după normalizare */
+async function linkUnassignedAdvancesToNewVehicle(vehicleId, vehiclePlate) {
+  const normalizedPlate = normalizePlate(vehiclePlate);
+  if (!vehicleId || !normalizedPlate) return 0;
+
+  const pageSize = 1000;
+  const matches = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabaseClient
+      .from("evidente_avansuri")
+      .select("id, nr_inmatriculare")
+      .is("vehicle_id", null)
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = data || [];
+    rows.forEach((advance) => {
+      if (normalizePlate(advance.nr_inmatriculare) === normalizedPlate) {
+        matches.push(advance.id);
+      }
+    });
+    if (rows.length < pageSize) break;
+  }
+  if (!matches.length) return 0;
+
+  /* filtrul repetat pe NULL protejează rândurile legate concurent între citire și UPDATE */
+  const { data: linkedRows, error: linkError } = await supabaseClient
+    .from("evidente_avansuri")
+    .update({ vehicle_id: vehicleId })
+    .in("id", matches)
+    .is("vehicle_id", null)
+    .select("id, vehicle_id");
+  if (linkError) throw linkError;
+  if ((linkedRows || []).length !== matches.length) {
+    throw new Error("Nu toate avansurile potrivite au fost confirmate după legare.");
+  }
+  return linkedRows.length;
+}
+
+/* rezolvă relațiile fără duplicate; conflictele cer verificare manuală */
+async function resolveCnClientVehicle(payload) {
+  const plate = normalizePlate(payload.nr_inmatriculare);
+  const vin = normalizeCnVin(payload.serie_vin);
+  if (!plate) {
+    return { warning: "Integrarea Clienți & Notificări a fost oprită: lipsește numărul de înmatriculare. Verifică manual constatarea." };
+  }
+
+  const vehicles = await fetchAllCnRows(
+    "clienti_vehicule",
+    "id, client_id, nr_inmatriculare, serie_vin",
+  );
+  const plateMatches = vehicles.filter((row) => normalizePlate(row.nr_inmatriculare) === plate);
+  if (plateMatches.length > 1) {
+    return { warning: `Integrarea Clienți & Notificări a fost oprită: numărul ${plate} corespunde mai multor vehicule. Verifică manual.` };
+  }
+  if (plateMatches.length === 1) {
+    const vehicle = plateMatches[0];
+    const savedVin = normalizeCnVin(vehicle.serie_vin);
+    if (vin && savedVin && vin !== savedVin) {
+      return { warning: `Integrarea Clienți & Notificări a fost oprită: VIN-ul introdus nu corespunde vehiculului ${plate}. Verifică manual.` };
+    }
+    if (!vehicle.client_id) {
+      return { warning: `Integrarea Clienți & Notificări a fost oprită: vehiculul ${plate} nu are client asociat. Verifică manual.` };
+    }
+    return { clientId: vehicle.client_id, vehicleId: vehicle.id, warnings: [] };
+  }
+
+  if (vin) {
+    const vinMatches = vehicles.filter((row) => normalizeCnVin(row.serie_vin) === vin);
+    if (vinMatches.length) {
+      return { warning: `Integrarea Clienți & Notificări a fost oprită: VIN-ul ${vin} există deja pe alt vehicul. Verifică manual.` };
+    }
+  }
+
+  const phone = normalizeCnPhone(payload.telefon);
+  let clientId = null;
+  let createdClient = false;
+  if (phone) {
+    const contacts = await fetchAllCnRows(
+      "clienti_contacte",
+      "id, client_id, tip, valoare, este_principal",
+    );
+    const matchingClientIds = [...new Set(contacts
+      .filter((row) => String(row.tip || "").toLowerCase() === "telefon" && normalizeCnPhone(row.valoare) === phone)
+      .map((row) => row.client_id)
+      .filter((value) => value !== null && value !== undefined)
+      .map(String))];
+    if (matchingClientIds.length > 1) {
+      return { warning: "Integrarea Clienți & Notificări a fost oprită: telefonul corespunde mai multor clienți. Verifică manual." };
+    }
+    if (matchingClientIds.length === 1) clientId = matchingClientIds[0];
+  }
+
+  const warnings = [];
+  if (!clientId) {
+    const client = await createCnClient(payload);
+    clientId = client.id;
+    createdClient = true;
+    if (phone) {
+      const { error: contactError } = await supabaseClient
+        .from("clienti_contacte")
+        .insert({ client_id: clientId, tip: "telefon", valoare: String(payload.telefon || "").trim(), este_principal: true, eticheta: "Principal" });
+      if (contactError) {
+        console.error("Contactul principal nu a putut fi creat:", contactError);
+        warnings.push("Clientul a fost creat, dar telefonul principal nu a putut fi salvat; verifică manual contactele.");
+      }
+    }
+  }
+
+  const vehiclePayload = {
+    client_id: clientId,
+    nr_inmatriculare: plate,
+    serie_vin: vin || null,
+    marca_model: payload.model_masina || null,
+  };
+  if (Number.isFinite(payload.kilometraj) && payload.kilometraj >= 0) {
+    vehiclePayload.kilometraj_curent = payload.kilometraj;
+  }
+  const { data: vehicle, error: vehicleError } = await supabaseClient
+    .from("clienti_vehicule")
+    .insert(vehiclePayload)
+    .select("id, client_id")
+    .single();
+  if (vehicleError) {
+    if (vehicleError.code === "23505") {
+      return { warning: `Integrarea Clienți & Notificări a fost oprită: a apărut un conflict concurent pentru ${plate} sau VIN. Verifică manual.` };
+    }
+    throw vehicleError;
+  }
+  try {
+    await linkUnassignedAdvancesToNewVehicle(vehicle.id, plate);
+  } catch (advanceLinkError) {
+    console.error("Legarea avansurilor vechi la vehiculul nou:", advanceLinkError);
+    warnings.push(`Vehiculul a fost creat, dar avansurile vechi pentru ${plate} nu au putut fi legate automat; verifică manual.`);
+  }
+  return { clientId: vehicle.client_id, vehicleId: vehicle.id, warnings, createdClient };
+}
+
+/* completează legăturile numai după ce clientul și vehiculul au fost rezolvate sigur */
+async function integrateNewConstatareWithCn(constatareId, payload) {
+  let resolution;
+  /* când ID-urile vin din dosarul C&N, validează relația fără o căutare după text */
+  if (payload.client_id && payload.vehicle_id) {
+    const { data: linkedVehicle, error: linkedVehicleError } = await supabaseClient
+      .from("clienti_vehicule")
+      .select("id, client_id")
+      .eq("id", payload.vehicle_id)
+      .eq("client_id", payload.client_id)
+      .maybeSingle();
+    if (linkedVehicleError) throw linkedVehicleError;
+    if (!linkedVehicle) throw new Error("Vehiculul selectat nu mai aparține clientului C&N.");
+    resolution = { clientId: linkedVehicle.client_id, vehicleId: linkedVehicle.id, warnings: [] };
+  } else {
+    resolution = await resolveCnClientVehicle(payload);
+    if (resolution.warning) return resolution.warning;
+  }
+  const { data, error } = await supabaseClient
+    .from("constatari")
+    .update({ client_id: resolution.clientId, vehicle_id: resolution.vehicleId })
+    .eq("id", constatareId)
+    .select("id, client_id, vehicle_id")
+    .single();
+  if (error) throw error;
+  if (!data?.client_id || !data?.vehicle_id) {
+    throw new Error("Legăturile client_id și vehicle_id nu au fost confirmate.");
+  }
+  return resolution.warnings?.join(" ") || "";
+}
+
+/* validează numărul și VIN-ul înainte ca snapshot-ul constatării să fie actualizat */
+async function validateLinkedVehicleIdentity(linkedCar, payload) {
+  const vehicleId = linkedCar?.vehicleId;
+  if (!linkedCar?.clientId || !vehicleId) {
+    return { payload: { ...payload }, warnings: [] };
+  }
+
+  const { data: currentVehicle, error: currentVehicleError } = await supabaseClient
+    .from("clienti_vehicule")
+    .select("id, nr_inmatriculare, serie_vin")
+    .eq("id", vehicleId)
+    .maybeSingle();
+  if (currentVehicleError) throw currentVehicleError;
+  if (!currentVehicle) {
+    return {
+      payload: { ...payload },
+      warnings: ["Vehiculul legat nu mai există în Clienți & Notificări. Verifică manual legătura."],
+    };
+  }
+
+  const safePayload = { ...payload };
+  const warnings = [];
+  const requestedPlate = normalizePlate(payload.nr_inmatriculare);
+  const currentPlate = normalizePlate(currentVehicle.nr_inmatriculare);
+  const requestedVin = normalizeCnVin(payload.serie_vin);
+  const currentVin = normalizeCnVin(currentVehicle.serie_vin);
+  if (
+    (requestedPlate && requestedPlate !== currentPlate)
+    || (requestedVin && requestedVin !== currentVin)
+  ) {
+    const vehicles = await fetchAllCnRows(
+      "clienti_vehicule",
+      "id, nr_inmatriculare, serie_vin",
+    );
+    const otherVehicles = vehicles.filter(
+      (row) => String(row.id) !== String(vehicleId),
+    );
+
+    if (
+      requestedPlate
+      && requestedPlate !== currentPlate
+      && otherVehicles.some((row) => normalizePlate(row.nr_inmatriculare) === requestedPlate)
+    ) {
+      safePayload.nr_inmatriculare = currentPlate;
+      warnings.push(`Numărul ${requestedPlate} este deja asociat altui vehicul.`);
+    }
+    if (
+      requestedVin
+      && requestedVin !== currentVin
+      && otherVehicles.some((row) => normalizeCnVin(row.serie_vin) === requestedVin)
+    ) {
+      safePayload.serie_vin = currentVin;
+      warnings.push(`VIN-ul ${requestedVin} este deja asociat altui vehicul.`);
+    }
+  }
+  return { payload: safePayload, warnings };
+}
+
+/* sincronizează o constatare legată cu datele master, fără a șterge valori când formularul este gol */
+async function syncLinkedConstatareToCn(linkedCar, payload) {
+  const clientId = linkedCar?.clientId;
+  const vehicleId = linkedCar?.vehicleId;
+  if (!clientId || !vehicleId) return [];
+
+  const now = new Date().toISOString();
+  const warnings = [];
+  const [{ data: client, error: clientError }, { data: vehicle, error: vehicleError }] = await Promise.all([
+    supabaseClient
+      .from("clienti")
+      .select("id, nume, status_profil")
+      .eq("id", clientId)
+      .maybeSingle(),
+    supabaseClient
+      .from("clienti_vehicule")
+      .select("id, client_id, nr_inmatriculare, serie_vin, marca_model, kilometraj_curent")
+      .eq("id", vehicleId)
+      .maybeSingle(),
+  ]);
+  if (clientError) throw clientError;
+  if (vehicleError) throw vehicleError;
+  if (!client) {
+    return ["Clientul legat nu mai există în Clienți & Notificări. Verifică manual legătura."];
+  }
+  if (!vehicle) {
+    return ["Vehiculul legat nu mai există în Clienți & Notificări. Verifică manual legătura."];
+  }
+  if (String(vehicle.client_id || "") !== String(clientId)) {
+    return ["Vehiculul legat aparține altui client. Sincronizarea C&N a fost oprită pentru verificare manuală."];
+  }
+
+  const vehicles = await fetchAllCnRows(
+    "clienti_vehicule",
+    "id, nr_inmatriculare, serie_vin",
+  );
+  const otherVehicles = vehicles.filter((row) => String(row.id) !== String(vehicleId));
+  const requestedPlate = normalizePlate(payload.nr_inmatriculare);
+  const requestedVin = normalizeCnVin(payload.serie_vin);
+  const vehicleUpdate = {};
+
+  /* verifică unicitatea numărului și a VIN-ului înaintea oricărui update de vehicul */
+  if (requestedPlate) {
+    const plateConflict = otherVehicles.find(
+      (row) => normalizePlate(row.nr_inmatriculare) === requestedPlate,
+    );
+    if (plateConflict) {
+      warnings.push(`Numărul ${requestedPlate} există deja pe alt vehicul; numărul auto nu a fost sincronizat.`);
+    } else if (requestedPlate !== normalizePlate(vehicle.nr_inmatriculare)) {
+      vehicleUpdate.nr_inmatriculare = requestedPlate;
+    }
+  }
+  if (requestedVin) {
+    const vinConflict = otherVehicles.find(
+      (row) => normalizeCnVin(row.serie_vin) === requestedVin,
+    );
+    if (vinConflict) {
+      warnings.push(`VIN-ul ${requestedVin} există deja pe alt vehicul; VIN-ul nu a fost sincronizat.`);
+    } else if (requestedVin !== normalizeCnVin(vehicle.serie_vin)) {
+      vehicleUpdate.serie_vin = requestedVin;
+    }
+  }
+  if (warnings.length) {
+    return warnings;
+  }
+  const requestedModel = String(payload.model_masina || "").trim();
+  if (requestedModel && requestedModel !== String(vehicle.marca_model || "").trim()) {
+    vehicleUpdate.marca_model = requestedModel;
+  }
+  if (
+    Number.isFinite(payload.kilometraj)
+    && payload.kilometraj >= 0
+    && Number(payload.kilometraj) !== Number(vehicle.kilometraj_curent)
+  ) {
+    vehicleUpdate.kilometraj_curent = payload.kilometraj;
+  }
+
+  const requestedName = String(payload.client || "").trim();
+  if (requestedName && requestedName !== String(client.nume || "").trim()) {
+    await updateCnRow("clienti", clientId, {
+      nume: requestedName,
+      updated_at: now,
+    });
+  }
+
+  /* actualizează sau creează telefonul principal, fără contacte identice ori ambigue */
+  const requestedPhone = String(payload.telefon || "").trim();
+  const normalizedPhone = normalizeCnPhone(requestedPhone);
+  if (requestedPhone && normalizedPhone) {
+    const { data: principal, error: principalError } = await supabaseClient
+      .from("clienti_contacte")
+      .select("id, valoare, eticheta")
+      .eq("client_id", clientId)
+      .eq("tip", "telefon")
+      .eq("este_principal", true)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (principalError) throw principalError;
+    let phoneAction = "NONE";
+    console.log("[C&N sync telefon]", {
+      client_id: clientId,
+      telefon_formular: requestedPhone,
+      telefon_cn_gasit: principal?.valoare || null,
+      actiune: phoneAction,
+    });
+
+    if (principal) {
+      if (normalizeCnPhone(principal.valoare) !== normalizedPhone) {
+        await updateCnRow("clienti_contacte", principal.id, {
+          valoare: requestedPhone,
+          updated_at: now,
+        });
+        phoneAction = "UPDATE";
+      }
+    } else {
+      const { data: clientPhones, error: phonesError } = await supabaseClient
+        .from("clienti_contacte")
+        .select("id, valoare, eticheta")
+        .eq("client_id", clientId)
+        .eq("tip", "telefon")
+        .order("id", { ascending: true });
+      if (phonesError) throw phonesError;
+      const identical = (clientPhones || []).find(
+        (row) => normalizeCnPhone(row.valoare) === normalizedPhone,
+      );
+      const reusableContact = identical || clientPhones?.[0] || null;
+      if (reusableContact) {
+        await updateCnRow("clienti_contacte", reusableContact.id, {
+          valoare: requestedPhone,
+          este_principal: true,
+          eticheta: reusableContact.eticheta || "Principal",
+          updated_at: now,
+        });
+        phoneAction = "UPDATE";
+      } else {
+        const { data: insertedContact, error: insertError } = await supabaseClient
+          .from("clienti_contacte")
+          .insert({
+            client_id: clientId,
+            tip: "telefon",
+            valoare: requestedPhone,
+            este_principal: true,
+            eticheta: "Principal",
+            updated_at: now,
+          })
+          .select("id")
+          .single();
+        if (insertError) throw insertError;
+        if (!insertedContact?.id) {
+          throw new Error("Contactul telefonic nou nu a fost confirmat.");
+        }
+        phoneAction = "INSERT";
+      }
+    }
+    const { data: verifiedPhone, error: verifyPhoneError } = await supabaseClient
+      .from("clienti_contacte")
+      .select("id, valoare")
+      .eq("client_id", clientId)
+      .eq("tip", "telefon")
+      .eq("este_principal", true)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (verifyPhoneError) throw verifyPhoneError;
+    console.log("[C&N sync telefon]", {
+      client_id: clientId,
+      telefon_formular: requestedPhone,
+      telefon_cn_gasit: verifiedPhone?.valoare || null,
+      actiune: phoneAction,
+    });
+    if (normalizeCnPhone(verifiedPhone?.valoare) !== normalizedPhone) {
+      throw new Error(
+        "Telefonul principal C&N nu corespunde telefonului din constatare după sincronizare.",
+      );
+    }
+  }
+
+  if (Object.keys(vehicleUpdate).length) {
+    vehicleUpdate.updated_at = now;
+    await updateCnRow("clienti_vehicule", vehicleId, vehicleUpdate);
+  }
+
+  /* recitește masterul și recalculează statusul exclusiv din cele cinci date de profil */
+  const [{ data: currentClient, error: currentClientError }, { data: currentVehicle, error: currentVehicleError }, { data: currentPhones, error: currentPhonesError }] = await Promise.all([
+    supabaseClient.from("clienti").select("id, nume, status_profil").eq("id", clientId).single(),
+    supabaseClient.from("clienti_vehicule").select("id, nr_inmatriculare, serie_vin, marca_model").eq("id", vehicleId).single(),
+    supabaseClient.from("clienti_contacte").select("id, valoare").eq("client_id", clientId).eq("tip", "telefon"),
+  ]);
+  if (currentClientError) throw currentClientError;
+  if (currentVehicleError) throw currentVehicleError;
+  if (currentPhonesError) throw currentPhonesError;
+  const hasPhone = (currentPhones || []).some((row) => normalizeCnPhone(row.valoare));
+  const isComplete = [
+    currentClient?.nume,
+    hasPhone,
+    currentVehicle?.nr_inmatriculare,
+    currentVehicle?.serie_vin,
+    currentVehicle?.marca_model,
+  ].every((value) => value === true || String(value || "").trim());
+  const nextProfileStatus = isComplete ? "complet" : "de_completat";
+  if (currentClient.status_profil !== nextProfileStatus) {
+    await updateCnRow("clienti", clientId, {
+      status_profil: nextProfileStatus,
+      updated_at: now,
+    });
+  }
+  return warnings;
+}
+
 async function getNextNrFisa() {
   const { data, error } = await supabaseClient
     .from("constatari")
@@ -657,6 +1160,101 @@ async function getNextNrFisa() {
   const currentMax = parseInt(data?.[0]?.nr_fisa || "0", 10);
   return String((Number.isFinite(currentMax) ? currentMax : 0) + 1).padStart(4, "0");
 }
+/* creează o fișă prin mecanismul unic de numerotare și integrare existent */
+async function createNewConstatareRecord(payload) {
+  const insertPayload = { ...payload, nr_fisa: await getNextNrFisa() };
+  const { data, error } = await supabaseClient
+    .from("constatari")
+    .insert(insertPayload)
+    .select("id")
+    .single();
+  if (error) throw error;
+  if (!data?.id) throw new Error("Insert fără ID returnat.");
+
+  /* integrarea păstrează sincronizarea C&N atât pentru formular, cât și pentru ruta directă */
+  let cnWarning = "";
+  try {
+    cnWarning = await integrateNewConstatareWithCn(data.id, insertPayload);
+  } catch (integrationError) {
+    console.error("Integrarea Constatări → Clienți & Notificări:", integrationError);
+    cnWarning = `Integrarea Clienți & Notificări nu a putut fi finalizată: ${integrationError?.message || "eroare necunoscută"}. Verifică manual legăturile.`;
+  }
+  await logConstatariAudit(data.id, "CREATE", "Mașină introdusă în service");
+  if (insertPayload.responsabili) {
+    await logConstatariAudit(data.id, "ASSIGNMENT_CHANGE", `Repartizare: ${insertPayload.responsabili}`);
+  }
+  return { id: data.id, cnWarning };
+}
+
+/* consumă o singură dată cererea venită din C&N, prevenind recrearea la refresh */
+function consumeCnConstatareRequest() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("action") !== "new-from-cn") return null;
+  const request = {
+    clientId: Number(params.get("client_id")),
+    vehicleId: Number(params.get("vehicle_id")),
+  };
+  params.delete("action");
+  params.delete("client_id");
+  params.delete("vehicle_id");
+  const remaining = params.toString();
+  window.history.replaceState(null, "", `${window.location.pathname}${remaining ? `?${remaining}` : ""}${window.location.hash}`);
+  if (!Number.isInteger(request.clientId) || request.clientId <= 0 || !Number.isInteger(request.vehicleId) || request.vehicleId <= 0) {
+    throw new Error("Cererea C&N nu conține ID-uri valide.");
+  }
+  return request;
+}
+
+/* citește masterul C&N și completează numai datele stabile ale noii vizite */
+async function buildConstatarePayloadFromCn(request) {
+  const [{ data: client, error: clientError }, { data: vehicle, error: vehicleError }, { data: contacts, error: contactsError }] = await Promise.all([
+    supabaseClient.from("clienti").select("id, nume").eq("id", request.clientId).maybeSingle(),
+    supabaseClient.from("clienti_vehicule").select("id, client_id, nr_inmatriculare, marca_model, serie_vin, kilometraj_curent").eq("id", request.vehicleId).maybeSingle(),
+    supabaseClient.from("clienti_contacte").select("id, tip, valoare, este_principal").eq("client_id", request.clientId).eq("tip", "telefon").order("id", { ascending: true }),
+  ]);
+  if (clientError) throw clientError;
+  if (vehicleError) throw vehicleError;
+  if (contactsError) throw contactsError;
+  if (!client) throw new Error("Clientul C&N nu mai există.");
+  if (!vehicle || String(vehicle.client_id) !== String(client.id)) throw new Error("Vehiculul C&N nu mai aparține clientului selectat.");
+  const phoneRows = contacts || [];
+  const primaryPhone = phoneRows.find((contact) => contact.este_principal === true || contact.este_principal === 1 || contact.este_principal === "true") || phoneRows[0];
+  return {
+    client_id: client.id,
+    vehicle_id: vehicle.id,
+    client: normalizeUpperTrim(client.nume),
+    telefon: String(primaryPhone?.valoare || "").trim(),
+    nr_inmatriculare: normalizePlate(vehicle.nr_inmatriculare),
+    model_masina: normalizeUpperTrim(vehicle.marca_model),
+    serie_vin: normalizeCnVin(vehicle.serie_vin),
+    kilometraj: parseNullableKm(vehicle.kilometraj_curent),
+    status: "In lucru",
+    este_urgent: false,
+  };
+}
+
+/* adaptează datele master C&N la câmpurile formularului de constatare nouă */
+function mapCnPayloadToDraft(payload) {
+  return {
+    clientId: payload.client_id,
+    vehicleId: payload.vehicle_id,
+    plate: payload.nr_inmatriculare || "",
+    model: payload.model_masina || "",
+    vin: payload.serie_vin || "",
+    kmIn: formatKm(payload.kilometraj),
+    kmOut: "",
+    date: formatDateRO(new Date()),
+    client: payload.client || "",
+    phone: payload.telefon || "",
+    status: "work",
+    urgent: false,
+    complaint: "",
+    mechanicDefects: "",
+    observations: "",
+    responsabili: "",
+  };
+}
+
 async function getOpenAsteptareInterval(constatareId) {
   const { data, error } = await supabaseClient
     .from("constatari_asteptare_piese")
@@ -865,6 +1463,8 @@ function mapCar(row) {
   const mappedStatus = mapStatus(row.status);
   return {
     id: row.id,
+    clientId: row.client_id || null,
+    vehicleId: row.vehicle_id || null,
     plate: row.nr_inmatriculare || "—",
     model: row.model_masina || "—",
     client: row.client || "—",
@@ -1603,9 +2203,15 @@ function setupFinalEstimatePreview() {
     }
   });
 }
+/* regula comună a taburilor: „Toate” include numai fișele nearhivate */
+function matchesConstatariFilter(car, filter) {
+  if (filter === "all") return car.status !== "archived";
+  return car.status === filter;
+}
+
 function updateFilterCounts() {
   const counts = {
-    all: cars.length,
+    all: cars.filter((c) => matchesConstatariFilter(c, "all")).length,
     work: cars.filter((c) => c.status === "work").length,
     wait: cars.filter((c) => c.status === "wait").length,
     done: cars.filter((c) => c.status === "done").length,
@@ -1620,7 +2226,7 @@ function renderList() {
   const q = document.querySelector("#search").value.toLowerCase();
   const shown = cars.filter(
     (c) =>
-      (activeFilter === "all" || c.status === activeFilter) &&
+      matchesConstatariFilter(c, activeFilter) &&
       [
         c.plate,
         c.model,
@@ -1678,6 +2284,7 @@ function renderList() {
           selectedId = nextId;
           /* o selecție explicită cere o verificare nouă, fără starea vehiculului anterior */
           finalEstimateByConstatare.delete(nextId);
+          cnConstatareDraft = null;
           creating = false;
           editing = false;
           activeTab = "general";
@@ -1697,11 +2304,11 @@ function generalContent(c, isNew = false) {
   const disabled = editing || isNew ? "" : "disabled";
   const selectedAssignments = parseResponsabiliAssignments(c.responsabili);
   const val = (label, key, type = "input", extra = "") =>
-    `<div class="field ${extra}"><label>${label}</label>${type === "textarea" ? `<textarea class="control" data-key="${key}" ${disabled}>${isNew ? "" : c[key] || ""}</textarea>` : `<input class="control" data-key="${key}" value="${isNew ? "" : c[key] || ""}" ${disabled}>`}</div>`;
+    `<div class="field ${extra}"><label>${label}</label>${type === "textarea" ? `<textarea class="control" data-key="${key}" ${disabled}>${c[key] || ""}</textarea>` : `<input class="control" data-key="${key}" value="${c[key] || ""}" ${disabled}>`}</div>`;
 
   /* textarea special pentru complaint cu placeholder + helper + warning */
   const complaintPlaceholder = MULTILINE_FIELD_CONFIG.complaint.placeholder;
-  const complaintFieldHtml = `<div class="field full"><label>Defecțiuni reclamate</label><textarea class="control" data-key="complaint" placeholder="${escapeHtml(complaintPlaceholder)}" ${disabled}>${isNew ? "" : c.complaint || ""}</textarea>${buildMultilineHelperHtml("complaint")}</div>`;
+  const complaintFieldHtml = `<div class="field full"><label>Defecțiuni reclamate</label><textarea class="control" data-key="complaint" placeholder="${escapeHtml(complaintPlaceholder)}" ${disabled}>${c.complaint || ""}</textarea>${buildMultilineHelperHtml("complaint")}</div>`;
 
   return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div></div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
 }
@@ -1794,10 +2401,11 @@ function departmentTabClass(constatareId, key) {
 function renderDetail() {
   const pane = document.querySelector("#detailPane");
   if (creating) {
-    pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">Mașină nouă</div><div class="vehicle-summary">Completează datele de recepție și repartizarea inițială</div></div></div></div><div class="content">${generalContent({ status: "work" }, true)}<div class="form-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span><button class="btn btn-ghost" id="cancelBtn">Anulează</button><button class="btn btn-primary" id="createBtn">Salvează mașina</button></div></div>`;
+    pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">Constatare nouă</div><div class="vehicle-summary">Completează datele vizitei; numărul fișei se generează numai la salvare</div></div></div></div><div class="content">${generalContent(cnConstatareDraft || { status: "work" }, true)}<div class="form-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span><button class="btn btn-ghost" id="cancelBtn">Anulează</button><button class="btn btn-primary" id="createBtn">Salvează</button></div></div>`;
     document.querySelector("#cancelBtn").onclick = () => {
       if (!confirmDiscardUnsaved()) return;
       clearDirtyState();
+      cnConstatareDraft = null;
       creating = false;
       render();
     };
@@ -1808,31 +2416,21 @@ function renderDetail() {
       createBtn.textContent = "Se salvează...";
       try {
         const payload = getEditableCarPayload({ includeKmOut: false });
-        payload.nr_fisa = await getNextNrFisa();
-        const { data, error } = await supabaseClient
-          .from("constatari")
-          .insert(payload)
-          .select("id")
-          .single();
-        if (error) throw error;
-        if (!data?.id) throw new Error("Insert fără ID returnat.");
-        await logConstatariAudit(
-          data.id,
-          "CREATE",
-          "Mașină introdusă în service",
-        );
-        if (payload.responsabili) {
-          await logConstatariAudit(
-            data.id,
-            "ASSIGNMENT_CHANGE",
-            `Repartizare: ${payload.responsabili}`,
-          );
+        /* păstrează legăturile exacte primite din dosarul C&N, fără identificare după text */
+        if (cnConstatareDraft?.clientId && cnConstatareDraft?.vehicleId) {
+          payload.client_id = cnConstatareDraft.clientId;
+          payload.vehicle_id = cnConstatareDraft.vehicleId;
         }
+        const { id, cnWarning } = await createNewConstatareRecord(payload);
         clearDirtyState();
+        cnConstatareDraft = null;
         creating = false;
         editing = false;
         activeTab = "general";
-        await loadCars(data.id);
+        await loadCars(id);
+        if (cnWarning) {
+          alert(`Constatarea a fost salvată, dar necesită verificare manuală. ${cnWarning}`);
+        }
       } catch (error) {
         console.error(error);
         alert("Nu s-a putut genera sau salva fișa.");
@@ -1940,7 +2538,48 @@ function renderDetail() {
       se.disabled = true;
       se.textContent = "Se salvează...";
       try {
-        const payload = getEditableCarPayload();
+        /* recitește legăturile pentru ca validarea să nu depindă de un obiect UI rămas în memorie */
+        const { data: currentLinks, error: linksError } = await supabaseClient
+          .from("constatari")
+          .select("client_id, vehicle_id")
+          .eq("id", currentId)
+          .single();
+        if (linksError) throw linksError;
+        const linkedCar = {
+          ...previousCar,
+          clientId: currentLinks?.client_id || previousCar.clientId || null,
+          vehicleId: currentLinks?.vehicle_id || previousCar.vehicleId || null,
+        };
+        const formPayload = getEditableCarPayload();
+        const validation = await validateLinkedVehicleIdentity(
+          linkedCar,
+          formPayload,
+        );
+        const payload = validation.payload;
+        if (validation.warnings.length) {
+          alert(validation.warnings.join(" "));
+          se.disabled = false;
+          se.textContent = originalText;
+          return;
+        }
+
+        /* sincronizează masterul înaintea snapshot-ului; orice problemă oprește salvarea constatării */
+        let cnSyncWarnings = [];
+        try {
+          cnSyncWarnings = await syncLinkedConstatareToCn(linkedCar, payload);
+        } catch (syncError) {
+          console.error("Sincronizarea Constatări → Clienți & Notificări:", syncError);
+          throw new Error(
+            `Datele C&N nu au putut fi sincronizate: ${syncError?.message || "eroare necunoscută"}.`,
+          );
+        }
+        if (cnSyncWarnings.length) {
+          alert(cnSyncWarnings.join(" "));
+          se.disabled = false;
+          se.textContent = originalText;
+          return;
+        }
+
         const statusPayload = await applyExistingCarStatusRules(
           currentId,
           payload.status,
@@ -1953,6 +2592,40 @@ function renderDetail() {
           .single();
         if (error) throw error;
         if (!data?.id) throw new Error("Update fără ID returnat.");
+        /* confirmă după salvare că snapshot-ul și telefonul principal au aceeași valoare */
+        if (String(payload.telefon || "").trim() && linkedCar.clientId) {
+          const [{ data: savedConstatare, error: savedConstatareError }, { data: savedPhone, error: savedPhoneError }] = await Promise.all([
+            supabaseClient
+              .from("constatari")
+              .select("id, telefon")
+              .eq("id", currentId)
+              .single(),
+            supabaseClient
+              .from("clienti_contacte")
+              .select("id, valoare")
+              .eq("client_id", linkedCar.clientId)
+              .eq("tip", "telefon")
+              .eq("este_principal", true)
+              .order("id", { ascending: true })
+              .limit(1)
+              .maybeSingle(),
+          ]);
+          if (savedConstatareError) throw savedConstatareError;
+          if (savedPhoneError) throw savedPhoneError;
+          console.log("[C&N sync telefon]", {
+            client_id: linkedCar.clientId,
+            telefon_formular: payload.telefon,
+            telefon_cn_gasit: savedPhone?.valoare || null,
+            actiune: "VERIFY_FINAL",
+          });
+          if (
+            normalizeCnPhone(savedConstatare?.telefon) !== normalizeCnPhone(savedPhone?.valoare)
+          ) {
+            throw new Error(
+              "Telefonul salvat în constatare diferă de telefonul principal C&N.",
+            );
+          }
+        }
         const nextStatus = mapStatus(payload.status).statusText;
         if (previousStatus && previousStatus !== nextStatus) {
           await logConstatariAudit(
@@ -1989,7 +2662,7 @@ function renderDetail() {
         await loadCars(currentId);
       } catch (error) {
         console.error(error);
-        alert("Nu s-au putut salva modificările.");
+        alert(error?.message || "Nu s-au putut salva modificările.");
         se.disabled = false;
         se.textContent = originalText;
       }
@@ -2111,7 +2784,7 @@ async function loadCars(preferredSelectedId = null, options = {}) {
     try {
       const { data, error } = await supabaseClient
         .from("constatari")
-        .select("id, created_at, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
+        .select("id, created_at, client_id, vehicle_id, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
         .order("created_at", { ascending: false });
       if (myGeneration !== loadCarsGeneration) return;
       if (error) throw error;
@@ -2264,7 +2937,23 @@ async function bootstrapConstatariV2() {
     setupFinalEstimatePreview();
     loadServicePeople();
     setupPrintMenuClose();
+    const cnRequest = consumeCnConstatareRequest();
     await loadCars();
+    if (cnRequest) {
+      try {
+        /* deschide un draft local; INSERT-ul și nr_fisa apar numai la click pe Salvează */
+        const payload = await buildConstatarePayloadFromCn(cnRequest);
+        cnConstatareDraft = mapCnPayloadToDraft(payload);
+        creating = true;
+        editing = false;
+        activeTab = "general";
+        clearDirtyState();
+        render();
+      } catch (creationError) {
+        console.error("Pregătirea draftului din C&N:", creationError);
+        alert(`Draftul constatării nu a putut fi pregătit: ${creationError?.message || "eroare necunoscută"}.`);
+      }
+    }
     updateDirtyUI();
     startPeriodicRefresh();
   } catch (error) {
@@ -2278,6 +2967,7 @@ document.querySelector("#newBtn").onclick = () => {
   if (!confirmDiscardUnsaved()) return;
   clearDirtyState();
   if (!servicePeopleLoaded) loadServicePeople();
+  cnConstatareDraft = null;
   creating = true;
   editing = false;
   render();

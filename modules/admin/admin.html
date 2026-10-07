@@ -2161,6 +2161,8 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_cautare_deviz" class="rounded border-slate-600 bg-slate-900"> Căutare Deviz</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_deviz_final" class="rounded border-slate-600 bg-slate-900"> Deviz Final</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_comenzi_piese_sh" class="rounded border-slate-600 bg-slate-900"> Comenzi Piese SH</label>
+                                                <!-- Permisiune pentru accesarea paginii Clienți & Notificări -->
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_clienti_notificari" class="rounded border-slate-600 bg-slate-900"> Clienți &amp; Notificări</label>
                                             </div>
                                         </div>
                                         <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
@@ -2195,6 +2197,8 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_echipe" class="rounded border-slate-600 bg-slate-900"> Echipe &amp; Departamente</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_admin_useri" class="rounded border-slate-600 bg-slate-900"> Gestionare Utilizatori</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_manager_dashboard" class="rounded border-slate-600 bg-slate-900"> Dashboard Manager</label>
+                                                <!-- Permisiune pentru configurarea modulului Clienți & Notificări -->
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_clienti_notificari_config" class="rounded border-slate-600 bg-slate-900"> Configurare Clienți &amp; Notificări</label>
                                             </div>
                                         </div>
                                     </div>
@@ -2945,6 +2949,8 @@
             ['perm_cautare_deviz', 'cautare_deviz'],
             ['perm_deviz_final', 'deviz_final'],
             ['perm_comenzi_piese_sh', 'comenzi_piese_sh'],
+            // Permisiunea paginii Clienți & Notificări se păstrează în JSON-ul auth_profiles.permissions
+            ['perm_clienti_notificari', 'clienti_notificari'],
             ['perm_lista_masini', 'lista_masini'],
             ['perm_baza_vin', 'baza_vin'],
             ['perm_awb', 'awb'],
@@ -2963,7 +2969,9 @@
             ['perm_admin_audit', 'admin_audit'],
             ['perm_admin_echipe', 'admin_echipe'],
             ['perm_admin_useri', 'admin_useri'],
-            ['perm_manager_dashboard', 'manager_dashboard']
+            ['perm_manager_dashboard', 'manager_dashboard'],
+            // Permisiunea de configurare se păstrează în același JSON auth_profiles.permissions
+            ['perm_clienti_notificari_config', 'clienti_notificari_config']
         ];
         const userPermissionLabels = {
             deviz_estimativ: 'Deviz Estimativ',
@@ -2973,6 +2981,7 @@
             cautare_deviz: 'Căutare Deviz',
             deviz_final: 'Deviz Final',
             comenzi_piese_sh: 'Comenzi Piese SH',
+            clienti_notificari: 'Clienți & Notificări',
             lista_masini: 'Listă Mașini',
             baza_vin: 'Bază VIN',
             awb: 'Evidență AWB',
@@ -2990,7 +2999,8 @@
             admin_audit: 'Admin Audit Log',
             admin_echipe: 'Admin Echipe & Departamente',
             admin_useri: 'Admin Gestionare Utilizatori',
-            manager_dashboard: 'Dashboard Manager'
+            manager_dashboard: 'Dashboard Manager',
+            clienti_notificari_config: 'Configurare Clienți & Notificări'
         };
 
         // Identifică administratorul care face modificarea
