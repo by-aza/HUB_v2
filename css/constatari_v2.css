@@ -515,6 +515,37 @@ button {
     border-color: var(--cyan)
 }
 
+/* mesajul lookup-ului C&N păstrează formularul compact și evidențiază doar conflictele */
+.plate-lookup-status {
+    margin-top: 9px;
+    padding: 8px 10px;
+    border: 1px solid #25425d;
+    border-radius: 7px;
+    background: #0b1c2b;
+    color: #a9c7d8;
+    font-size: 12px
+}
+
+.plate-lookup-status.hidden {
+    display: none
+}
+
+.plate-lookup-status.is-loading {
+    color: var(--cyan)
+}
+
+.plate-lookup-status.is-success {
+    border-color: #166534;
+    background: #0c251b;
+    color: #86efac
+}
+
+.plate-lookup-status.is-warning {
+    border-color: #92400e;
+    background: #2a1b0c;
+    color: #fcd34d
+}
+
 textarea.control {
     min-height: 150px; /* inaltime minima pentru placeholder cu exemple pe mai multe linii */
     resize: vertical
