@@ -5,7 +5,7 @@
   <title>Clienți &amp; Notificări — DEMO v3</title>
   <meta name="description" content="Demo intern pentru evidența clienților, vehiculelor, avansurilor și notificărilor.">
   <link rel="icon" type="image/png" href="../../icons/192x192.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"><link rel="stylesheet" href="../../css/clienti-notificari.css?v=20261008-real-notifications"><script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"><link rel="stylesheet" href="../../css/clienti-notificari.css?v=20261008-compact-notifications"><script src="https://unpkg.com/lucide@latest"></script>
   <!-- Conexiunea Supabase existentă în HUB pentru sesiune și profil -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../../js/config.js"></script>
 </head>
@@ -59,5 +59,5 @@
   <!-- dialog reutilizat pentru notițe, previzualizări și permisiuni -->
   <div id="actionModal" class="cn-modal-overlay" hidden><div class="cn-modal cn-action-modal"><header class="cn-modal-header"><div><span id="actionEyebrow" class="cn-eyebrow">ACȚIUNE DEMO</span><h2 id="actionModalTitle">Previzualizare</h2></div><button class="cn-icon-button" data-close-modal="actionModal"><i data-lucide="x"></i></button></header><div id="actionModalBody" class="cn-modal-body"></div><!-- Footerul modalului afișează salvarea numai în taburile configurabile --><footer class="cn-modal-footer"><span id="moduleSettingsStatus" class="cn-module-settings-status" role="status" aria-live="polite" hidden></span><button id="moduleSettingsSaveBtn" class="cn-button cn-button-primary" type="button" hidden><i data-lucide="save"></i> Salvează setările</button><button class="cn-button cn-button-primary" data-close-modal="actionModal">Închide</button></footer></div></div>
   <!-- mesajele scurte confirmă operațiile în memorie -->
-  <div id="toast" class="cn-toast" role="status" aria-live="polite"></div><script src="../../js/clienti-notificari.js?v=20261008-client-preferences"></script>
+  <div id="toast" class="cn-toast" role="status" aria-live="polite"></div><script src="../../js/clienti-notificari.js?v=20261008-compact-notifications"></script>
 </body></html>

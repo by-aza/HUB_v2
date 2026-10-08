@@ -39,6 +39,8 @@ let automationSettings=null;
 /* configurația și șabloanele tabului Notificări sunt cache read-only */
 let realNotificationsState="idle",realNotificationsError="",realNotificationConfig=null;
 const realNotificationTemplates=new Map();
+/* istoricul și starea sincronizării sunt separate pentru fiecare vehicul selectat */
+const realNotificationHistoryByVehicle=new Map(),realNotificationHistoryState=new Map();
 /* lista principală folosește exclusiv rândurile încărcate din cele trei tabele Supabase */
 let clientVehicleRows=[];
 /* termenele reale sunt grupate strict după ID-ul vehiculului */
@@ -256,19 +258,63 @@ async function detectOptionalSchemaColumns(){
 /* întoarce prima coloană instalată pentru o valoare cu denumiri istorice alternative */
 function supportedColumn(table,names){return names.find(name=>optionalSchemaColumns[table].has(name))||null}
 
+/* citește paginat numai programările active folosite în listă și la reconciliere */
+async function readScheduledNotifications(clientId=null){
+  const pageSize=1000,rows=[];
+  for(let from=0;;from+=pageSize){
+    let query=supabaseClient.from("clienti_notificari_istoric").select("id, client_id, vehicle_id, termen_id, data_termen, prag_zile, canal, status").eq("status","programata");
+    if(clientId!==null)query=query.eq("client_id",clientId);
+    const{data,error}=await query.order("id",{ascending:true}).range(from,from+pageSize-1);if(error)throw error;rows.push(...(data||[]));if((data||[]).length<pageSize)return rows;
+  }
+}
+
+/* normalizează configurația globală în aceleași valori folosite de preferințele clientului */
+function notificationEligibilityConfig(config){return{thresholds:[config?.prag_30&&30,config?.prag_15&&15,config?.prag_5&&5,config?.prag_0&&0].filter(Number.isInteger),channels:[config?.canal_whatsapp&&"whatsapp",config?.canal_email&&"email",config?.canal_sms&&"sms"].filter(Boolean)}}
+
+/* aceeași regulă decide dacă o programare poate apărea în tab și în lista principală */
+function isScheduledNotificationEligible(notification,row,config=realNotificationConfig){
+  if(!notification||notification.status!=="programata"||!row||row.clientStatus!=="activ"||row.vehicleStatus!=="activ"||row.consent!==true)return false;
+  const thresholds=config?.thresholds||[],channels=(config?.channels||[]).map(value=>String(value).toLowerCase()),channel=String(notification.canal||"").toLowerCase();
+  if(!(row.timing||[]).includes(Number(notification.prag_zile))||!thresholds.includes(Number(notification.prag_zile)))return false;
+  if(!(row.channels||[]).some(value=>String(value).toLowerCase()===channel)||!channels.includes(channel))return false;
+  return channel==="email"?Boolean(row.email):["whatsapp","sms"].includes(channel)&&Boolean(row.phone);
+}
+
+/* după salvare anulează exclusiv programările care nu mai respectă preferințele curente */
+async function cancelIneligibleClientNotifications(clientId){
+  const[{data:client,error:clientError},{data:vehicles,error:vehiclesError},{data:contacts,error:contactsError},{data:config,error:configError},scheduled]=await Promise.all([
+    supabaseClient.from("clienti").select("id, status_activitate, acord_notificari, canal_whatsapp, canal_email, canal_sms, prag_30, prag_15, prag_5, prag_0").eq("id",clientId).single(),
+    supabaseClient.from("clienti_vehicule").select("id, status_vehicul").eq("client_id",clientId),
+    supabaseClient.from("clienti_contacte").select("id, client_id, tip, valoare, este_principal").eq("client_id",clientId),
+    supabaseClient.from("clienti_notificari_config").select("prag_30, prag_15, prag_5, prag_0, canal_whatsapp, canal_email, canal_sms").eq("id",1).single(),
+    readScheduledNotifications(clientId)
+  ]);
+  if(clientError)throw clientError;if(vehiclesError)throw vehiclesError;if(contactsError)throw contactsError;if(configError)throw configError;
+  const vehicleStatus=new Map((vehicles||[]).map(vehicle=>[String(vehicle.id),String(vehicle.status_vehicul||"activ")])),clientContacts=contacts||[];
+  const eligibilityConfig=notificationEligibilityConfig(config),row={clientStatus:String(client.status_activitate||"activ"),consent:client.acord_notificari===true,channels:[client.canal_whatsapp&&"WhatsApp",client.canal_email&&"Email",client.canal_sms&&"SMS"].filter(Boolean),timing:[client.prag_30&&30,client.prag_15&&15,client.prag_5&&5,client.prag_0&&0].filter(Number.isInteger),phone:preferredContact(clientContacts,"telefon"),email:preferredContact(clientContacts,"email")};
+  const cancelledIds=(scheduled||[]).filter(notification=>!isScheduledNotificationEligible(notification,{...row,vehicleStatus:vehicleStatus.get(String(notification.vehicle_id))||"inactiv"},eligibilityConfig)).map(notification=>notification.id);
+  if(cancelledIds.length){const{error}=await supabaseClient.from("clienti_notificari_istoric").update({status:"anulata"}).in("id",cancelledIds).eq("status","programata");if(error)throw error}
+}
+
 /* combină relațiile client → vehicul și client → contacte într-un rând per vehicul */
 async function loadClientVehicleRows(){
-  clientListState="loading";clientListError="";renderTable();
+  clientListState="loading";clientListError="";
+  /* o reîncărcare după editarea termenelor forțează recalcularea programărilor */
+  realNotificationHistoryState.clear();realNotificationHistoryByVehicle.clear();renderTable();
   try{
     await detectOptionalSchemaColumns();
     const clientOptional=[...optionalSchemaColumns.clienti],vehicleOptional=[...optionalSchemaColumns.clienti_vehicule];
-    const[clientRows,vehicleRows,contactRows,deadlineRows]=await Promise.all([
+    const[clientRows,vehicleRows,contactRows,deadlineRows,scheduledRows,notificationConfigRow]=await Promise.all([
       readAllSupabaseRows("clienti",["id","cod_client","nume","status_activitate","created_at","acord_notificari","canal_whatsapp","canal_email","canal_sms","prag_30","prag_15","prag_5","prag_0",...clientOptional].join(", ")),
       readAllSupabaseRows("clienti_vehicule",["id","client_id","nr_inmatriculare","marca_model","serie_vin","status_vehicul","created_at",...vehicleOptional].join(", ")),
       readAllSupabaseRows("clienti_contacte","id, client_id, tip, valoare, este_principal"),
-      readAllSupabaseRows("clienti_vehicule_termene","id, vehicle_id, tip, denumire, data_termen, activ, updated_at")
+      readAllSupabaseRows("clienti_vehicule_termene","id, vehicle_id, tip, denumire, data_termen, activ, updated_at"),
+      readScheduledNotifications(),
+      supabaseClient.from("clienti_notificari_config").select("prag_30, prag_15, prag_5, prag_0, canal_whatsapp, canal_email, canal_sms").eq("id",1).single().then(({data,error})=>{if(error)throw error;return data})
     ]);
     const clientsById=new Map(clientRows.map(client=>[String(client.id),client]));
+    const scheduledByVehicle=new Map();scheduledRows.forEach(notification=>{const key=String(notification.vehicle_id),items=scheduledByVehicle.get(key)||[];items.push(notification);scheduledByVehicle.set(key,items)});
+    const listNotificationConfig=notificationEligibilityConfig(notificationConfigRow);
     vehicleDeadlinesByVehicle.clear();
     deadlineRows.forEach(deadline=>{const key=String(deadline.vehicle_id),items=vehicleDeadlinesByVehicle.get(key)||[];items.push(deadline);vehicleDeadlinesByVehicle.set(key,items)});
     const contactsByClient=new Map();
@@ -290,7 +336,7 @@ async function loadClientVehicleRows(){
       const clientStatus=String(client.status_activitate||"activ"),vehicleStatus=String(vehicle.status_vehicul||"activ");
       const reminders=vehicleStatus==="activ"?(vehicleDeadlinesByVehicle.get(String(vehicle.id))||[]).filter(deadline=>deadline.activ===true&&deadline.data_termen):[];
       const row={clientId:client.id,vehicleId:vehicle.id,clientStatus,vehicleStatus,code:String(client.cod_client||"").trim(),name:String(client.nume||"").trim(),phone:preferredContact(contacts,"telefon"),email:preferredContact(contacts,"email"),notes:String(client.observatii||"").trim(),channels,consent:client.acord_notificari===true,timing,plate:String(vehicle.nr_inmatriculare||"").trim(),makeModel:String(vehicle.marca_model||"").trim(),year:yearColumn?vehicle[yearColumn]||"":"",vin:String(vehicle.serie_vin||"").trim(),vehicleNotes:String(vehicle.observatii||"").trim(),createdAt:latestCreatedAt(client.created_at,vehicle.created_at),reminders};
-      row.profileState=profileVisualState(row);row.nextReminder=nearestReminderSummary(row.reminders);return row;
+      row.profileState=profileVisualState(row);row.nextReminder=nearestReminderSummary(row.reminders);row.hasEligibleScheduled=(scheduledByVehicle.get(String(row.vehicleId))||[]).some(notification=>isScheduledNotificationEligible(notification,row,listNotificationConfig));return row;
     }).filter(Boolean).sort(sortClientVehicleRows);
     const scopedRows=clientVehicleRows.filter(row=>activityScope==="all"||(activityScope==="active"?isOperationalRow(row):!isOperationalRow(row)));
     selectedRealVehicleId=scopedRows.some(row=>String(row.vehicleId)===String(selectedRealVehicleId))?selectedRealVehicleId:scopedRows[0]?.vehicleId||null;
@@ -337,7 +383,7 @@ function reminderTableCells(row){
   const reminder=row.nextReminder;
   if(!reminder)return'<td><span class="cn-reminder-summary"><strong>—</strong><small>Fără reminder activ</small></span></td><td><span class="cn-date"><strong>—</strong><small>—</small></span></td><td><span class="cn-status-placeholder">—</span></td>';
   const dayLabel=reminder.days===0?"Astăzi":reminder.expired?`${Math.abs(reminder.days)} zile depășit`:`${reminder.days} zile`;
-  return`<td><span class="cn-reminder-summary"><strong>${escapeHtml(reminder.types)}</strong><small>Cel mai apropiat termen activ</small></span></td><td><span class="cn-date"><strong>${formatDate(reminder.date)}</strong><small>${dayLabel}</small></span></td><td><span class="cn-status ${reminder.expired?"danger":"success"}">${reminder.expired?"Expirat":"Programat"}</span></td>`;
+  return`<td><span class="cn-reminder-summary"><strong>${escapeHtml(reminder.types)}</strong><small>Cel mai apropiat termen activ</small></span></td><td><span class="cn-date"><strong>${formatDate(reminder.date)}</strong><small>${dayLabel}</small></span></td><td>${row.hasEligibleScheduled?'<span class="cn-status success">Programat</span>':'<span class="cn-status-placeholder">—</span>'}</td>`;
 }
 
 /* tabelul principal redă exclusiv vehiculele încărcate din Supabase */
@@ -597,13 +643,14 @@ async function loadRealNotificationsConfig(){
   try{
     const supportedTypes=["itp","rca","revizie","schimb_ulei","personalizat"];
     const[{data:config,error:configError},{data:templates,error:templatesError}]=await Promise.all([
-      supabaseClient.from("clienti_notificari_config").select("id, prag_30, prag_15, prag_5, prag_0, canal_whatsapp, canal_email, canal_sms").eq("id",1).maybeSingle(),
+      supabaseClient.from("clienti_notificari_config").select("id, prag_30, prag_15, prag_5, prag_0, ora_rulare, canal_whatsapp, canal_email, canal_sms").eq("id",1).maybeSingle(),
       supabaseClient.from("clienti_notificari_sabloane").select("id, tip, denumire, text_mesaj, variabile_obligatorii").in("tip",supportedTypes)
     ]);
     if(configError)throw configError;if(!config)throw new Error("Configurația notificărilor lipsește.");if(templatesError)throw templatesError;
     realNotificationConfig={
       thresholds:[config.prag_30&&30,config.prag_15&&15,config.prag_5&&5,config.prag_0&&0].filter(Number.isInteger),
-      channels:[config.canal_whatsapp&&"WhatsApp",config.canal_email&&"Email",config.canal_sms&&"SMS"].filter(Boolean)
+      channels:[config.canal_whatsapp&&"WhatsApp",config.canal_email&&"Email",config.canal_sms&&"SMS"].filter(Boolean),
+      runTime:String(config.ora_rulare||"00:00").slice(0,5)
     };
     realNotificationTemplates.clear();(templates||[]).forEach(template=>realNotificationTemplates.set(String(template.tip),template));
     realNotificationsState="ready";
@@ -612,6 +659,44 @@ async function loadRealNotificationsConfig(){
     console.error("Configurația pentru tabul Notificări nu a putut fi încărcată:",error);
   }
   if(activeDossierTab==="notifications")renderRealDossier();lucide.createIcons();
+}
+
+/* construiește textul final care este salvat neschimbat în istoricul notificării */
+function buildRealNotificationMessage(row,deadline,daysRemaining){
+  const templateType=deadline.tip==="personalizat"?"personalizat":deadline.tip,template=realNotificationTemplates.get(templateType);
+  if(!template)return"";
+  return String(template.text_mesaj||"").replaceAll("{client}",row.name||"").replaceAll("{numar}",row.plate||"").replaceAll("{termen}",deadline.tip==="personalizat"?String(deadline.denumire||""):deadlineDisplayName(deadline)).replaceAll("{data_expirare}",formatDate(deadline.data_termen)).replaceAll("{zile_ramase}",daysRemaining===null?"—":String(daysRemaining));
+}
+
+/* calculează momentul programării la pragul ales, folosind ora globală de rulare */
+function scheduledNotificationDate(deadlineDate,threshold){
+  const date=new Date(`${String(deadlineDate).slice(0,10)}T12:00:00`);date.setDate(date.getDate()-Number(threshold));
+  const[hours,minutes]=String(realNotificationConfig?.runTime||"00:00").split(":").map(Number);date.setHours(Number.isFinite(hours)?hours:0,Number.isFinite(minutes)?minutes:0,0,0);return date.toISOString();
+}
+const notificationChannelValue=channel=>String(channel||"").toLowerCase();
+const notificationChannelLabel=channel=>({whatsapp:"WhatsApp",email:"Email",sms:"SMS"}[String(channel||"").toLowerCase()]||String(channel||"—"));
+
+/* sincronizează programările eligibile și anulează doar programările cu data veche */
+async function syncRealNotificationHistory(row){
+  const key=String(row.vehicleId);if(realNotificationHistoryState.get(key)==="loading")return;realNotificationHistoryState.set(key,"loading");
+  if(activeDossierTab==="notifications"&&String(selectedRealVehicleId)===key)renderRealDossier();
+  try{
+    const deadlines=(vehicleDeadlinesByVehicle.get(key)||[]).filter(deadline=>deadline.activ===true&&deadline.data_termen);
+    for(const deadline of deadlines){const{error}=await supabaseClient.from("clienti_notificari_istoric").update({status:"anulata"}).eq("termen_id",deadline.id).eq("status","programata").neq("data_termen",String(deadline.data_termen).slice(0,10));if(error)throw error}
+    const validChannels=realNotificationChannels(row).filter(channel=>channel.available),thresholds=(realNotificationConfig?.thresholds||[]).filter(value=>(row.timing||[]).includes(value));
+    if(row.clientStatus==="activ"&&row.vehicleStatus==="activ"&&row.consent===true&&validChannels.length&&thresholds.length){
+      for(const deadline of deadlines){if(!realNotificationTemplates.has(deadline.tip==="personalizat"?"personalizat":deadline.tip))continue;for(const threshold of thresholds){for(const channel of validChannels){
+        const dataTermen=String(deadline.data_termen).slice(0,10),canal=notificationChannelValue(channel.name);
+        /* verifică explicit combinația înainte de INSERT; indexul unic protejează și concurența */
+        const{data:existing,error:existingError}=await supabaseClient.from("clienti_notificari_istoric").select("id").eq("termen_id",deadline.id).eq("data_termen",dataTermen).eq("prag_zile",threshold).eq("canal",canal).in("status",["programata","trimisa","esuata"]).limit(1);if(existingError)throw existingError;if(existing?.length)continue;
+        const payload={client_id:row.clientId,vehicle_id:row.vehicleId,termen_id:deadline.id,data_termen:dataTermen,prag_zile:threshold,canal,status:"programata",mesaj:buildRealNotificationMessage(row,deadline,threshold),programata_pentru:scheduledNotificationDate(dataTermen,threshold)};
+        const{error:insertError}=await supabaseClient.from("clienti_notificari_istoric").insert(payload);if(insertError&&insertError.code!=="23505")throw insertError;
+      }}}
+    }
+    const{data:history,error:historyError}=await supabaseClient.from("clienti_notificari_istoric").select("*").eq("vehicle_id",row.vehicleId).order("created_at",{ascending:false});if(historyError)throw historyError;
+    realNotificationHistoryByVehicle.set(key,history||[]);realNotificationHistoryState.set(key,"ready");
+  }catch(error){realNotificationHistoryState.set(key,"error");realNotificationsError=error?.message||"Istoricul notificărilor nu a putut fi sincronizat.";console.error("Istoricul notificărilor nu a putut fi sincronizat:",error)}
+  if(activeDossierTab==="notifications"&&String(selectedRealVehicleId)===key){renderRealDossier();lucide.createIcons()}
 }
 
 /* validează canalele clientului față de configurarea modulului și datele de contact */
@@ -646,35 +731,39 @@ function realNotificationEvaluation(row,deadline,validChannels){
 
 /* tabul real afișează exclusiv evaluarea termenelor, fără acțiuni de trimitere */
 function realNotificationsTab(row){
-  if(realNotificationsState==="idle"){loadRealNotificationsConfig();return'<div class="cn-empty-card"><span class="cn-list-spinner" aria-hidden="true"></span><strong>Se încarcă notificările...</strong></div>'}
-  if(realNotificationsState==="loading")return'<div class="cn-empty-card"><span class="cn-list-spinner" aria-hidden="true"></span><strong>Se încarcă notificările...</strong></div>';
+  if(realNotificationsState==="idle"){loadRealNotificationsConfig();return'<div class="cn-empty-card"><span class="cn-list-spinner"></span><strong>Se încarcă notificările...</strong></div>'}
+  if(realNotificationsState==="loading")return'<div class="cn-empty-card"><span class="cn-list-spinner"></span><strong>Se încarcă notificările...</strong></div>';
   if(realNotificationsState==="error")return`<div class="cn-empty-card cn-real-advances-error">${escapeHtml(realNotificationsError)}</div>`;
-  const channels=realNotificationChannels(row),validChannels=channels.filter(channel=>channel.available),thresholds=(realNotificationConfig.thresholds||[]).filter(value=>(row.timing||[]).includes(value));
-  const allSelected=(row.channels||[]).map(name=>channels.find(channel=>channel.name===name)||{name,available:false,reason:(realNotificationConfig.channels||[]).includes(name)?(name==="Email"?"Lipsește emailul":"Lipsește telefonul"):"Dezactivat în configurare"});
-  const deadlines=(vehicleDeadlinesByVehicle.get(String(row.vehicleId))||[]).filter(deadline=>deadline.activ===true&&deadline.data_termen).sort((a,b)=>String(a.data_termen).localeCompare(String(b.data_termen)));
+  const historyKey=String(row.vehicleId),historyState=realNotificationHistoryState.get(historyKey);
+  if(!historyState){syncRealNotificationHistory(row);return'<div class="cn-empty-card"><span class="cn-list-spinner"></span><strong>Se generează programările...</strong></div>'}
+  if(historyState==="loading")return'<div class="cn-empty-card"><span class="cn-list-spinner"></span><strong>Se sincronizează programările...</strong></div>';
+  if(historyState==="error")return`<div class="cn-empty-card cn-real-advances-error">${escapeHtml(realNotificationsError)}</div>`;
+  const channels=realNotificationChannels(row),thresholds=(realNotificationConfig.thresholds||[]).filter(value=>(row.timing||[]).includes(value));
+  const allSelected=(row.channels||[]).map(name=>channels.find(channel=>channel.name===name)||{name,available:false});
   const channelChips=allSelected.map(channel=>`<span class="cn-notification-channel ${channel.available?"is-available":"is-unavailable"}">${escapeHtml(channel.name)}${channel.available?"":" · indisponibil"}</span>`).join("")||'<span class="cn-preview-message">Niciun canal selectat</span>';
   const thresholdChips=thresholds.map(value=>`<span class="cn-chip">${value===0?"În ziua termenului":value+" zile"}</span>`).join("")||'<span class="cn-preview-message">Niciun prag activ</span>';
-  const cards=deadlines.map(deadline=>{
-    const evaluation=realNotificationEvaluation(row,deadline,validChannels),daysLabel=evaluation.days===null?"Dată invalidă":evaluation.days<0?`${Math.abs(evaluation.days)} zile depășit`:evaluation.days===0?"Astăzi":`${evaluation.days} zile rămase`;
-    const templateType=deadline.tip==="personalizat"?"personalizat":deadline.tip,hasTemplate=realNotificationTemplates.has(templateType);
-    return`<article class="cn-notification-deadline"><div class="cn-notification-deadline-main"><span><strong>${escapeHtml(deadlineDisplayName(deadline))}</strong><small>${formatDate(deadline.data_termen)} · ${escapeHtml(daysLabel)}</small></span><em class="cn-notification-state is-${evaluation.tone}">${escapeHtml(evaluation.label)}</em></div><div class="cn-notification-deadline-foot"><span>Canal: ${validChannels.length?escapeHtml(validChannels.map(channel=>channel.name).join(" / ")):"—"}</span><button type="button" class="cn-button cn-button-small cn-button-ghost" data-preview-real-notification="${escapeHtml(deadline.id)}" ${hasTemplate?"":"disabled"}>Previzualizează mesaj</button></div></article>`;
-  }).join("")||'<div class="cn-empty-card">Nu există termene active cu dată pentru acest vehicul.</div>';
-  return`<div class="cn-tab-stack"><section class="cn-card cn-notification-summary"><div class="cn-card-header"><h3>Notificări · <span class="cn-plate">${escapeHtml(row.plate||"—")}</span></h3><span class="cn-consent ${row.consent?"":"cn-no-consent"}">Acord: ${row.consent?"Da":"Nu"}</span></div><div class="cn-notification-summary-grid"><div><strong>Vehicul</strong><span>${escapeHtml(row.makeModel||"—")}</span></div><div><strong>Canale active</strong><span class="cn-notification-chips">${channelChips}</span></div><div><strong>Praguri active</strong><span class="cn-notification-chips">${thresholdChips}</span></div></div></section><div class="cn-notification-list">${cards}</div></div>`;
+  const history=realNotificationHistoryByVehicle.get(historyKey)||[],deadlinesById=new Map((vehicleDeadlinesByVehicle.get(historyKey)||[]).map(deadline=>[String(deadline.id),deadline]));
+  const scheduled=history.filter(item=>isScheduledNotificationEligible(item,row)).sort((a,b)=>new Date(a.programata_pentru)-new Date(b.programata_pentru));
+  /* grupează vizual toate canalele după termen și dată, fără să modifice rândurile Supabase */
+  const scheduledGroups=new Map();scheduled.forEach(item=>{const groupKey=[item.termen_id,String(item.data_termen).slice(0,10)].join("|");const items=scheduledGroups.get(groupKey)||[];items.push(item);scheduledGroups.set(groupKey,items)});
+  const scheduledCards=[...scheduledGroups.values()].map(items=>{
+    items.sort((a,b)=>new Date(a.programata_pentru)-new Date(b.programata_pentru));
+    const next=items[0],deadline=deadlinesById.get(String(next.termen_id));
+    const thresholdLabels=[...new Set(items.map(item=>Number(item.prag_zile)))].sort((a,b)=>b-a).map(value=>`${escapeHtml(value)} zile`).join(" • ");
+    const channelLabels=[...new Set(items.map(item=>notificationChannelLabel(item.canal)))].join(" • ");
+    return`<article class="cn-notification-scheduled"><h4>${escapeHtml(deadline?deadlineDisplayName(deadline):"Termen")} <span>· ${formatDate(next.data_termen)}</span></h4><div class="cn-notification-scheduled-meta"><span><strong>Praguri:</strong> ${thresholdLabels}</span><span><strong>Canale:</strong> ${escapeHtml(channelLabels)}</span><span><strong>Următoarea:</strong> ${formatDateTime(next.programata_pentru)}</span><button type="button" class="cn-notification-preview-button" data-preview-real-notification="${escapeHtml(next.termen_id)}" data-preview-threshold="${escapeHtml(next.prag_zile)}">Previzualizează mesaj</button></div></article>`;
+  }).join("")||'<div class="cn-empty-card">Nu există notificări programate pentru acest vehicul.</div>';
+  return`<div class="cn-tab-stack"><section class="cn-card cn-notification-summary"><div class="cn-card-header"><h3>Notificări · <span class="cn-plate">${escapeHtml(row.plate||"—")}</span></h3><span class="cn-consent ${row.consent?"":"cn-no-consent"}">Acord: ${row.consent?"Da":"Nu"}</span></div><div class="cn-notification-summary-grid"><div><strong>Vehicul</strong><span>${escapeHtml(row.makeModel||"—")}</span></div><div><strong>Canale active</strong><span class="cn-notification-chips">${channelChips}</span></div><div><strong>Praguri active</strong><span class="cn-notification-chips">${thresholdChips}</span></div></div></section><section class="cn-notification-zone"><div class="cn-notification-zone-heading"><h3>Următoare / Programabile</h3><span>${scheduledGroups.size} termene</span></div><div class="cn-notification-scheduled-list">${scheduledCards}</div></section></div>`;
 }
 
 /* preview-ul substituie numai variabilele acceptate de șabloanele existente */
-function previewRealNotification(deadlineId){
+function previewRealNotification(deadlineId,scheduledThreshold=null){
   const row=clientVehicleRows.find(item=>String(item.vehicleId)===String(selectedRealVehicleId));
   const deadline=(vehicleDeadlinesByVehicle.get(String(selectedRealVehicleId))||[]).find(item=>String(item.id)===String(deadlineId));
   if(!row||!deadline)return;
   const templateType=deadline.tip==="personalizat"?"personalizat":deadline.tip,template=realNotificationTemplates.get(templateType);
   if(!template){showToast("Nu există șablon pentru acest tip de termen.");return}
-  const days=realNotificationDays(deadline.data_termen),message=String(template.text_mesaj||"")
-    .replaceAll("{client}",row.name||"")
-    .replaceAll("{numar}",row.plate||"")
-    .replaceAll("{termen}",deadline.tip==="personalizat"?String(deadline.denumire||""):deadlineDisplayName(deadline))
-    .replaceAll("{data_expirare}",formatDate(deadline.data_termen))
-    .replaceAll("{zile_ramase}",days===null?"—":String(days));
+  const days=scheduledThreshold===null?realNotificationDays(deadline.data_termen):Number(scheduledThreshold),message=buildRealNotificationMessage(row,deadline,days);
   showActionModal(`Previzualizare · ${deadlineDisplayName(deadline)}`,"PREVIEW — NU SE TRIMITE",`<div class="cn-preview-box"><div class="cn-preview-meta"><span>Client</span><strong>${escapeHtml(row.name||"—")}</strong><span>Vehicul</span><strong>${escapeHtml(row.plate||"—")}</strong><span>Șablon</span><strong>${escapeHtml(template.denumire||templateType)}</strong></div><p class="cn-preview-message">${escapeHtml(message)}</p></div><div class="cn-simulation-note"><i data-lucide="eye"></i><span>Previzualizare locală. Nu se trimite niciun mesaj.</span></div>`);
 }
 
@@ -935,6 +1024,8 @@ async function saveRealClientForm(form,button){
     if(vehicleError)throw vehicleError;if(!updatedVehicle?.id)throw new Error("Vehiculul nu a fost actualizat.");
     await Promise.all([saveRealPrimaryContact(context.clientId,"telefon",form.elements.phone.value.trim()),saveRealPrimaryContact(context.clientId,"email",form.elements.email.value.trim())]);
     await saveRealVehicleDeadlines(context.vehicleId,form,context.deadlines||[]);
+    /* preferințele salvate se aplică tuturor programărilor active ale clientului */
+    await cancelIneligibleClientNotifications(context.clientId);
   }else{
     const complete=[form.elements.name.value,form.elements.phone.value,vehiclePayload.nr_inmatriculare,vehiclePayload.serie_vin,vehiclePayload.marca_model].every(value=>String(value||"").trim());
     const createdClient=await createRealClientMaster({nume:form.elements.name.value.trim(),status_activitate:form.elements.client_status.value||"activ",status_profil:complete?"complet":"de_completat",...realClientOptionalPayload(preferences)});
@@ -1367,7 +1458,7 @@ async function showAutomationSettings(){
 /* delegarea evenimentelor controlează elementele randate dinamic */
 document.addEventListener("click",event=>{
   const notificationPreview=event.target.closest("[data-preview-real-notification]");
-  if(notificationPreview){previewRealNotification(notificationPreview.dataset.previewRealNotification);return}
+  if(notificationPreview){previewRealNotification(notificationPreview.dataset.previewRealNotification,notificationPreview.dataset.previewThreshold??null);return}
   const clearDeadline=event.target.closest("[data-clear-standard-deadline]");
   if(clearDeadline){clearStandardVehicleDeadline(clearDeadline.dataset.clearStandardDeadline,clearDeadline);return}
   const removeDeadline=event.target.closest("[data-remove-custom-deadline]");
