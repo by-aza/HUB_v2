@@ -639,8 +639,8 @@ function realNotificationEvaluation(row,deadline,validChannels){
   if(!validChannels.length)return{label:"Fără canal",tone:"danger",days};
   if(days===null)return{label:"Dată invalidă",tone:"danger",days};
   if(days<0)return{label:"Expirat",tone:"danger",days};
+  if(days===0)return{label:"Expiră azi",tone:"warning",days};
   const thresholds=(realNotificationConfig?.thresholds||[]).filter(threshold=>(row.timing||[]).includes(threshold)),withinWindow=thresholds.some(threshold=>threshold>0&&days<=threshold);
-  if(days===0)return thresholds.includes(0)?{label:"Expiră azi",tone:"warning",days}:{label:"În afara pragurilor",tone:"muted",days};
   return{label:withinWindow?"Programabil":"În afara pragurilor",tone:withinWindow?"success":"muted",days};
 }
 
@@ -921,6 +921,7 @@ async function createRealClientMaster(payload){
 /* salvează în Supabase clientul și vehiculul selectat, apoi recitește lista */
 async function saveRealClientForm(form,button){
   const channels=[...form.querySelectorAll('[name="channels"]:checked')].map(input=>input.value),timing=[...form.querySelectorAll('[name="timing"]:checked')].map(input=>Number(input.value));
+  if(!channels.length)throw new Error("Selectează cel puțin un canal.");
   const preferences={notes:form.elements.notes.value.trim(),channels,consent:form.elements.consent.checked,timing};
   const vehiclePayload=realVehiclePayload(form),context=realClientFormContext;
   if(context.mode==="edit"&&context.deadlinesLoaded!==true)throw new Error("Așteaptă încărcarea termenelor vehiculului înainte de salvare.");
