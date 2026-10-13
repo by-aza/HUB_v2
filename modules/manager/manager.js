@@ -236,14 +236,18 @@ async function fetchDetailingData(){
 }
 
 async function initFinanciar(){
-  // --- DATE REALE: devize finale din Supabase ---
-  const devize = await fetchDevizeFinale();
-  const avansuri = await fetchAvansuriData();
+  // --- DATE REALE: cele cinci surse financiare independente se încarcă în paralel ---
+  const [devize, avansuri, awb, detailing, consumabile] = await Promise.all([
+    fetchDevizeFinale(),
+    fetchAvansuriData(),
+    fetchAwbData(),
+    fetchDetailingData(),
+    fetchConsumabileData(),
+  ]);
+
   dateAvansuri = Array.isArray(avansuri) ? avansuri : [];
-  dateAwb = await fetchAwbData();
-  const detailing = await fetchDetailingData();
+  dateAwb = awb;
   dateDetailing = Array.isArray(detailing) ? detailing : [];
-  const consumabile = await fetchConsumabileData();
   dateConsumabile = Array.isArray(consumabile) ? consumabile : [];
   const incasariLunaCurenta = devize ? devize.lunaCurenta : 0;
   const incasariLunaTrecuta = devize ? devize.lunaTrecuta : 0;
