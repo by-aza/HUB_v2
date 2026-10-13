@@ -2922,8 +2922,8 @@ async function loadAuditLogsForCar(constatareId) {
 }
 async function loadCars(preferredSelectedId = null, options = {}) {
   const { preserveActiveInput = false } = options;
-  const myGeneration = ++loadCarsGeneration;
   if (activeLoadCarsPromise) return activeLoadCarsPromise;
+  const myGeneration = ++loadCarsGeneration;
   const run = (async () => {
     listErrorMessage = "";
     try {
@@ -2935,13 +2935,33 @@ async function loadCars(preferredSelectedId = null, options = {}) {
       if (error) throw error;
       const rows = data || [];
       const constatareIds = rows.map((row) => row.id);
-      await loadDepartmentRows(constatareIds);
-      await loadDepartmentAssignments(constatareIds);
-      await loadWaitingIntervals(constatareIds);
+      const anchorId = preferredSelectedId != null ? preferredSelectedId : selectedId;
+      const nextSelectedRow = rows.find((row) => row.id === anchorId);
+      const nextSelectedId = nextSelectedRow?.id || rows[0]?.id || null;
+      const shouldLoadAudit = !hasUnsavedChanges && nextSelectedId != null;
+
+      /* relațiile și auditul selectat sunt independente după obținerea ID-urilor */
+      const relatedResults = await Promise.allSettled([
+        loadDepartmentRows(constatareIds),
+        loadDepartmentAssignments(constatareIds),
+        loadWaitingIntervals(constatareIds),
+        shouldLoadAudit
+          ? loadAuditLogsForCar(nextSelectedId)
+          : Promise.resolve(),
+      ]);
+      if (myGeneration !== loadCarsGeneration) return;
+
+      /* așteaptă toate citirile înainte de randare și păstrează erorile relațiilor fatale */
+      const relationFailure = relatedResults
+        .slice(0, 3)
+        .find((result) => result.status === "rejected");
+      if (relationFailure) throw relationFailure.reason;
+      const auditResult = relatedResults[3];
+      if (auditResult.status === "rejected") console.error(auditResult.reason);
+
       cars.length = 0;
       rows.forEach((row) => cars.push(mapCar(row)));
 
-      const anchorId = preferredSelectedId != null ? preferredSelectedId : selectedId;
       const stillExists = cars.find((row) => row.id === anchorId);
       if (hasUnsavedChanges) {
         if (anchorId != null && !stillExists) {
@@ -2949,11 +2969,6 @@ async function loadCars(preferredSelectedId = null, options = {}) {
         }
       } else {
         selectedId = stillExists?.id || cars[0]?.id || null;
-        try {
-          await loadAuditLogsForCar(selectedId);
-        } catch (e) {
-          console.error(e);
-        }
       }
       updateFilterCounts();
       if (hasUnsavedChanges) {

@@ -26,6 +26,7 @@
         permissions: {}
     };
     let isAdmin = false;
+    let badgePollingIntervalId = null;
 
     async function loadDashboard() {
         // 1. Get Supabase session
@@ -77,12 +78,16 @@
                 console.error("Error rendering UI:", err);
             }
             
-            // 7. Load all widgets with individual try/catch
-            try { await loadAdminAnnouncement(); } catch (e) { console.warn("Admin announcement widget failed:", e); }
-            try { await loadAllBadges(); } catch (e) { console.warn("All badges failed:", e); }
-            
-            // 8. Apply permissions LAST (doesn't block data fetching)
+            // 7. Aplică permisiunile înainte de încărcarea datelor pentru badge-uri
             applyPermissions();
+
+            // 8. Încarcă o singură dată toate badge-urile, inclusiv anunțul Admin
+            try { await loadAllBadges(); } catch (e) { console.warn("All badges failed:", e); }
+
+            // 9. Păstrează refreshul periodic, pornit numai după profil și permisiuni
+            if (!badgePollingIntervalId) {
+                badgePollingIntervalId = setInterval(loadAllBadges, 60000);
+            }
             
         } catch (e) {
             console.error("Error: User data not loaded:", e);
@@ -1917,8 +1922,22 @@
       /* ---------------- GLOBAL SEARCH ---------------- */
       const globalSearch = document.getElementById("globalSearch");
       const searchDropdown = document.getElementById("searchDropdown");
+      const GLOBAL_SEARCH_DEBOUNCE_MS = 350;
       let searchTimer = null;
-      let globalSearchRequestId = 0; /* contor protecție race-condition */
+      let globalSearchGeneration = 0; /* invalidează imediat căutările vechi la fiecare editare */
+      let activeGlobalSearchTerm = "";
+      let renderedGlobalSearchTerm = "";
+
+      /* golește căutarea și împiedică răspunsurile deja pornite să redeschidă lista */
+      function resetGlobalSearchState() {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+        globalSearchGeneration += 1;
+        activeGlobalSearchTerm = "";
+        renderedGlobalSearchTerm = "";
+        searchDropdown.classList.add("hidden");
+        searchDropdown.innerHTML = "";
+      }
 
       function openMobileSearch() {
         if (!mobileSidebarMedia.matches || !globalSearchContainer || !globalSearch) return;
@@ -1939,8 +1958,7 @@
           globalSearchContainer.classList.add("hidden");
           globalSearch.value = "";
         }
-        searchDropdown.classList.add("hidden");
-        searchDropdown.innerHTML = "";
+        resetGlobalSearchState();
         mobileSearchBtn.classList.remove("is-active");
         mobileSearchBtn.setAttribute("aria-expanded", "false");
       }
@@ -2036,20 +2054,28 @@
         return parts.join(",");
       }
 
-      async function runGlobalSearch(query) {
+      async function runGlobalSearch(query, searchGeneration) {
+        if (searchGeneration !== globalSearchGeneration) return;
+
         const q = query.trim();
-        const myRequestId = ++globalSearchRequestId;
 
         if (!q) {
-          if (myRequestId === globalSearchRequestId) {
+          resetGlobalSearchState();
+          return;
+        }
+
+        const safe = q.replace(/[%_*,]/g, "").trim();
+        if (!safe) {
+          if (searchGeneration === globalSearchGeneration) {
+            activeGlobalSearchTerm = "";
+            renderedGlobalSearchTerm = "";
             searchDropdown.classList.add("hidden");
             searchDropdown.innerHTML = "";
           }
           return;
         }
 
-        const safe = q.replace(/[%_*,]/g, "").trim();
-        if (!safe) return;
+        activeGlobalSearchTerm = q;
 
         const pattern = `%${safe}%`;
         const compactQ = compactRegistration(safe);
@@ -2329,15 +2355,10 @@
           )
         );
 
-        /* protecție race-condition: doar cel mai nou request poate randa */
-        if (myRequestId !== globalSearchRequestId) return;
+        /* protecție race-condition: doar generația și termenul curent pot randa */
+        if (searchGeneration !== globalSearchGeneration) return;
 
-        /* dacă câmpul a fost golit între timp, nu randa nimic */
-        if (!globalSearch.value.trim()) {
-          searchDropdown.classList.add("hidden");
-          searchDropdown.innerHTML = "";
-          return;
-        }
+        if (globalSearch.value.trim() !== q) return;
 
         const groups = settled.map((res, idx) => {
           if (res.status === "fulfilled") return res.value;
@@ -2354,6 +2375,7 @@
         });
         console.groupEnd();
 
+        renderedGlobalSearchTerm = q;
         renderSearchDropdown(groups);
       }
 
@@ -2361,11 +2383,41 @@
         globalSearch.addEventListener("input", (e) => {
           clearTimeout(searchTimer);
           const val = e.target.value;
-          searchTimer = setTimeout(() => runGlobalSearch(val), 280);
+          const q = val.trim();
+
+          /* invalidează imediat răspunsurile vechi, înainte de expirarea debounce-ului */
+          const searchGeneration = ++globalSearchGeneration;
+          activeGlobalSearchTerm = "";
+
+          if (!q) {
+            searchTimer = null;
+            renderedGlobalSearchTerm = "";
+            searchDropdown.classList.add("hidden");
+            searchDropdown.innerHTML = "";
+            return;
+          }
+
+          searchTimer = setTimeout(() => {
+            searchTimer = null;
+            runGlobalSearch(val, searchGeneration);
+          }, GLOBAL_SEARCH_DEBOUNCE_MS);
         });
 
         globalSearch.addEventListener("focus", () => {
-          if (globalSearch.value.trim()) runGlobalSearch(globalSearch.value);
+          const q = globalSearch.value.trim();
+          if (!q) return;
+
+          /* același termen reutilizează rezultatul sau request-ul deja pornit */
+          if (renderedGlobalSearchTerm === q && searchDropdown.innerHTML) {
+            searchDropdown.classList.remove("hidden");
+            return;
+          }
+          if (activeGlobalSearchTerm === q) return;
+
+          clearTimeout(searchTimer);
+          searchTimer = null;
+          const searchGeneration = ++globalSearchGeneration;
+          runGlobalSearch(globalSearch.value, searchGeneration);
         });
       }
 
@@ -2400,8 +2452,6 @@
       renderAll();
       tick();
       setInterval(tick, 1000);
-      loadAllBadges();
-      setInterval(loadAllBadges, 60000);
       updateConnectionStatus();
       setInterval(updateConnectionStatus, 30000);
       window.addEventListener("online", updateConnectionStatus);
