@@ -47,6 +47,14 @@
         /* Evidențiere discount tip marker (mov foarte deschis) */
         .marker-discount { background-color: #E8E3FA; font-weight: bold; }
 
+        /* Fundal roz pal pentru avansul achitat, pastrat si la tiparire. */
+        .marker-avans {
+            background-color: #fce7e7;
+            color: #000000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
         /* Container pentru logo-ul de fundal (Watermark) */
         .watermark-bg {
             position: fixed;
@@ -234,12 +242,21 @@
                 </tbody>
         </table>
 
+        <!-- Sectiune mov pentru avansuri: doar eticheta generica si suma, fara observatii interne. -->
+        <div id="print-avans-section" style="display: none;">
+            <div class="section-title spatiu-sectiune mov-bg">AVANS</div>
+            <table><tbody><tr><td>Avans achitat</td><td id="print-avans-amount" style="width: 15%; text-align: right; font-weight: bold;">0.00 Lei</td></tr></tbody></table>
+        </div>
+
         <table style="margin-top: 15px; width: 50%; margin-left: auto;">
             <tr><td style="border: none; padding: 2px 4px;">Total Manoperă:</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-manopera">0.00 Lei</td></tr>
             <tr><td style="border: none; padding: 2px 4px;">Total Piese (fără discount):</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-piese-brut">0.00 Lei</td></tr>
             <tr class="marker-discount"><td style="border: none; padding: 4px;">Total Discount Acordat:</td><td style="text-align: right; border: none; padding: 4px;" id="summary-discount">0.00 Lei</td></tr>
             <tr><td style="border: none; padding: 2px 4px;">Total Piese (final):</td><td style="text-align: right; border: none; padding: 2px 4px;" id="summary-piese-final">0.00 Lei</td></tr>
-            <tr style="font-weight: bold; font-size: 11pt;"><td style="border: none; padding: 4px 4px;">TOTAL DE PLATĂ:</td><td style="text-align: right; border: none; padding: 4px 4px;" id="summary-total-plata">0.00 Lei</td></tr>
+            <!-- Randurile de deviz si avans se activeaza numai daca exista avansuri. -->
+            <tr id="summary-total-deviz-row" style="display: none; font-weight: bold;"><td style="border: none; padding: 4px;">TOTAL DEVIZ:</td><td id="summary-total-deviz" style="text-align: right; border: none; padding: 4px;">0.00 Lei</td></tr>
+            <tr id="summary-total-avans-row" class="marker-avans" style="display: none; font-weight: bold;"><td style="border: none; padding: 4px;">AVANS ACHITAT:</td><td id="summary-total-avans" style="text-align: right; border: none; padding: 4px;">0.00 Lei</td></tr>
+            <tr style="font-weight: bold; font-size: 11pt;"><td id="summary-balance-label" style="border: none; padding: 4px 4px;">TOTAL DE PLATĂ:</td><td style="text-align: right; border: none; padding: 4px 4px;" id="summary-total-plata">0.00 Lei</td></tr>
         </table>
 
         <div style="margin-top: 20px; font-size: 8.5pt; line-height: 1.3;">
@@ -364,6 +381,20 @@
             document.getElementById("summary-piese-brut").textContent = formatMoney(data.totalPiese?.brut) + " Lei";
             document.getElementById("summary-discount").textContent = formatMoney(data.totalPiese?.discount) + " Lei";
             document.getElementById("summary-piese-final").textContent = formatMoney(data.totalPiese?.final) + " Lei";
+            /* Tiparim instantaneul ales/salvat, fara a reciti platile sau observatiile avansului. */
+            const advances = Array.isArray(data.avansuri) ? data.avansuri : [];
+            const hasAdvance = advances.length > 0;
+            const advanceTotal = advances.reduce((sum, item) => sum + Number(item.total || 0), 0);
+            document.getElementById("print-avans-section").style.display = hasAdvance ? "block" : "none";
+            document.getElementById("summary-total-deviz-row").style.display = hasAdvance ? "table-row" : "none";
+            document.getElementById("summary-total-avans-row").style.display = hasAdvance ? "table-row" : "none";
+            document.getElementById("summary-balance-label").textContent = hasAdvance ? "REST DE PLATĂ:" : "TOTAL DE PLATĂ:";
+            if (hasAdvance) {
+                const estimateTotal = Number(data.totalDeviz ?? (Number(data.totalManopera || 0) + Number(data.totalPiese?.final || 0)));
+                document.getElementById("print-avans-amount").textContent = formatMoney(advanceTotal) + " Lei";
+                document.getElementById("summary-total-deviz").textContent = formatMoney(estimateTotal) + " Lei";
+                document.getElementById("summary-total-avans").textContent = formatMoney(data.totalAvans ?? advanceTotal) + " Lei";
+            }
             document.getElementById("summary-total-plata").textContent = formatMoney(data.totalDePlata) + " Lei";
         });
     </script>

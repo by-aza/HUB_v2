@@ -338,6 +338,11 @@
                         <h2 class="text-xl font-bold text-slate-100">Piese/Materiale</h2>
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                             <p class="mt-1 text-sm text-slate-400">Adaugă piesele, apoi aplică discountul doar pe rândurile bifate.</p>
+                            <!-- Comutator avans: afiseaza importul si sumarul separat. -->
+                            <label class="flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-950/30 px-3 py-2 text-sm font-semibold text-violet-200">
+                                <input id="input-include-avans" type="checkbox" class="h-4 w-4 accent-violet-500">
+                                Include avans
+                            </label>
                             <label class="grid gap-1 text-left sm:text-right">
                                 <span class="text-sm font-semibold text-slate-300">Discount (%)</span>
                                 <input
@@ -387,6 +392,8 @@
                             >
                                 Importă Piese SH
                             </button>
+                            <!-- Butonul de import devine vizibil numai la includerea avansului. -->
+                            <button id="btn-importa-avans" type="button" class="hidden rounded-xl border border-violet-500/50 bg-violet-900/40 px-4 py-2.5 text-sm font-bold text-violet-100 transition-colors hover:bg-violet-800/60">Importă Avans</button>
                         </div>
 
                         <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5">
@@ -407,12 +414,22 @@
                                     <span class="text-slate-400">Total Piese (final):</span>
                                     <span id="summary-total-piese-final" class="font-bold text-slate-100">0.00 Lei</span>
                                 </div>
+                                <!-- Sumarul avansului pastreaza totalul pieselor fara deduceri. -->
+                                <div id="summary-avans-rows" class="hidden space-y-3 border-t border-violet-500/30 pt-3">
+                                    <div class="flex items-center justify-between gap-4"><span class="text-slate-300">TOTAL DEVIZ:</span><span id="summary-total-deviz" class="font-bold text-slate-100">0.00 Lei</span></div>
+                                    <div class="flex items-center justify-between gap-4"><span class="text-violet-300">AVANS ACHITAT:</span><span id="summary-total-avans" class="font-bold text-violet-200">0.00 Lei</span></div>
+                                </div>
                                 <div class="mt-4 rounded-xl border border-cyan-500/20 bg-slate-900 px-4 py-3">
-                                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">TOTAL DE PLATĂ</div>
+                                    <div id="summary-balance-label" class="text-xs font-semibold uppercase tracking-wider text-slate-400">TOTAL DE PLATĂ</div>
                                     <div id="summary-total-plata" class="mt-1 text-2xl font-extrabold text-cyan-300">0.00 Lei</div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <!-- Lista separata de avansuri: nu creeaza randuri de piese negative. -->
+                    <div id="avans-selected-section" class="hidden rounded-2xl border border-violet-500/30 bg-violet-950/20 p-4">
+                        <div class="mb-3 text-sm font-bold uppercase tracking-wider text-violet-200">Avansuri incluse</div>
+                        <div id="avans-selected-list" class="space-y-2 text-sm"></div>
                     </div>
                 </div>
             </section>
@@ -450,6 +467,17 @@
                     Importă 0 piese
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal avans: arata numai datele de plata si starea legaturii. -->
+    <div id="avans-import-modal" class="fixed inset-0 z-[75] hidden items-center justify-center bg-slate-950/80 p-4">
+        <div class="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-violet-500/40 bg-slate-900 shadow-2xl">
+            <div class="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
+                <div><h2 class="text-lg font-extrabold text-violet-200">Importă Avans</h2><p id="avans-import-message" class="mt-1 min-h-5 text-sm text-slate-400"></p></div>
+                <button id="btn-close-avans-import" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200">Închide</button>
+            </div>
+            <div id="avans-import-list" class="flex-1 space-y-3 overflow-y-auto p-5"></div>
         </div>
     </div>
 
@@ -519,6 +547,11 @@
             totalManopera: 0,
             discountGlobalPiese: '',
             piese: [],
+            includeAvans: false,
+            avansuri: [],
+            vehicleId: null,
+            totalAvans: 0,
+            totalDeviz: 0,
             totalPiese: {
                 brut: 0,
                 discount: 0,
@@ -531,6 +564,10 @@
         let pieseShImportOrders = [];
         let devizEstimativImportRows = [];
         let selectedDevizEstimativ = null;
+        let avansImportRows = [];
+        let saveInProgress = false;
+        let uncertainCreate = null;
+        let savedAdvanceSignature = '[]';
 
         const saveStatus = document.getElementById('save-status');
         const btnDevizNou = document.getElementById('btn-deviz-nou');
@@ -560,6 +597,15 @@
         const manoperaTotalDisplay = document.getElementById('manopera-total-display');
         const btnAddPiesaRow = document.getElementById('btn-add-piesa-row');
         const btnImportaPieseSh = document.getElementById('btn-importa-piese-sh');
+        /* Comenzile si lista avansurilor sunt separate de tabelul de piese. */
+        const inputIncludeAvans = document.getElementById('input-include-avans');
+        const btnImportaAvans = document.getElementById('btn-importa-avans');
+        const avansSelectedSection = document.getElementById('avans-selected-section');
+        const avansSelectedList = document.getElementById('avans-selected-list');
+        const avansImportModal = document.getElementById('avans-import-modal');
+        const avansImportMessage = document.getElementById('avans-import-message');
+        const avansImportList = document.getElementById('avans-import-list');
+        const btnCloseAvansImport = document.getElementById('btn-close-avans-import');
         const pieseRowsBody = document.getElementById('piese-rows-body');
         const pieseShImportModal = document.getElementById('piese-sh-import-modal');
         const pieseShImportTitle = document.getElementById('piese-sh-import-title');
@@ -580,6 +626,10 @@
         const summaryTotalDiscount = document.getElementById('summary-total-discount');
         const summaryTotalPieseFinal = document.getElementById('summary-total-piese-final');
         const summaryTotalPlata = document.getElementById('summary-total-plata');
+        const summaryAvansRows = document.getElementById('summary-avans-rows');
+        const summaryTotalDeviz = document.getElementById('summary-total-deviz');
+        const summaryTotalAvans = document.getElementById('summary-total-avans');
+        const summaryBalanceLabel = document.getElementById('summary-balance-label');
 
         const setSaveStatus = (message, type = 'info') => {
             saveStatus.textContent = message || '';
@@ -1097,12 +1147,18 @@
 
         const updateSummaryTotals = () => {
             ensurePieseState();
-            /* total general recalculat la fiecare refresh de sumar */
-            devizData.totalDePlata = toNumber(devizData.totalManopera) + toNumber(devizData.totalPiese?.final);
+            /* Totalul pieselor ramane independent de avans; afisam soldul fara limitare la zero. */
+            devizData.totalDeviz = toNumber(devizData.totalManopera) + toNumber(devizData.totalPiese?.final);
+            devizData.totalAvans = (devizData.avansuri || []).reduce((sum, item) => sum + toNumber(item.total), 0);
+            devizData.totalDePlata = devizData.totalDeviz - devizData.totalAvans;
             summaryTotalManopera.textContent = `${formatMoney(devizData.totalManopera)} Lei`;
             summaryTotalPieseBrut.textContent = `${formatMoney(devizData.totalPiese.brut)} Lei`;
             summaryTotalDiscount.textContent = `${formatMoney(devizData.totalPiese.discount)} Lei`;
             summaryTotalPieseFinal.textContent = `${formatMoney(devizData.totalPiese.final)} Lei`;
+            summaryAvansRows.classList.toggle('hidden', !devizData.avansuri?.length);
+            summaryBalanceLabel.textContent = devizData.avansuri?.length ? 'REST DE PLATĂ' : 'TOTAL DE PLATĂ';
+            summaryTotalDeviz.textContent = `${formatMoney(devizData.totalDeviz)} Lei`;
+            summaryTotalAvans.textContent = `${formatMoney(devizData.totalAvans)} Lei`;
             summaryTotalPlata.textContent = `${formatMoney(devizData.totalDePlata)} Lei`;
         };
 
@@ -1826,6 +1882,125 @@
             closePieseShImportModal();
         }
 
+        /* Selectia avansurilor tine separat suma salvata, datele platilor si identitatea sursei. */
+        const hasLegacyAdvancePart = () => (devizData.piese || []).some((item) => {
+            const amount = toNumber(item?.cantitate) * toNumber(item?.pretUnitar ?? item?.pret)
+                * (1 - (item?.aplicaDiscount ? toNumber(devizData.discountGlobalPiese) / 100 : 0));
+            return amount < 0 && String(item?.denumire ?? item?.nume ?? '').toUpperCase().includes('AVANS');
+        });
+
+        const renderSelectedAvansuri = () => {
+            inputIncludeAvans.checked = Boolean(devizData.includeAvans || devizData.avansuri?.length);
+            btnImportaAvans.classList.toggle('hidden', !inputIncludeAvans.checked);
+            avansSelectedSection.classList.toggle('hidden', !(devizData.avansuri || []).length);
+            avansSelectedList.replaceChildren();
+            (devizData.avansuri || []).forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-500/20 bg-slate-900 px-4 py-3';
+                const label = document.createElement('span');
+                const dates = (item.paymentDates || []).map(formatDate).filter(Boolean).join(', ');
+                label.textContent = `AV-${item.avansId} · ${dates || 'Data plății indisponibilă'} · ${formatMoney(item.total)} Lei · ${item.linkStatus === 'linked' ? 'Legat de acest deviz' : 'Selectat, nesalvat'}`;
+                label.className = 'text-violet-100';
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'rounded-lg border border-rose-500/40 px-3 py-1 text-xs font-bold text-rose-200 hover:bg-rose-900/30';
+                remove.textContent = 'Elimină';
+                remove.addEventListener('click', () => {
+                    if (!window.confirm(`Elimini AV-${item.avansId} din deviz? Legătura salvată se va șterge la următoarea salvare.`)) return;
+                    devizData.avansuri = devizData.avansuri.filter((entry) => entry.avansId !== item.avansId);
+                    renderSelectedAvansuri();
+                });
+                row.append(label, remove);
+                avansSelectedList.appendChild(row);
+            });
+            updateSummaryTotals();
+        };
+
+        const closeAvansImportModal = () => {
+            avansImportModal.classList.add('hidden');
+            avansImportModal.classList.remove('flex');
+            avansImportRows = [];
+        };
+
+        /* Lista importabila vine din RPC-ul autentificat; nu citim schema private din browser. */
+        const renderAvansImportRows = () => {
+            avansImportList.replaceChildren();
+            if (!avansImportRows.length) return;
+            avansImportRows.forEach((item) => {
+                const id = Number(item.avans_id);
+                const alreadySelected = devizData.avansuri.some((entry) => entry.avansId === id);
+                const row = document.createElement('div');
+                row.className = 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4';
+                const details = document.createElement('div');
+                const dates = (item.data_plati || []).map(formatDate).filter(Boolean).join(', ');
+                details.textContent = `AV-${id} · ${dates || 'Data plății indisponibilă'} · ${formatMoney(item.total_achitat)} Lei · ${item.status_legatura === 'linked' ? 'Legat de acest deviz' : 'Disponibil'}`;
+                details.className = 'text-sm text-slate-200';
+                const pick = document.createElement('button');
+                pick.type = 'button';
+                pick.className = 'rounded-lg bg-violet-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50';
+                pick.textContent = alreadySelected ? 'Actualizează suma' : 'Selectează';
+                pick.addEventListener('click', () => {
+                    if (hasLegacyAdvancePart()) {
+                        setSaveStatus('Elimină explicit piesa istorică AVANS cu valoare negativă înainte de import.', 'error');
+                        closeAvansImportModal();
+                        return;
+                    }
+                    const selected = {
+                        avansId: id,
+                        total: toNumber(item.total_achitat),
+                        paymentDates: Array.isArray(item.data_plati) ? item.data_plati : [],
+                        linkStatus: item.status_legatura === 'linked' ? 'linked' : 'selected'
+                    };
+                    const index = devizData.avansuri.findIndex((entry) => entry.avansId === id);
+                    if (index >= 0) devizData.avansuri[index] = selected;
+                    else devizData.avansuri.push(selected);
+                    devizData.includeAvans = true;
+                    renderSelectedAvansuri();
+                    closeAvansImportModal();
+                });
+                row.append(details, pick);
+                avansImportList.appendChild(row);
+            });
+        };
+
+        async function openAvansImportModal() {
+            syncPieseState();
+            if (hasLegacyAdvancePart()) {
+                setSaveStatus('Devizul conține posibil un avans vechi ca piesă negativă. Reconciliază-l explicit înainte de import.', 'error');
+                return;
+            }
+            const plate = normalizePlate(inputNrInmatriculareDevizFinal.value);
+            if (plate === 'FaraNumar') {
+                setSaveStatus('Completează numărul de înmatriculare înainte de import.', 'error');
+                return;
+            }
+            avansImportMessage.textContent = `Se verifică vehiculul ${plate} și avansurile disponibile...`;
+            avansImportList.replaceChildren();
+            avansImportModal.classList.remove('hidden');
+            avansImportModal.classList.add('flex');
+            try {
+                const { data, error } = await sb.rpc('list_deviz_final_importable_avansuri', {
+                    p_deviz_id: currentDevizId || null,
+                    p_plate: plate,
+                    p_vin: inputSerieVinDevizFinal.value || ''
+                });
+                if (error) throw error;
+                avansImportRows = Array.isArray(data) ? data : [];
+                avansImportMessage.textContent = avansImportRows.length
+                    ? `${avansImportRows.length} avansuri eligibile pentru ${plate}. Selectează unul sau actualizează suma unui avans deja legat.`
+                    : `Nu există avansuri disponibile de importat pentru vehiculul ${plate}.`;
+                renderAvansImportRows();
+            } catch (error) {
+                const missingVehicle = String(error?.message || '').trim() === 'Vehiculul nu este identificat unic în registru.';
+                avansImportMessage.textContent = error?.code === '42501'
+                    ? 'Nu aveți permisiunea deviz_final.'
+                    : missingVehicle
+                        ? `Vehiculul ${plate} nu este înregistrat în Clienți & Notificări. Completează fișa clientului și adaugă vehiculul pentru a putea importa un avans.`
+                        : (error?.message || 'Eroare la căutarea avansurilor.');
+                avansImportList.replaceChildren();
+            }
+        }
+
         const freshDevizData = () => ({
             activeTab: 'tab-antet',
             idDevizEstimativ: '',
@@ -1848,6 +2023,11 @@
             totalManopera: 0,
             discountGlobalPiese: '',
             piese: [{ denumire: '', um: 'buc', cantitate: '', pretUnitar: '', aplicaDiscount: false, valoare: '', comandaPiesaShId: null }],
+            includeAvans: false,
+            avansuri: [],
+            vehicleId: null,
+            totalAvans: 0,
+            totalDeviz: 0,
             totalPiese: {
                 brut: 0,
                 discount: 0,
@@ -1950,15 +2130,15 @@
             discount_global_piese: toNumber(devizData.discountGlobalPiese),
             total_manopera: toNumber(devizData.totalManopera),
             total_piese: toNumber(devizData.totalPiese?.final),
-            total_general: toNumber(devizData.totalDePlata)
+            total_general: toNumber(devizData.totalDePlata),
+            ...(devizData.vehicleId ? { vehicle_id: devizData.vehicleId } : {})
         });
 
-        const buildLinesPayload = (dbId) => {
+        const buildLinesPayload = () => {
             const lines = [];
 
             (devizData.lucrariSolicitate || []).forEach((item, idx) => {
                 lines.push({
-                    id_deviz_final: dbId,
                     sectiune: 'lucrari',
                     nr_crt: idx + 1,
                     denumire: String(item?.text ?? item?.denumire ?? ''),
@@ -1968,7 +2148,6 @@
 
             (devizData.constatari || []).forEach((item, idx) => {
                 lines.push({
-                    id_deviz_final: dbId,
                     sectiune: 'constatari',
                     nr_crt: idx + 1,
                     denumire: String(item?.text ?? item?.defect ?? ''),
@@ -1978,7 +2157,6 @@
 
             (devizData.manopera?.rows || []).forEach((item, idx) => {
                 lines.push({
-                    id_deviz_final: dbId,
                     sectiune: 'manopera',
                     nr_crt: idx + 1,
                     denumire: String(item?.nume ?? item?.denumire ?? ''),
@@ -1990,7 +2168,6 @@
 
             (devizData.piese || []).forEach((item, idx) => {
                 lines.push({
-                    id_deviz_final: dbId,
                     sectiune: 'piese',
                     nr_crt: idx + 1,
                     denumire: String(item?.nume ?? item?.denumire ?? ''),
@@ -2003,195 +2180,167 @@
                 });
             });
 
+            (devizData.avansuri || []).forEach((item, idx) => {
+                lines.push({ sectiune: 'avans', nr_crt: idx + 1, denumire: 'Avans achitat', avans_id: item.avansId });
+            });
             return lines;
         };
 
-        async function saveDevizFinal() {
-            setSaveStatus('', 'info');
-            normalizeAllUppercaseFields();
-            syncLucrariState();
-            syncConstatariState();
-            syncManoperaState();
-            recalculatePieseTotals();
+        /* Semnatura compara doar campurile de identificare si pret folosite la salvarea atomica. */
+        const lineSaveSignature = (line) => {
+            const section = String(line.sectiune || '');
+            const base = [section, Number(line.nr_crt), String(line.denumire ?? '')];
+            if (section === 'lucrari') base.push(String(line.detalii ?? ''));
+            if (section === 'constatari') base.push(Number(line.discount || 0));
+            if (section === 'manopera' || section === 'piese') {
+                base.push(toNumber(line.cantitate), toNumber(line.pret_unitar));
+            }
+            if (section === 'piese') {
+                base.push(String(line.um || 'buc'), Number(line.discount || 0), String(line.comanda_piesa_sh_id || ''));
+            }
+            if (section === 'avans') base.push(Number(line.avans_id));
+            return JSON.stringify(base);
+        };
 
+        const getAdvanceSignature = () => JSON.stringify((devizData.avansuri || [])
+            .map((item) => [Number(item.avansId), toNumber(item.total)])
+            .sort((a, b) => a[0] - b[0]));
+
+        const applySavedTotals = (result) => {
+            const id = cleanDbId(result?.id_deviz_final);
+            if (!id) throw new Error('Răspunsul salvării nu conține ID-ul devizului.');
+            currentDevizId = id;
+            uncertainCreate = null;
+            devizData.devizNr = formatWithPrefix('DF-', id, 3);
+            devizData.vehicleId = result.vehicle_id ?? null;
+            devizData.totalManopera = toNumber(result.total_manopera);
+            devizData.totalPiese.final = toNumber(result.total_piese);
+            devizData.totalAvans = toNumber(result.total_avans);
+            devizData.totalDePlata = toNumber(result.total_general);
+            devizData.totalDeviz = devizData.totalManopera + devizData.totalPiese.final;
+            devizData.avansuri.forEach((item) => {
+                const amount = result.avansuri?.[String(item.avansId)];
+                if (amount !== undefined) {
+                    item.total = toNumber(amount);
+                    item.linkStatus = 'linked';
+                }
+            });
+            renderSelectedAvansuri();
+            savedAdvanceSignature = JSON.stringify(Object.entries(result.avansuri || {})
+                .map(([advanceId, amount]) => [Number(advanceId), toNumber(amount)])
+                .sort((a, b) => a[0] - b[0]));
+            devizData.totalAvans = toNumber(result.total_avans);
+            devizData.totalDePlata = toNumber(result.total_general);
+            summaryTotalAvans.textContent = `${formatMoney(devizData.totalAvans)} Lei`;
+            summaryTotalPlata.textContent = `${formatMoney(devizData.totalDePlata)} Lei`;
+            syncFieldsFromState();
+        };
+
+        /* Dupa un raspuns de retea incert, cautam numai creatia identica de dupa ID-ul observat. */
+        async function reconcileUncertainCreate() {
+            const pending = uncertainCreate;
+            if (!pending) return true;
+            const { data: candidates, error } = await sb.from('deviz_final_header')
+                .select('id_deviz_final, created_by, client, auto, nr_inmatriculare, data_deviz, discount_global_piese, vehicle_id, total_manopera, total_piese, total_avans, total_general')
+                .gt('id_deviz_final', pending.beforeId)
+                .eq('created_by', pending.userId)
+                .eq('nr_inmatriculare', pending.header.nr_inmatriculare)
+                .eq('data_deviz', pending.header.data_deviz);
+            if (error) throw error;
+            const matches = [];
+            for (const row of candidates || []) {
+                if (row.client !== pending.header.client || row.auto !== pending.header.auto
+                    || toNumber(row.discount_global_piese) !== toNumber(pending.header.discount_global_piese)) continue;
+                const { data: lines, error: linesError } = await sb.from('deviz_final_linii').select('*')
+                    .eq('id_deviz_final', row.id_deviz_final);
+                if (linesError) throw linesError;
+                const saved = (lines || []).map(lineSaveSignature).sort();
+                if (JSON.stringify(saved) === JSON.stringify(pending.signatures)) {
+                    const avansuri = Object.fromEntries((lines || []).filter((line) => line.sectiune === 'avans')
+                        .map((line) => [String(line.avans_id), line.total]));
+                    matches.push({ ...row, avansuri });
+                }
+            }
+            if (matches.length !== 1) {
+                setSaveStatus('Rezultatul creării este incert. Verifică devizele salvate și încarcă documentul înainte de o nouă creare.', 'error');
+                return false;
+            }
+            /* Pastram modificarile vizibile facute dupa eroarea de retea; urmatorul apel va fi UPDATE. */
+            currentDevizId = Number(matches[0].id_deviz_final);
+            devizData.devizNr = formatWithPrefix('DF-', currentDevizId, 3);
+            devizData.vehicleId = matches[0].vehicle_id ?? null;
+            inputDevizNr.value = devizData.devizNr;
+            savedAdvanceSignature = JSON.stringify(Object.entries(matches[0].avansuri || {})
+                .map(([advanceId, amount]) => [Number(advanceId), toNumber(amount)])
+                .sort((a, b) => a[0] - b[0]));
+            uncertainCreate = null;
+            setSaveStatus(`Crearea a fost confirmată prin citire: ${devizData.devizNr}.`, 'success');
+            return true;
+        }
+
+        async function saveDevizFinal() {
+            if (saveInProgress) return;
+            saveInProgress = true;
             btnSalveazaDeviz.disabled = true;
             btnSalveazaDeviz.classList.add('opacity-60', 'cursor-not-allowed');
             setSaveStatus('Se salvează...', 'info');
-
             try {
-                const id_deviz_estimativ = devizData.idDevizEstimativ;
-                const data_deviz = devizData.data;
-                const client = devizData.client;
-                const auto = devizData.tipAuto;
-                
-                // Normalizare număr înmatriculare
+                if (uncertainCreate && !(await reconcileUncertainCreate())) return;
+                normalizeAllUppercaseFields();
+                syncLucrariState();
+                syncConstatariState();
+                syncManoperaState();
+                recalculatePieseTotals();
+                if (devizData.avansuri.length && hasLegacyAdvancePart()) {
+                    throw new Error('Elimină explicit linia veche de avans negativ înainte de import.');
+                }
+                if (!devizData.includeAvans && devizData.avansuri.length) {
+                    throw new Error('Avansurile selectate trebuie eliminate explicit înainte de salvare fără avans.');
+                }
                 devizData.nrInmatriculare = normalizePlate(devizData.nrInmatriculare);
-                const nr_inmatriculare = devizData.nrInmatriculare;
-                
-                const serie_vin = devizData.serieVin;
-                const serie_motor = devizData.serieMotor;
-                const km = devizData.km;
-                const termen_executie = inputTermenExecutie?.value ?? devizData.termenExecutie;
-                const discount_global_piese = devizData.discountGlobalPiese;
-                const total_manopera = devizData.totalManopera;
-                const total_piese = devizData.totalPiese?.final;
-                const total_general = devizData.totalDePlata;
-
-                let cleanEstimativId = (typeof id_deviz_estimativ !== 'undefined' && id_deviz_estimativ)
-                    ? parseInt(String(id_deviz_estimativ).replace(/\D/g, ''), 10)
-                    : null;
-                if (isNaN(cleanEstimativId)) cleanEstimativId = null;
-
-                let cleanCurrentDevizId = (typeof currentDevizId !== 'undefined' && currentDevizId)
-                    ? parseInt(String(currentDevizId).replace(/\D/g, ''), 10)
-                    : null;
-                if (isNaN(cleanCurrentDevizId)) cleanCurrentDevizId = null;
-
-                const isUpdate = Boolean(cleanCurrentDevizId);
-                let creatorId = null;
+                const header = buildHeaderPayload();
+                const lines = buildLinesPayload();
+                const isUpdate = Boolean(currentDevizId);
                 if (!isUpdate) {
-                    // Identifică utilizatorul autentificat
-                    const { data: { session } = {}, error: sessionError } =
-                        await sb.auth.getSession();
-
-                    if (sessionError) {
-                        console.error(sessionError);
-                    }
-
-                    creatorId = session?.user?.id || null;
+                    const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
+                    if (sessionError) throw sessionError;
+                    if (!session?.user?.id) throw new Error('Autentificarea este obligatorie.');
+                    const { data: latest, error: latestError } = await sb.from('deviz_final_header')
+                        .select('id_deviz_final').order('id_deviz_final', { ascending: false }).limit(1);
+                    if (latestError) throw latestError;
+                    uncertainCreate = {
+                        userId: session.user.id,
+                        beforeId: Number(latest?.[0]?.id_deviz_final || 0),
+                        header,
+                        signatures: lines.map(lineSaveSignature).sort()
+                    };
                 }
-
-                const headerPayload = {
-                    id_deviz_estimativ: cleanEstimativId,
-                    data_deviz: data_deviz || '',
-                    client: client || '',
-                    auto: auto || '',
-                    nr_inmatriculare: nr_inmatriculare || '',
-                    serie_vin: serie_vin || '',
-                    serie_motor: serie_motor || '',
-                    km: km || '',
-                    termen_executie: termen_executie || '',
-                    discount_global_piese: parseFloat(discount_global_piese) || 0,
-                    total_manopera: parseFloat(total_manopera) || 0,
-                    total_piese: parseFloat(total_piese) || 0,
-                    total_general: parseFloat(total_general) || 0
-                };
-
-                if (!isUpdate) {
-                    // Salvează creatorul devizului
-                    headerPayload.created_by = creatorId;
-                }
-
-                let savedHeaderId = null;
-
-                if (isUpdate) {
-                    const { data, error } = await sb
-                        .from('deviz_final_header')
-                        .update(headerPayload)
-                        .eq('id_deviz_final', cleanCurrentDevizId)
-                        .select();
-
-                    if (error) throw error;
-                    if (data && data.length > 0) savedHeaderId = data[0].id_deviz_final;
-                } else {
-                    const { data, error } = await sb
-                        .from('deviz_final_header')
-                        .insert([headerPayload])
-                        .select();
-
-                    if (error) throw error;
-                    if (data && data.length > 0) savedHeaderId = data[0].id_deviz_final;
-                }
-
-                if (!savedHeaderId) {
-                    throw new Error('Eroare critică: Nu s-a putut genera/prelua ID-ul pentru Header. Oprire salvare linii.');
-                }
-
-                currentDevizId = parseInt(String(savedHeaderId).replace(/\D/g, ''), 10);
-                if (isNaN(currentDevizId)) {
-                    throw new Error('Eroare critică: ID header invalid după salvare.');
-                }
-
-                devizData.devizNr = formatWithPrefix('DF-', currentDevizId, 3);
-
-                if (isUpdate) {
-                    const { error: deleteError } = await sb
-                        .from('deviz_final_linii')
-                        .delete()
-                        .eq('id_deviz_final', currentDevizId);
-
-                    if (deleteError) throw deleteError;
-                }
-
-                let toateLiniile = [];
-
-                (devizData.lucrariSolicitate || []).forEach((lucrare, index) => {
-                    toateLiniile.push({
-                        id_deviz_final: currentDevizId,
-                        sectiune: 'lucrari',
-                        nr_crt: index + 1,
-                        denumire: String(lucrare?.text ?? lucrare?.denumire ?? ''),
-                        detalii: String(lucrare?.pieseClient ?? '')
-                    });
+                const { data, error } = await sb.rpc('save_deviz_final', {
+                    p_deviz_id: currentDevizId || null,
+                    p_header: header,
+                    p_lines: lines
                 });
-
-                (devizData.constatari || []).forEach((constatare, index) => {
-                    toateLiniile.push({
-                        id_deviz_final: currentDevizId,
-                        sectiune: 'constatari',
-                        nr_crt: index + 1,
-                        denumire: String(constatare?.text ?? constatare?.defect ?? ''),
-                        discount: constatare?.acceptat ? 1 : (constatare?.acceptatClient ? 1 : 0)
-                    });
-                });
-
-                (devizData.manopera?.rows || []).forEach((operatie, index) => {
-                    toateLiniile.push({
-                        id_deviz_final: currentDevizId,
-                        sectiune: 'manopera',
-                        nr_crt: index + 1,
-                        denumire: String(operatie?.nume ?? operatie?.denumire ?? ''),
-                        cantitate: parseFloat(operatie?.timp ?? operatie?.timpOre) || 0,
-                        pret_unitar: parseFloat(operatie?.tarif ?? operatie?.tarifOra) || 0,
-                        total: parseFloat(operatie?.valoare ?? operatie?.valoareLei) || 0
-                    });
-                });
-
-                (devizData.piese || []).forEach((piesa, index) => {
-                    toateLiniile.push({
-                        id_deviz_final: currentDevizId,
-                        sectiune: 'piese',
-                        nr_crt: index + 1,
-                        denumire: String(piesa?.nume ?? piesa?.denumire ?? ''),
-                        um: String(piesa?.um ?? 'buc'),
-                        cantitate: parseFloat(piesa?.cantitate) || 0,
-                        pret_unitar: parseFloat(piesa?.pret ?? piesa?.pretUnitar) || 0,
-                        discount: piesa?.aplicaDiscount ? 1 : 0,
-                        total: parseFloat(piesa?.valoare) || 0,
-                        comanda_piesa_sh_id: piesa?.comandaPiesaShId || null
-                    });
-                });
-
-                toateLiniile.forEach((linie) => {
-                    linie.id_deviz_final = currentDevizId;
-                });
-
-                if (toateLiniile.length > 0) {
-                    const { error: errorLinii } = await sb
-                        .from('deviz_final_linii')
-                        .insert(toateLiniile);
-
-                    if (errorLinii) throw errorLinii;
+                if (error) {
+                    /* SQLSTATE inseamna rollback; eroarea de transport lasa crearea incerta. */
+                    if (isUpdate || /^[0-9A-Z]{5}$/.test(String(error.code || ''))) uncertainCreate = null;
+                    throw error;
                 }
-
-                syncFieldsFromState();
+                applySavedTotals(data);
                 setSaveStatus('Deviz Salvat!', 'success');
                 logAuditDevizFinal(isUpdate ? 'UPDATE' : 'CREATE', devizData.devizNr);
                 alert('Deviz Salvat!');
             } catch (error) {
                 console.error(error);
-                setSaveStatus(error?.message || 'Eroare la salvare.', 'error');
+                const message = error?.code === '23505'
+                    ? 'Avansul este deja legat de alt deviz. Reîncarcă lista și alege alt avans.'
+                    : error?.code === '42501'
+                        ? 'Nu aveți permisiunea deviz_final pentru această operație.'
+                        : error?.code === '40P01'
+                            ? 'Salvarea a fost anulată din cauza unei concurențe. Reîncearcă; nu s-a salvat parțial.'
+                            : (error?.message || 'Eroare la salvare.');
+                setSaveStatus(uncertainCreate ? `${message} Rezultatul creării este incert; verifică documentul înainte de o nouă creare.` : message, 'error');
             } finally {
+                saveInProgress = false;
                 btnSalveazaDeviz.disabled = false;
                 btnSalveazaDeviz.classList.remove('opacity-60', 'cursor-not-allowed');
             }
@@ -2243,7 +2392,9 @@
                 devizData.discountGlobalPiese = pickHeaderValue(header, 'discount_global_piese', 'discountGlobalPiese') || devizData.discountGlobalPiese;
                 devizData.totalManopera = toNumber(header.total_manopera);
                 devizData.totalPiese.final = toNumber(header.total_piese);
+                devizData.totalAvans = toNumber(header.total_avans);
                 devizData.totalDePlata = toNumber(header.total_general);
+                devizData.vehicleId = header.vehicle_id ?? null;
 
                 const { data: lines, error: linesError } = await sb
                     .from('deviz_final_linii')
@@ -2257,6 +2408,7 @@
                 devizData.constatari = [];
                 devizData.manopera = { rows: [], total: 0 };
                 devizData.piese = [];
+                devizData.avansuri = [];
 
                 if (inputDevizEstimativ) inputDevizEstimativ.value = devizData.idDevizEstimativ || '';
                 if (inputDevizNr) inputDevizNr.value = devizData.devizNr || '';
@@ -2303,6 +2455,9 @@
                             valoare: row.total ?? '',
                             comandaPiesaShId: row.comanda_piesa_sh_id ?? null
                         });
+                    } else if (sectiune === 'avans' && row.avans_id != null) {
+                        /* Suma incarcata este instantaneul salvat, fara citirea platilor noi. */
+                        devizData.avansuri.push({ avansId: Number(row.avans_id), total: toNumber(row.total), paymentDates: [], linkStatus: 'linked' });
                     }
                 });
 
@@ -2311,9 +2466,18 @@
                 if (!devizData.manopera.rows.length) addManoperaRow();
                 if (!devizData.piese.length) addPiesaRow();
 
+                devizData.includeAvans = devizData.avansuri.length > 0;
                 recalculatePieseTotals();
+                devizData.totalManopera = toNumber(header.total_manopera);
+                devizData.totalPiese.final = toNumber(header.total_piese);
+                renderSelectedAvansuri();
+                devizData.totalAvans = toNumber(header.total_avans);
+                devizData.totalDePlata = toNumber(header.total_general);
+                summaryTotalAvans.textContent = `${formatMoney(devizData.totalAvans)} Lei`;
+                summaryTotalPlata.textContent = `${formatMoney(devizData.totalDePlata)} Lei`;
+                uncertainCreate = null;
+                savedAdvanceSignature = getAdvanceSignature();
                 syncFieldsFromState();
-                updateSummaryTotals();
                 setSaveStatus(`Încărcat: ${devizData.devizNr}`, 'success');
             } catch (error) {
                 setSaveStatus(error?.message || 'Eroare la încărcare.', 'error');
@@ -2330,6 +2494,7 @@
             renderConstatariRows();
             renderManoperaRows();
             renderPieseRows();
+            renderSelectedAvansuri();
             switchTab(devizData.activeTab);
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -2366,6 +2531,11 @@
         }
 
         function printDevizFinal() {
+            /* Avansurile tiparite trebuie sa corespunda instantaneului salvat. */
+            if (getAdvanceSignature() !== savedAdvanceSignature) {
+                setSaveStatus('Salvează modificările avansului înainte de printare.', 'error');
+                return;
+            }
             // Ne asigurăm că toate datele din tabele sunt colectate la zi în obiectul devizData
             syncLucrariState();
             syncConstatariState();
@@ -2475,6 +2645,23 @@
             const row = devizEstimativImportRows.find((item) => String(item?.id_deviz || '') === id);
             if (row) renderEstimatedDevizParts(row);
         });
+        /* Comutatorul cere confirmare explicita inainte de a elimina avansuri selectate. */
+        inputIncludeAvans.addEventListener('change', () => {
+            if (!inputIncludeAvans.checked && devizData.avansuri.length) {
+                if (!window.confirm('Elimini toate avansurile din deviz? Legăturile salvate se vor șterge la următoarea salvare.')) {
+                    inputIncludeAvans.checked = true;
+                    return;
+                }
+                devizData.avansuri = [];
+            }
+            devizData.includeAvans = inputIncludeAvans.checked;
+            renderSelectedAvansuri();
+        });
+        btnImportaAvans.addEventListener('click', openAvansImportModal);
+        btnCloseAvansImport.addEventListener('click', closeAvansImportModal);
+        avansImportModal.addEventListener('click', (event) => {
+            if (event.target === avansImportModal) closeAvansImportModal();
+        });
         btnImportaPieseSh.addEventListener('click', openPieseShImportModal);
         btnClosePieseShImport.addEventListener('click', closePieseShImportModal);
         btnConfirmPieseShImport.addEventListener('click', importSelectedPieseSh);
@@ -2577,8 +2764,13 @@
         btnAddPiesaRow.addEventListener('click', addPiesaRow);
 
         btnDevizNou.addEventListener('click', async () => {
+            if (uncertainCreate) {
+                setSaveStatus('Verifică mai întâi rezultatul creării incerte prin încărcarea devizului.', 'error');
+                return;
+            }
             currentDevizId = null;
             resetDevizDataInPlace();
+            savedAdvanceSignature = '[]';
             setImportStatus('');
             setSaveStatus('');
             syncFieldsFromState();
@@ -2586,6 +2778,7 @@
             renderConstatariRows();
             renderManoperaRows();
             renderPieseRows();
+            renderSelectedAvansuri();
             updateSummaryTotals();
             switchTab('tab-antet');
             await generateNextFinalId();
