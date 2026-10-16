@@ -1,253 +1,624 @@
 <!DOCTYPE html>
 <html lang="ro">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/png" href="/icons/192x192.png">
-<meta name="theme-color" content="#14161c">
-<title>Manager Dashboard — HUB Service Auto</title>
-
-<!-- Font Inter din Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<!-- Chart.js din CDN, pentru grafice -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-<!-- Supabase JS + config, la fel ca pe celelalte pagini din HUB -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/config.js"></script>
-<script>
-window.supabaseClient = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : undefined);
-</script>
-
-<link rel="stylesheet" href="manager.css">
-</head>
-<body>
-
-<!-- HEADER: titlu pagina + data/ora live -->
-<header class="topbar">
-  <div class="topbar-left">
-    <div class="logo-badge">MD</div>
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="#14161c" name="theme-color"/>
+  <link href="/manifest.json" rel="manifest"/>
+  <link href="/icons/192x192.png" rel="icon" type="image/png"/>
+  <title>
+   Manager Dashboard — HUB Service Auto
+  </title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="manager.css?v=20261016-hub" rel="stylesheet"/>
+  <!-- Clientul comun HUB este refolosit fără modificarea configurației. -->
+  <script defer="" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+  </script>
+  <script defer="" src="/js/config.js">
+  </script>
+  <script defer="" src="manager.js?v=20261016-hub">
+  </script>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   Salt la conținut
+  </a>
+  <header class="topbar">
+   <a aria-label="Înapoi la HUB" class="back-link" href="../../index.html?hub=1">
+    <svg aria-hidden="true" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+     <path d="m12 19-7-7 7-7">
+     </path>
+     <path d="M19 12H5">
+     </path>
+    </svg>
+    <span>
+     Înapoi
+    </span>
+   </a>
+   <div class="identity">
+    <span class="logo-badge">
+     MD
+    </span>
     <div>
-      <h1>Manager Dashboard</h1>
-      <p class="subtitle">CSN GARAGE S.R.L. — statistici avansate</p>
+     <h1>
+      Manager Dashboard
+     </h1>
+     <p>
+      HUB AUTO · CSN GARAGE S.R.L.
+     </p>
     </div>
-  </div>
-  <div class="topbar-right">
-    <a href="../../index.html?hub=1" class="btn-link">← Înapoi la HUB</a>
-    <div class="clock" id="liveClock">--:--:--</div>
-    <div class="status-pill"><span class="dot"></span> Sistem Online</div>
-  </div>
-</header>
-
-<!-- NAVIGARE TAB-URI + CAUTARE GLOBALA pe acelasi rand -->
-<nav class="tabs">
-  <div class="tabs-left">
-    <button class="tab-btn active" data-tab="financiar">Financiar &amp; Vânzări</button>
-    <button class="tab-btn" data-tab="performanta">Performanță Departamente</button>
-    <button class="tab-btn" data-tab="plati">Plăți</button>
-  </div>
-
-  <!-- cautare globala: cauta live in toate seturile de date -->
-  <div class="search-wrap">
-    <input type="text" id="globalSearch" placeholder="Caută nr. înmatriculare, AWB, produs, nume..." autocomplete="off">
-    <div class="search-results" id="searchResults"></div>
-  </div>
-</nav>
-
-<main class="content">
-
-  <!-- ===================== TAB 1: FINANCIAR & VANZARI (unificat cu AWB) ===================== -->
-  <section class="tab-panel active" id="tab-financiar">
-
-    <!-- randul cu cardurile de indicatori rapizi -->
-    <div class="bento-row bento-4">
-      <div class="card kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Devize Finale (luna curentă)</span>
-          <span class="badge badge-green">▲ live</span>
+   </div>
+   <div class="toolbar">
+    <label>
+     Luna analizată
+     <select disabled="" id="monthSelect">
+     </select>
+    </label>
+    <button disabled="" id="refreshButton" type="button">
+     ↻ Actualizează
+    </button>
+    <time id="liveClock">
+     —
+    </time>
+   </div>
+  </header>
+  <p class="access-message" id="accessMessage" role="status">
+   Se verifică accesul…
+  </p>
+  <div hidden="" id="dashboard">
+   <!-- Taburile păstrează ruta și împart informația în trei zone compacte. -->
+   <nav aria-label="Secțiuni Manager" class="tabs">
+    <div aria-label="Taburi Manager" role="tablist">
+     <button aria-controls="tab-financiar" aria-selected="true" class="tab-btn active" data-tab="financiar" id="tabButton-financiar" role="tab" type="button">
+      Financiar &amp; Vânzări
+     </button>
+     <button aria-controls="tab-performanta" aria-selected="false" class="tab-btn" data-tab="performanta" id="tabButton-performanta" role="tab" tabindex="-1" type="button">
+      Operațional &amp; Departamente
+     </button>
+     <button aria-controls="tab-plati" aria-selected="false" class="tab-btn" data-tab="plati" id="tabButton-plati" role="tab" tabindex="-1" type="button">
+      Plăți
+      <span id="paymentBadge">
+       —
+      </span>
+     </button>
+    </div>
+    <div class="search-wrap">
+     <label class="sr-only" for="globalSearch">
+      Caută global în HUB
+     </label>
+     <input id="globalSearch" placeholder="Caută în HUB: client, auto, deviz, AWB…" type="search"/>
+     <div aria-live="polite" class="search-results" hidden="" id="searchResults">
+     </div>
+    </div>
+   </nav>
+   <main class="content" id="main">
+    <div class="context-row">
+     <p id="periodCaption">
+     </p>
+     <span aria-live="polite" id="freshness" role="status">
+      Se încarcă…
+     </span>
+    </div>
+    <div class="source-warnings" hidden="" id="sourceWarnings" role="status">
+    </div>
+    <section aria-labelledby="tabButton-financiar" id="tab-financiar" role="tabpanel">
+     <!-- Rezumat: valoarea devizelor este separată de plățile de avans. -->
+     <div class="executive-grid">
+      <article class="card primary-kpi">
+       <span class="eyebrow">
+        VALOARE DEVIZE FINALE
+       </span>
+       <strong class="primary-value" id="grossValue">
+        —
+       </strong>
+       <p class="comparison" id="grossCompare">
+        —
+       </p>
+       <small>
+        Manoperă + piese · înainte de avans
+       </small>
+      </article>
+      <article class="card metric">
+       <span>
+        Devize finale
+       </span>
+       <strong id="estimateCount">
+        —
+       </strong>
+       <small id="countCompare">
+        Documente în perioadă
+       </small>
+      </article>
+      <article class="card metric">
+       <span>
+        Medie / deviz
+       </span>
+       <strong id="estimateAverage">
+        —
+       </strong>
+       <small>
+        Valoare integrală ÷ documente
+       </small>
+      </article>
+      <article class="card metric advance">
+       <span>
+        Avansuri încasate
+       </span>
+       <strong id="paidAdvances">
+        —
+       </strong>
+       <small id="advanceCount">
+        După data plății
+       </small>
+      </article>
+      <article class="card metric">
+       <span>
+        Plăți de efectuat
+       </span>
+       <strong id="pendingPayments">
+        —
+       </strong>
+       <button class="text-button" data-open-tab="plati" id="pendingCount" type="button">
+        Vezi cererile →
+       </button>
+      </article>
+      <article class="card metric">
+       <span>
+        Constatări active
+       </span>
+       <strong id="activeService">
+        —
+       </strong>
+       <small>
+        În lucru + așteptare piese
+       </small>
+      </article>
+     </div>
+     <div class="quick-notes" id="quickNotes">
+     </div>
+     <div class="analysis-grid">
+      <article class="card">
+       <div class="card-head">
+        <div>
+         <h2>
+          Evoluția valorii devizelor
+         </h2>
+         <p>
+          Ultimele 6 luni · luna curentă este parțială
+         </p>
         </div>
-        <div class="kpi-value" id="kpiIncasariLuna">0 Lei</div>
-        <div class="kpi-compare" id="kpiIncasariCompare">vs. luna trecută</div>
-      </div>
-
-      <div class="card kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Avansuri (azi)</span>
-          <span class="badge badge-blue">reset zilnic</span>
+        <div class="legend">
+         <span>
+          <i class="labor-dot">
+          </i>
+          Manoperă
+         </span>
+         <span>
+          <i class="parts-dot">
+          </i>
+          Piese
+         </span>
         </div>
-        <div class="kpi-value" id="kpiAvansuriAzi">0 Lei</div>
-        <div class="kpi-compare" id="kpiAvansuriCount">0 avansuri încasate azi</div>
-      </div>
-
-      <div class="card kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">AWB Livrate (net de retur)</span>
-          <span class="badge badge-neutral">piese SH/noi</span>
+       </div>
+       <div class="trend-chart" id="trendChart">
+       </div>
+       <details class="trend-details">
+        <summary>
+         Valori lunare și avansuri încasate
+        </summary>
+        <div class="table-scroll">
+         <table>
+          <thead>
+           <tr>
+            <th>
+             Lună
+            </th>
+            <th>
+             Devize
+            </th>
+            <th>
+             Valoare devize
+            </th>
+            <th>
+             Avansuri încasate
+            </th>
+           </tr>
+          </thead>
+          <tbody id="trendTable">
+          </tbody>
+         </table>
         </div>
-        <div class="kpi-value" id="kpiAwbNet">0 Lei</div>
-        <div class="kpi-compare" id="kpiAwbNetDetail">livrate − retururi</div>
-      </div>
-
-      <div class="card kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Valoare Detailing finalizat</span>
-          <span class="badge badge-purple">luna curentă</span>
-        </div>
-        <div class="kpi-value" id="kpiDetailing">0 Lei</div>
-        <div class="kpi-compare" id="kpiDetailingCount">0 lucrări finalizate</div>
-      </div>
-    </div>
-
-    <!-- graficul de evolutie vanzari, 4 categorii/culori -->
-    <div class="card chart-card">
-      <div class="card-head">
-        <h2>Evoluția vânzărilor</h2>
-        <p class="card-sub">Devize finale · Avansuri · AWB livrate (net) · Detailing — ultimele 4 luni</p>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="chartVanzari"></canvas>
-      </div>
-    </div>
-
-    <!-- tabel AWB, doar cele in tranzit -->
-    <div class="card table-card">
-      <div class="card-head">
-        <h2>AWB — În tranzit</h2>
-        <p class="card-sub">Colete aflate momentan pe drum</p>
-      </div>
-      <table class="data-table" id="tableAwb">
-        <thead>
-          <tr><th>AWB</th><th>Client</th><th>Piesă</th><th>Valoare</th></tr>
-        </thead>
-        <tbody><!-- randurile se genereaza din JS --></tbody>
-      </table>
-    </div>
-
-    <!-- tabel consumabile: stoc / prag / status, fara cost (nu exista pret inca) -->
-    <div class="card table-card">
-      <div class="card-head">
-        <h2>Consumabile — stoc</h2>
-        <p class="card-sub">Produsele sub pragul minim sunt marcate roșu</p>
-      </div>
-      <table class="data-table" id="tableConsumabile">
-        <thead>
-          <tr><th>Produs</th><th>Stoc curent</th><th>Prag minim</th><th>Status</th></tr>
-        </thead>
-        <tbody><!-- randurile se genereaza din JS --></tbody>
-      </table>
-    </div>
-
-  </section>
-
-  <!-- ===================== TAB 2: PERFORMANTA DEPARTAMENTE ===================== -->
-  <section class="tab-panel" id="tab-performanta">
-
-    <!-- grafic: nr masini intrate pe departamente -->
-    <div class="card chart-card">
-      <div class="card-head">
-        <h2>Mașini intrate pe departamente</h2>
-        <p class="card-sub">Detailing vs. Constatări — număr mașini / lună</p>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="chartDepartamente"></canvas>
-      </div>
-    </div>
-
-    <!-- tabel masini in lucru acum -->
-    <div class="card table-card masini-lucru-card">
-      <div class="card-head">
-        <h2>Mașini în lucru acum</h2>
-        <p class="card-sub">Status live pe fiecare mașină din service</p>
-      </div>
-      <table class="data-table" id="tableMasiniLucru">
-        <thead>
-          <tr><th>Nr. Auto</th><th>Intrare</th><th>Finalizare</th><th>Status</th><th>Mecanic</th><th>Acțiune</th></tr>
-        </thead>
-        <tbody><!-- randurile se genereaza din JS --></tbody>
-      </table>
-    </div>
-
-    <!-- randul de jos: recurente / alerte fleet / generator -->
-    <div class="bento-row bento-3">
-
-      <!-- masini in asteptare piese -->
-      <div class="card">
+       </details>
+      </article>
+      <div class="executive-side">
+       <article class="card">
         <div class="card-head">
-          <h2>Așteptare piese</h2>
-          <p class="card-sub">Mașini blocate după ultimul interval deschis</p>
+         <h2>
+          Necesită atenție
+          <span class="count-badge" id="attentionCount">
+           —
+          </span>
+         </h2>
+         <span class="eyebrow">
+          ACUM
+         </span>
         </div>
-        <ul class="alert-list" id="listAsteptarePiese"><!-- generat din JS --></ul>
+        <div id="attentionList">
+        </div>
+       </article>
+       <!-- Sumar Dezmembrări din statusurile reale, independent de luna analizată. -->
+       <a aria-disabled="true" class="card dismantling-card" id="dismantlingCard">
+        <div>
+         <span class="eyebrow">
+          DEZMEMBRĂRI
+         </span>
+         <span class="dismantling-status">
+          De completat
+         </span>
+        </div>
+        <strong class="dismantling-count" id="dismantlingDraft">
+         —
+        </strong>
+        <div class="dismantling-context">
+         <small id="dismantlingReady">
+          Se încarcă sumarul…
+         </small>
+         <span hidden="" id="dismantlingLinkHint">
+          Deschide modulul ↗
+         </span>
+        </div>
+       </a>
       </div>
-
-      <!-- alerte fleet: ITP / RCA / Rovinieta -->
-      <div class="card">
-        <div class="card-head">
-          <h2>Alerte Fleet</h2>
-          <p class="card-sub">ITP, RCA, Rovinieta — mașini firmă</p>
-        </div>
-        <ul class="alert-list" id="listFleetAlerts"><!-- generat din JS --></ul>
-      </div>
-
-      <!-- widget generator + bara maintenance -->
-      <div class="card">
-        <div class="card-head">
-          <h2>Log Generator</h2>
-          <p class="card-sub">Luna curentă</p>
-        </div>
-        <div class="gen-stats">
-          <div class="gen-stat">
-            <span class="gen-num" id="genOre">0</span>
-            <span class="gen-label">ore funcționare</span>
-          </div>
-          <div class="gen-stat">
-            <span class="gen-num" id="genMotorina">0 L</span>
-            <span class="gen-label">motorină consumată</span>
-          </div>
-          <div class="gen-stat">
-            <span class="gen-num" id="genPorniri">0</span>
-            <span class="gen-label">porniri</span>
-          </div>
-        </div>
-
-        <!-- bara de progres pana la mentenanta la 100h -->
-        <div class="maintenance-block">
-          <div class="maintenance-top">
-            <span>Maintenance la 100h</span>
-            <span id="maintenanceText">0 / 100h</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" id="maintenanceFill"></div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </section>
-
-  <!-- ===================== TAB 3: PLATI (retururi de facut) ===================== -->
-  <section class="tab-panel" id="tab-plati">
-
-    <div class="card table-card">
+     </div>
+     <!-- Cererile de plată sunt acționabile și în prima vedere a Managerului. -->
+     <article class="card payment-summary">
       <div class="card-head">
-        <h2>Cereri de plată</h2>
-        <p class="card-sub">Cereri trimise spre plată și statusul lor curent</p>
+       <div>
+        <h2>
+         Plăți de efectuat
+         <span class="count-badge" id="summaryPaymentCount">
+          —
+         </span>
+        </h2>
+        <p>
+         Confirmă doar transferurile efectuate în bancă. Marcarea nu execută un transfer.
+        </p>
+       </div>
+       <button class="text-button" data-open-tab="plati" type="button">
+        Toate cererile →
+       </button>
       </div>
-      <table class="data-table" id="tablePlati">
+      <div class="table-scroll">
+       <table class="payments-table">
         <thead>
-          <tr><th>Beneficiar</th><th>IBAN</th><th>Sumă</th><th>Motiv</th><th>Status</th><th>Data</th><th>Acțiuni</th></tr>
+         <tr>
+          <th>
+           Beneficiar
+          </th>
+          <th>
+           IBAN · click pentru copiere
+          </th>
+          <th>
+           Sumă
+          </th>
+          <th>
+           Motiv
+          </th>
+          <th>
+           Data cererii
+          </th>
+          <th>
+           Status
+          </th>
+          <th>
+           Acțiune
+          </th>
+         </tr>
         </thead>
-        <tbody><!-- randurile se genereaza din JS --></tbody>
-      </table>
-    </div>
-
-  </section>
-
-</main>
-
-<script src="manager.js"></script>
-</body>
+        <tbody id="paymentPreview">
+        </tbody>
+       </table>
+      </div>
+      <p class="footnote" id="paymentPreviewNote">
+      </p>
+     </article>
+     <div class="card operation-strip" id="operationsList">
+     </div>
+    </section>
+    <section aria-labelledby="tabButton-performanta" hidden="" id="tab-performanta" role="tabpanel">
+     <div class="operational-grid">
+      <article class="card">
+       <div class="card-head">
+        <div>
+         <h2>
+          Fișe active în service
+         </h2>
+         <p>
+          Documente, nu vehicule unice · situația curentă
+         </p>
+        </div>
+       </div>
+       <div class="table-scroll list-scroll">
+        <table>
+         <thead>
+          <tr>
+           <th>
+            Auto
+           </th>
+           <th>
+            Intrare
+           </th>
+           <th>
+            Status
+           </th>
+           <th>
+            Urgent
+           </th>
+          </tr>
+         </thead>
+         <tbody id="serviceBody">
+         </tbody>
+        </table>
+       </div>
+      </article>
+      <article class="card">
+       <div class="card-head">
+        <h2>
+         Așteptare piese
+        </h2>
+        <p>
+         Durata ultimului interval deschis
+        </p>
+       </div>
+       <div id="waitingList">
+       </div>
+      </article>
+      <article class="card">
+       <div class="card-head">
+        <div>
+         <h2>
+          Activitate pe departamente
+         </h2>
+         <p>
+          Fișe create / programate, nu vehicule unice
+         </p>
+        </div>
+       </div>
+       <div class="table-scroll">
+        <table>
+         <thead>
+          <tr>
+           <th>
+            Lună
+           </th>
+           <th>
+            Constatări create
+           </th>
+           <th>
+            Detailing programat
+           </th>
+          </tr>
+         </thead>
+         <tbody id="departmentBody">
+         </tbody>
+        </table>
+       </div>
+      </article>
+      <article class="card">
+       <div class="card-head">
+        <h2>
+         Generator
+        </h2>
+        <p>
+         Luna curentă · independent de luna analizată
+        </p>
+       </div>
+       <div class="generator-stats" id="generatorStats">
+       </div>
+       <p class="footnote" id="generatorState">
+       </p>
+      </article>
+     </div>
+     <div class="details-grid">
+      <article class="card">
+       <div class="card-head">
+        <h2>
+         AWB în tranzit
+        </h2>
+        <p>
+         Colete nearhivate · valorile nu confirmă încasări
+        </p>
+       </div>
+       <div class="table-scroll list-scroll">
+        <table>
+         <thead>
+          <tr>
+           <th>
+            AWB
+           </th>
+           <th>
+            Client
+           </th>
+           <th>
+            Piesă
+           </th>
+           <th>
+            Valoare
+           </th>
+          </tr>
+         </thead>
+         <tbody id="awbBody">
+         </tbody>
+        </table>
+       </div>
+      </article>
+      <article class="card">
+       <div class="card-head">
+        <h2>
+         Stoc · excepții
+        </h2>
+        <p>
+         La/sub prag, stoc negativ sau date numerice invalide
+        </p>
+       </div>
+       <div class="table-scroll list-scroll">
+        <table>
+         <thead>
+          <tr>
+           <th>
+            Produs
+           </th>
+           <th>
+            Stoc
+           </th>
+           <th>
+            Prag
+           </th>
+           <th>
+            Status
+           </th>
+          </tr>
+         </thead>
+         <tbody id="stockBody">
+         </tbody>
+        </table>
+       </div>
+      </article>
+     </div>
+    </section>
+    <!-- Același tabel plati_manager: cereri în așteptare și plăți recente. -->
+    <section aria-labelledby="tabButton-plati" hidden="" id="tab-plati" role="tabpanel">
+     <div class="payment-metrics">
+      <article class="card metric">
+       <span>
+        Total de efectuat
+       </span>
+       <strong id="paymentTotal">
+        —
+       </strong>
+       <small id="paymentTotalCount">
+        —
+       </small>
+      </article>
+      <article class="card metric">
+       <span>
+        Plăți marcate în luna analizată
+       </span>
+       <strong id="paymentMonthTotal">
+        —
+       </strong>
+       <small id="paymentMonthCount">
+        După data_platii
+       </small>
+      </article>
+      <article class="card payment-help">
+       <h2>
+        Același flux, de la cerere la plată
+       </h2>
+       <p>
+        IBAN-ul se copiază direct. „Marchează plătit” actualizează cererea originală; utilizatorul vede noul status la următoarea încărcare a paginii Cereri de plată.
+       </p>
+       <a class="text-button" href="/modules/devize/plati.html">
+        Deschide Cereri de plată ↗
+       </a>
+      </article>
+     </div>
+     <article class="card">
+      <div class="card-head">
+       <div>
+        <h2>
+         Cereri în așteptare
+        </h2>
+        <p>
+         Toate cererile neplătite · cele mai vechi primele
+        </p>
+       </div>
+      </div>
+      <div class="table-scroll">
+       <table class="payments-table">
+        <thead>
+         <tr>
+          <th>
+           Beneficiar
+          </th>
+          <th>
+           IBAN · click pentru copiere
+          </th>
+          <th>
+           Sumă
+          </th>
+          <th>
+           Motiv
+          </th>
+          <th>
+           Data cererii
+          </th>
+          <th>
+           Status
+          </th>
+          <th>
+           Acțiune
+          </th>
+         </tr>
+        </thead>
+        <tbody id="pendingBody">
+        </tbody>
+       </table>
+      </div>
+     </article>
+     <article class="card recent-payments">
+      <div class="card-head">
+       <div>
+        <h2>
+         Plăți marcate plătite recent
+        </h2>
+        <p id="completedCaption">
+         Ultimele 20 din fereastra de șase luni, după data plății
+        </p>
+       </div>
+      </div>
+      <div class="table-scroll">
+       <table class="payments-table">
+        <thead>
+         <tr>
+          <th>
+           Beneficiar
+          </th>
+          <th>
+           IBAN · click pentru copiere
+          </th>
+          <th>
+           Sumă
+          </th>
+          <th>
+           Motiv
+          </th>
+          <th>
+           Data marcării
+          </th>
+          <th>
+           Status
+          </th>
+          <th>
+           Acțiune
+          </th>
+         </tr>
+        </thead>
+        <tbody id="completedBody">
+        </tbody>
+       </table>
+      </div>
+     </article>
+    </section>
+    <footer>
+     Valoarea devizelor nu este încasare sau profit. Avansurile se raportează separat.
+     <span>
+      Europe/Bucharest · actualizare manuală
+     </span>
+    </footer>
+   </main>
+  </div>
+  <div aria-live="polite" class="toast" hidden="" id="toast" role="status">
+  </div>
+ </body>
 </html>
