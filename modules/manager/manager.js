@@ -1066,6 +1066,7 @@ if (typeof window !== 'undefined') window.HubGlobalSearch = HubGlobalSearch;
     })}`);
   }
   /* Încărcare paralelă fără polling business și fără rezultate fictive la eroare. */
+  let localDraftLanding = null;
   async function load() {
     if (busy || paying.size) return false;
     busy = true;
@@ -1079,6 +1080,16 @@ if (typeof window !== 'undefined') window.HubGlobalSearch = HubGlobalSearch;
     try {
       profile = await authorize();
       if (!profile) return false;
+      /* Profilul deja verificat permite intrarea în ciorne, fără alt query de autentificare. */
+      if (window.HubLocalDrafts) {
+        const canRecover = window.HubLocalDrafts.canUse(profile);
+        if (!localDraftLanding || localDraftLanding.userId !== profile.id || localDraftLanding.allowed !== canRecover) {
+          localDraftLanding?.menu?.dispose();
+          localDraftLanding = {userId:profile.id,allowed:canRecover,menu:null};
+          localDraftLanding.menu = await window.HubLocalDrafts.mount({project:new URL(SUPABASE_URL).hostname,
+            userId:profile.id,allowed:canRecover,client});
+        }
+      }
       resetSearch();
       cal = calendar();
       const select = document.getElementById('monthSelect'),

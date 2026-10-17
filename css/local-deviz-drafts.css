@@ -1,0 +1,28 @@
+/* Dialogul local urmează suprafețele slate și accentul cyan din Deviz Final/HUB. */
+.df-local-overlay { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,6,23,.85); }
+.df-local-dialog { position:relative; width:min(620px,100%); max-height:85vh; overflow:auto; padding:24px; border:1px solid #334155; border-radius:16px; background:#0f172a; color:#e2e8f0; box-shadow:0 24px 80px #0008; font:14px/1.5 Inter,system-ui,sans-serif; }
+.df-local-dialog h2 { margin:0 32px 12px 0; font-size:20px; font-weight:800; }
+.df-local-dialog p { margin:12px 0; color:#cbd5e1; white-space:pre-line; }
+/* Butoane, selecție și focus vizibil pentru tastatură. */
+.df-local-dialog button,.df-local-entry { border:1px solid #475569; border-radius:10px; padding:9px 12px; background:#1e293b; color:#e2e8f0; cursor:pointer; font:inherit; }
+.df-local-dialog button:focus-visible,.df-local-select:focus-visible,.df-local-entry:focus-visible { outline:2px solid #22d3ee; outline-offset:3px; }
+.df-local-dialog .df-local-primary { background:#0891b2; color:white; font-weight:700; }
+.df-local-close { position:absolute; top:14px; right:14px; }
+.df-local-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; margin-top:18px; }
+.df-local-select { width:100%; padding:12px; border:1px solid #475569; border-radius:10px; color:#e2e8f0; background:#1e293b; }
+/* Versiunile se inspectează ca date de deviz, fără cod expus în interfață. */
+.df-local-preview { max-height:320px; overflow:auto; margin-top:12px; font-size:12px; overflow-wrap:anywhere; }
+.df-local-preview section { padding:12px; border:1px solid #334155; border-radius:10px; margin-top:10px; }
+.df-local-preview h3 { font-size:15px; font-weight:700; margin:0 0 10px; }
+.df-local-preview dl { display:grid; grid-template-columns:minmax(100px,1fr) minmax(0,2fr); gap:3px 10px; margin:0 0 12px; }
+.df-local-preview dt { color:#94a3b8; } .df-local-preview dd { margin:0; }
+.df-local-preview ol { margin:4px 0 12px; padding-left:20px; list-style:decimal; }
+/* Intrare temporară, fără tab nou; mesajele nu acoperă formularul. */
+.df-local-entry { position:fixed; bottom:16px; right:16px; z-index:65; font-size:12px; box-shadow:0 4px 16px #0006; }
+.df-local-entry[hidden] { display:none; }
+.df-local-status { font-size:12px; color:#94a3b8; min-height:16px; }
+.df-local-status[data-warning="true"],.df-local-conflict { color:#fbbf24; }
+.df-local-conflict { font-size:12px; max-width:650px; }
+
+/* Identitatea și ora ciornei rămân lizibile, inclusiv pe telefon. */
+.df-local-dialog .df-local-summary { color:#e2e8f0; font-weight:600; overflow-wrap:anywhere; }
