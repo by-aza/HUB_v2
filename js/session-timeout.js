@@ -80,6 +80,7 @@
 
     /* redirecționează când Supabase confirmă că nu mai există o sesiune validă */
     function handleSignedOut() {
+        window.dispatchEvent(new Event('hub:before-signout'));
         resolutionVersion += 1;
         stopAuthRetry();
         stopInactivityTimer();
@@ -95,6 +96,7 @@
     /* delogare automată folosită doar după confirmarea unui rol non-Admin */
     async function logoutForInactivity() {
         if (isLoggingOut) return;
+        window.dispatchEvent(new Event('hub:before-signout'));
         isLoggingOut = true;
         stopInactivityTimer();
 

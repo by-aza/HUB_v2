@@ -22,6 +22,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/config.js"></script>
     <script src="../../js/audit.js"></script>
+    <!-- Recuperare locală pentru rolurile cu altă pagină după autentificare. -->
+    <link rel="stylesheet" href="/css/local-deviz-drafts.css?v=20261017">
+    <script src="/js/local-deviz-drafts.js?v=20261017-ux"></script>
 </head>
 <body>
 
@@ -162,7 +165,7 @@
 
             const { data: profile, error: profError } = await supabaseClient
                 .from('auth_profiles')
-                .select('rol_id')
+                .select('rol_id, permissions')
                 .eq('id', data.user.id)
                 .single();
             
@@ -172,6 +175,7 @@
                 return;
             }
 
+            window.HubLocalDrafts?.clearVisits();
             // Revine la modulul care a inițiat autentificarea.
             const returnTo = getSafeReturnTo();
             if (returnTo) {
@@ -179,6 +183,10 @@
                 return;
             }
             
+            if (window.HubLocalDrafts && [6,8].includes(Number(profile.rol_id))) {
+                await window.HubLocalDrafts.mount({project:new URL(SUPABASE_URL).hostname,userId:data.user.id,
+                    allowed:window.HubLocalDrafts.canUse(profile),client:supabaseClient});
+            }
             if (Number(profile.rol_id) === 8) {
                 window.location.href = '../../modules/formulare/constatari_v2.html';
             } else if (Number(profile.rol_id) === 6) {

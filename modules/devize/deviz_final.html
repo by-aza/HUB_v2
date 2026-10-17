@@ -12,6 +12,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/audit.js"></script>
     <link rel="stylesheet" href="/css/style.css">
+    <!-- Recuperare locală DF, comună cu HUB și login. -->
+    <link rel="stylesheet" href="/css/local-deviz-drafts.css?v=20261017">
+    <script src="/js/local-deviz-drafts.js?v=20261017-ux"></script>
     <style>
         input[type='number']::-webkit-inner-spin-button,
         input[type='number']::-webkit-outer-spin-button {
@@ -37,6 +40,8 @@
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight text-slate-100">Deviz Final</h1>
                     <div id="save-status" class="min-h-5 text-xs text-slate-400"></div>
+                    <div id="local-draft-status" class="df-local-status" role="status" aria-live="polite"></div>
+                    <div id="local-draft-conflict" class="df-local-conflict" role="alert"></div>
                 </div>
             </div>
 
@@ -724,6 +729,7 @@
                 devizData[key] = input.value;
                 completedCount += 1;
             });
+            if (completedCount) draftChanged();
             return completedCount;
         };
 
@@ -740,6 +746,7 @@
             }
 
             vehicleHistoryLookupPlate = plate;
+            const lookupGeneration = draftGeneration;
             const currentLookupPromise = (async () => {
                 const values = { client: '', tipAuto: '', serieVin: '', serieMotor: '' };
 
@@ -792,6 +799,7 @@
                     }
                 }
 
+                if (lookupGeneration !== draftGeneration || draftIdentityChanged) return false;
                 const completedCount = applyVehicleHistoryValues(values, plate);
                 if (completedCount > 0) {
                     const message = 'Date mașină completate din istoric.';
@@ -1450,9 +1458,11 @@
             devizData.nrInmatriculare = normalizePlate(data?.nr_inmatriculare || '');
             devizData.serieVin = normalizeUppercaseText(data?.vin || '');
             syncFieldsFromState();
+            draftChanged();
         }
 
         async function importEstimatedDeviz() {
+            const importGeneration = draftGeneration;
             /* flux import date: cautare dupa ID sau dupa numarul normalizat din Antet */
             normalizeAllUppercaseFields();
             const idDeviz = normalizeDevizEstimativId(inputDevizEstimativ?.value || devizData.idDevizEstimativ);
@@ -1489,6 +1499,7 @@
                         .sort((a, b) => getEstimatedDevizDateTime(b) - getEstimatedDevizDateTime(a));
                 }
 
+                if (importGeneration !== draftGeneration || draftIdentityChanged) return;
                 if (!rows.length) {
                     setImportStatus(idDeviz ? 'Nu am găsit niciun deviz estimativ cu acest ID.' : `Nu am găsit devize estimative pentru ${plate}.`, 'error');
                     return;
@@ -1808,6 +1819,7 @@
         };
 
         async function openPieseShImportModal() {
+            const importGeneration = draftGeneration;
             const plate = normalizePlate(inputNrInmatriculareDevizFinal?.value || devizData.nrInmatriculare);
             if (!plate || plate === 'FaraNumar') {
                 setSaveStatus('Completează mai întâi nr. de înmatriculare în Antet.', 'error');
@@ -1832,6 +1844,7 @@
 
                 if (error) throw error;
 
+                if (importGeneration !== draftGeneration || draftIdentityChanged) return;
                 pieseShImportOrders = Array.isArray(data) ? data : [];
                 pieseShImportMessage.textContent = pieseShImportOrders.length
                     ? `${pieseShImportOrders.length} comenzi găsite pentru ${plate}.`
@@ -1964,6 +1977,7 @@
         };
 
         async function openAvansImportModal() {
+            const importGeneration = draftGeneration;
             syncPieseState();
             if (hasLegacyAdvancePart()) {
                 setSaveStatus('Devizul conține posibil un avans vechi ca piesă negativă. Reconciliază-l explicit înainte de import.', 'error');
@@ -1985,6 +1999,7 @@
                     p_vin: inputSerieVinDevizFinal.value || ''
                 });
                 if (error) throw error;
+                if (importGeneration !== draftGeneration || draftIdentityChanged) return;
                 avansImportRows = Array.isArray(data) ? data : [];
                 avansImportMessage.textContent = avansImportRows.length
                     ? `${avansImportRows.length} avansuri eligibile pentru ${plate}. Selectează unul sau actualizează suma unui avans deja legat.`
@@ -2279,12 +2294,31 @@
         }
 
         async function saveDevizFinal() {
-            if (saveInProgress) return;
+            if (saveInProgress || draftLoading || draftIdentityChanged) return;
+            if (draftUnavailable) { setSaveStatus('Devizul sursă nu poate fi verificat. Ciorna este păstrată; nu recrea documentul prin salvare.', 'error'); return; }
             saveInProgress = true;
             btnSalveazaDeviz.disabled = true;
             btnSalveazaDeviz.classList.add('opacity-60', 'cursor-not-allowed');
             setSaveStatus('Se salvează...', 'info');
+            let localSaveTicket = null;
             try {
+                /* O ciornă recuperată este reverificată și înainte de salvarea manuală. */
+                if (draftRecovered && currentDevizId) {
+                    const {data: latestHeader,error: headerError} = await sb.from('deviz_final_header').select('*').eq('id_deviz_final',currentDevizId).maybeSingle();
+                    const {data: latestLines,error: linesError} = await sb.from('deviz_final_linii').select('*').eq('id_deviz_final',currentDevizId).order('nr_crt',{ascending:true});
+                    if (headerError || linesError || !latestHeader) throw new Error('Devizul salvat nu poate fi verificat. Ciorna rămâne păstrată; salvarea nu a fost pornită.');
+                    const latestBase = draftDocumentBase(latestHeader,latestLines || []);
+                    draftConflict ||= HubLocalDrafts.canonical(latestBase) !== HubLocalDrafts.canonical(draftBase);
+                    if (draftConflict) {
+                        conflictStatus.textContent = 'Conflict cu devizul salvat. Verifică versiunile înainte de salvare.';
+                        localDraft?.flush();
+                        const approved = await HubLocalDrafts.dialog({title:'Deviz modificat între timp',
+                            message:'Devizul salvat a fost modificat între timp. Verifică diferențele înainte de a continua. Confirmarea de mai jos salvează manual versiunea locală peste documentul existent.',
+                            details:{salvat:{header:latestHeader,lines:latestLines || []},local:captureDraft().data},
+                            actions:[{label:'Revin la formular',value:false},{label:'Salvează versiunea locală',value:true,primary:true}]});
+                        if (!approved) return;
+                    }
+                }
                 if (uncertainCreate && !(await reconcileUncertainCreate())) return;
                 normalizeAllUppercaseFields();
                 syncLucrariState();
@@ -2301,6 +2335,7 @@
                 const header = buildHeaderPayload();
                 const lines = buildLinesPayload();
                 const isUpdate = Boolean(currentDevizId);
+                localSaveTicket = localDraft?.beforeSave();
                 if (!isUpdate) {
                     const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
                     if (sessionError) throw sessionError;
@@ -2315,6 +2350,8 @@
                         signatures: lines.map(lineSaveSignature).sort()
                     };
                 }
+                localDraft?.flush();
+                const savingUser = draftUser;
                 const { data, error } = await sb.rpc('save_deviz_final', {
                     p_deviz_id: currentDevizId || null,
                     p_header: header,
@@ -2325,7 +2362,29 @@
                     if (isUpdate || /^[0-9A-Z]{5}$/.test(String(error.code || ''))) uncertainCreate = null;
                     throw error;
                 }
+                if (draftIdentityChanged || (savingUser && savingUser !== draftUser)) throw new Error('Sesiunea s-a schimbat în timpul salvării. Ciorna a fost păstrată.');
+                const visible = localSaveTicket ? captureDraft() : null;
+                const editedDuringSave = localSaveTicket && draftComparable(visible) !== localSaveTicket.signature;
+                const returnedId = cleanDbId(data?.id_deviz_final);
+                if (!returnedId) throw new Error('Răspunsul salvării nu conține ID-ul devizului.');
+                draftSuspended = true;
                 applySavedTotals(data);
+                const savedBase = draftDocumentBase({...header,...data}, lines.map(line => line.sectiune === 'avans' ? {...line,total:data.avansuri?.[String(line.avans_id)]} : line));
+                if (editedDuringSave) {
+                    const advanceSignature = savedAdvanceSignature;
+                    renderDraftData(visible);
+                    currentDevizId = returnedId;
+                    devizData.devizNr = formatWithPrefix('DF-',returnedId,3);
+                    devizData.vehicleId = data.vehicle_id ?? devizData.vehicleId;
+                    uncertainCreate = null; savedAdvanceSignature = advanceSignature;
+                    syncFieldsFromState();
+                }
+                draftBase = savedBase; draftConflict = false; draftRecovered = false; conflictStatus.textContent = '';
+                draftSuspended = false;
+                if (localSaveTicket) {
+                    if (!editedDuringSave) localSaveTicket.signature = draftComparable(captureDraft());
+                    localDraft.saved(localSaveTicket); draftMenu?.refresh();
+                }
                 setSaveStatus('Deviz Salvat!', 'success');
                 logAuditDevizFinal(isUpdate ? 'UPDATE' : 'CREATE', devizData.devizNr);
                 alert('Deviz Salvat!');
@@ -2340,6 +2399,8 @@
                             : (error?.message || 'Eroare la salvare.');
                 setSaveStatus(uncertainCreate ? `${message} Rezultatul creării este incert; verifică documentul înainte de o nouă creare.` : message, 'error');
             } finally {
+                draftSuspended = draftIdentityChanged;
+                if (localSaveTicket && localDraft?.dirty()) localDraft.flush();
                 saveInProgress = false;
                 btnSalveazaDeviz.disabled = false;
                 btnSalveazaDeviz.classList.remove('opacity-60', 'cursor-not-allowed');
@@ -2361,6 +2422,10 @@
                 return;
             }
 
+            if (!preserveDraft()) return false;
+            draftLoadFailure = null;
+            draftLoading = true; document.querySelector('main').inert = true;
+            const loadingUser = draftUser;
             setSaveStatus(`Se încarcă DF-${String(dbId).padStart(3, '0')}...`, 'info');
 
             try {
@@ -2372,10 +2437,14 @@
 
                 if (headerError) throw headerError;
                 if (!header) {
+                    draftLoadFailure = {kind:'missing'};
                     setSaveStatus('Deviz inexistent.', 'error');
-                    return;
+                    return false;
                 }
 
+                const { data: loadedLines, error: loadedLinesError } = await sb.from('deviz_final_linii').select('*').eq('id_deviz_final', dbId).order('nr_crt', { ascending: true });
+                if (loadedLinesError) throw loadedLinesError;
+                if (draftIdentityChanged || (loadingUser && loadingUser !== draftUser)) return false;
                 resetDevizDataInPlace();
 
                 currentDevizId = header.id_deviz_final ?? dbId;
@@ -2396,13 +2465,7 @@
                 devizData.totalDePlata = toNumber(header.total_general);
                 devizData.vehicleId = header.vehicle_id ?? null;
 
-                const { data: lines, error: linesError } = await sb
-                    .from('deviz_final_linii')
-                    .select('*')
-                    .eq('id_deviz_final', currentDevizId)
-                    .order('nr_crt', { ascending: true });
-
-                if (linesError) throw linesError;
+                const lines = loadedLines;
 
                 devizData.lucrariSolicitate = [];
                 devizData.constatari = [];
@@ -2479,9 +2542,16 @@
                 savedAdvanceSignature = getAdvanceSignature();
                 syncFieldsFromState();
                 setSaveStatus(`Încărcat: ${devizData.devizNr}`, 'success');
+                draftLoaded(draftDocumentBase(header, lines || []));
+                return true;
             } catch (error) {
+                const code = String(error?.code || '');
+                const denied = code === '42501' || /^PGRST30[12]$/.test(code) || [401,403].includes(error?.status);
+                const network = ['AbortError','TimeoutError'].includes(error?.name) || /fetch|network|offline|timeout|timed out|abort|connection|internet/i.test(error?.message || '');
+                draftLoadFailure = {kind:denied ? 'access' : network ? 'network' : 'read'};
                 setSaveStatus(error?.message || 'Eroare la încărcare.', 'error');
-            }
+                return false;
+            } finally { draftSuspended = draftIdentityChanged; draftLoading = false; document.querySelector('main').inert = draftIdentityChanged; }
         }
 
         async function loadDevizFinalByNr(devizNrRaw) {
@@ -2489,6 +2559,8 @@
         }
 
         async function bootstrapDevizFinalPage() {
+            [btnDevizNou,btnIncarcaDeviz,btnUltimulDeviz,btnSalveazaDeviz].forEach(button => button.disabled = true);
+            document.querySelector('main').inert = true;
             syncFieldsFromState();
             renderLucrariRows();
             renderConstatariRows();
@@ -2501,12 +2573,15 @@
             const loadId = urlParams.get('id');
 
             if (loadId) {
-                currentDevizId = cleanDbId(loadId);
                 await loadDevizFinalByNr(String(loadId));
-                return;
+            } else {
+                await generateNextFinalId();
+                draftLoaded();
             }
-
-            await generateNextFinalId();
+            document.querySelector('main').inert = true;
+            await initializeLocalDrafts();
+            [btnDevizNou,btnIncarcaDeviz,btnUltimulDeviz,btnSalveazaDeviz].forEach(button => button.disabled = draftIdentityChanged);
+            document.querySelector('main').inert = draftIdentityChanged;
         }
 
         async function loadLastDevizFinal() {
@@ -2571,6 +2646,211 @@
                 }, true);
             }
         }
+
+        /* Recuperare locală: citim inputurile reale, inclusiv ultima tastă fără blur. */
+        const draftProject = new URL(supabaseUrl).hostname;
+        let localDraft = null, draftStore = null, draftMenu = null, draftUser = null;
+        let draftBase = null, draftConflict = false, draftSuspended = true, draftGeneration = 0, draftLoading = false, draftIdentityChanged = false, draftUnavailable = false, draftRecovered = false, draftAuthGeneration = 0, draftLoadFailure = null, draftRecovering = false;
+        const draftStatus = document.getElementById('local-draft-status');
+        const conflictStatus = document.getElementById('local-draft-conflict');
+        const setDraftStatus = (text, warning = false) => {
+            draftStatus.textContent = text; draftStatus.dataset.warning = String(warning);
+        };
+        const draftChanged = () => { if (!draftSuspended) localDraft?.changed(); };
+        const captureDraft = () => {
+            document.querySelectorAll('[data-field]').forEach(field => { devizData[field.dataset.field] = field.value; });
+            syncLucrariState(); syncConstatariState(); syncManoperaState(); syncPieseState();
+            devizData.includeAvans = inputIncludeAvans.checked;
+            return HubLocalDrafts.clone({ data: devizData, base: draftBase,
+                savedAdvanceSignature, uncertainCreate, conflict: draftConflict });
+        };
+        const draftComparable = payload => {
+            const data = HubLocalDrafts.clone(payload.data);
+            ['activeTab','devizNr','totalManopera','totalPiese','totalDeviz','totalAvans','totalDePlata','vehicleId'].forEach(key => delete data[key]);
+            if (data.manopera) delete data.manopera.total;
+            (data.avansuri || []).forEach(row => delete row.linkStatus);
+            return HubLocalDrafts.canonical(data);
+        };
+        /* Amprentă a câmpurilor salvate, fără ID-uri tehnice de rând sau date de audit. */
+        const draftDocumentBase = (header, lines) => {
+            const fields = {};
+            ['id_deviz_estimativ','data_deviz','client','auto','nr_inmatriculare','serie_vin','serie_motor','km','termen_executie','vehicle_id'].forEach(key => { fields[key] = String(header[key] ?? '').trim(); });
+            ['discount_global_piese','total_manopera','total_piese','total_avans','total_general'].forEach(key => { fields[key] = toNumber(header[key]); });
+            const signatures = lines.map(row => {
+                    return lineSaveSignature(row) + (['avans','manopera','piese'].includes(row.sectiune) ? ':' + toNumber(row.total) : '');
+                }).sort();
+            return { header: fields, lines: signatures };
+        };
+        const renderDraftData = payload => {
+            const data = payload.data;
+            if (!data || !Array.isArray(data.lucrariSolicitate) || !Array.isArray(data.constatari) ||
+                !Array.isArray(data.manopera?.rows) || !Array.isArray(data.piese) || !Array.isArray(data.avansuri)) throw new Error('Structura ciornei nu este compatibilă. Ciorna a fost păstrată.');
+            const groups = [data.lucrariSolicitate,data.constatari,data.manopera.rows,data.piese,data.avansuri];
+            if (groups.some(rows => rows.some(row => !row || typeof row !== 'object' || Array.isArray(row))) ||
+                Object.keys(freshDevizData()).some(key => !['manopera','totalPiese','lucrariSolicitate','constatari','piese','avansuri'].includes(key) && data[key] !== null && typeof data[key] === 'object')) {
+                throw new Error('Ciorna conține câmpuri deteriorate. A fost păstrată fără înlocuirea formularului.');
+            }
+            resetDevizDataInPlace();
+            Object.keys(freshDevizData()).forEach(key => { if (Object.hasOwn(data,key)) devizData[key] = HubLocalDrafts.clone(data[key]); });
+            savedAdvanceSignature = payload.savedAdvanceSignature || '[]';
+            uncertainCreate = payload.uncertainCreate || null;
+            syncFieldsFromState(); renderLucrariRows(); renderConstatariRows(); renderManoperaRows(); renderPieseRows();
+            renderSelectedAvansuri(); syncManoperaState(); recalculatePieseTotals();
+            switchTab(['tab-antet','tab-lucrari-solicitate','tab-constatari','tab-manopera','tab-piese-materiale'].includes(data.activeTab) ? data.activeTab : 'tab-antet');
+        };
+        /* Tranziția golește timerele înainte de schimbarea identității documentului. */
+        const preserveDraft = () => {
+            if (saveInProgress || draftLoading || draftIdentityChanged) { setSaveStatus('Așteaptă finalizarea salvării înainte de a schimba devizul.', 'error'); return false; }
+            const dirty = localDraft?.dirty();
+            const copy = localDraft?.flush();
+            if (dirty && !copy && !window.confirm('Ciorna locală nu a putut fi păstrată. Continui și renunți la modificările curente?')) return false;
+            draftSuspended = true; draftGeneration++;
+            closeAvansImportModal(); closePieseShImportModal(); closeDevizEstimativImportModal();
+            return true;
+        };
+        const draftLoaded = (base = null) => {
+            draftBase = base; draftConflict = false; draftUnavailable = false; draftRecovered = false; conflictStatus.textContent = '';
+            localDraft?.reset(); draftSuspended = false; draftMenu?.refresh();
+        };
+        /* Selecția este consumată după deschidere: reload nu reaplică o ciornă refuzată/ștearsă. */
+        const consumeDraftSelection = () => {
+            if (draftUser) HubLocalDrafts.markVisit(draftProject,draftUser);
+            const url = new URL(location.href);
+            url.searchParams.delete('localDraft');
+            if (currentDevizId) url.searchParams.set('id',String(currentDevizId));
+            history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+        };
+        const selectedDraftAvailable = record => draftStore?.list().some(row => row.key === record.key);
+        async function restoreLocalDraft(record) {
+            if (draftSuspended || draftRecovering || !draftUser || record.userId !== draftUser) return;
+            if (!selectedDraftAvailable(record)) { setDraftStatus('Ciorna selectată nu mai este disponibilă. Redeschide lista de ciorne.',true); consumeDraftSelection(); return; }
+            draftRecovering = true;
+            try {
+                /* Ciorna deja deschisă păstrează inclusiv tastele mai noi încă nescrise local. */
+                if (localDraft?.getRecord()?.id === record.id) {
+                    localDraft.flush(); consumeDraftSelection();
+                    setSaveStatus('Ciorna este deja deschisă. Modificările nu sunt încă salvate.');
+                    return;
+                }
+                const explicitId = new URLSearchParams(location.search).get('id');
+                if (localDraft?.dirty() || (explicitId && cleanDbId(explicitId) !== Number(record.documentId)) ||
+                    (currentDevizId && Number(currentDevizId) !== Number(record.documentId))) {
+                    localDraft?.flush();
+                    const choice = await HubLocalDrafts.dialog({title:'Ai deja un deviz deschis',
+                        message:'Devizul curent rămâne deschis. Poți continua ciorna într-un tab separat, fără să pierzi lucrul de aici.',
+                        actions:[{label:'Rămân aici',value:'stay'},{label:'Deschide ciorna în alt tab',value:'separate',primary:true}]});
+                    if (choice === 'separate' && draftUser === record.userId && selectedDraftAvailable(record)) {
+                        window.open('/modules/devize/deviz_final.html?localDraft='+encodeURIComponent(record.id),'_blank','noopener');
+                    }
+                    consumeDraftSelection(); return;
+                }
+                let server = null, conflict = Boolean(record.documentId && record.payload.conflict);
+                let baselineKnown = true;
+                if (record.documentId) {
+                    const loaded = await loadDeviz(record.documentId);
+                    if (!draftUser || record.userId !== draftUser) return;
+                    if (!loaded) {
+                        draftUnavailable = true;
+                        const failure = draftLoadFailure?.kind;
+                        const messages = {
+                            missing:['Devizul salvat nu a fost găsit','Devizul nu a fost găsit sau nu mai este accesibil. Ciorna ta este păstrată și nu va fi transformată automat într-un deviz nou.'],
+                            access:['Nu ai acces la devizul salvat','Verifică autentificarea și permisiunile. Ciorna ta este păstrată.'],
+                            network:['Nu am putut verifica devizul salvat','Conexiunea a eșuat. Ciorna ta este păstrată. Încearcă din nou când conexiunea este disponibilă.'],
+                            read:['Devizul salvat nu a putut fi încărcat','Încărcarea a eșuat. Ciorna ta este păstrată. Încearcă din nou.']
+                        };
+                        const [title,message] = messages[failure] || messages.read;
+                        setSaveStatus(title,'error');
+                        await HubLocalDrafts.dialog({title,message,details:{ciorna:record.payload.data},actions:[{label:'Închide',value:'close'}]});
+                        consumeDraftSelection(); return;
+                    }
+                    server = captureDraft();
+                    baselineKnown = Boolean(record.payload.base?.header && Array.isArray(record.payload.base?.lines));
+                    /* Comparăm baza inițială cu datele salvate, niciodată cu editările din ciornă. */
+                    conflict ||= !baselineKnown || HubLocalDrafts.canonical(record.payload.base) !== HubLocalDrafts.canonical(draftBase);
+                }
+                if (!selectedDraftAvailable(record)) { setDraftStatus('Ciorna selectată nu mai este disponibilă. Redeschide lista de ciorne.',true); consumeDraftSelection(); return; }
+                if (conflict) {
+                    const choice = await HubLocalDrafts.dialog({
+                        title:baselineKnown ? 'Devizul a fost modificat între timp' : 'Ciorna trebuie verificată',
+                        message:baselineKnown ? 'Versiunea salvată s-a schimbat după crearea ciornei tale.\nAlege ce dorești să deschizi.' : 'Nu am putut verifica versiunea salvată de la care ai început ciorna. Alege ce dorești să deschizi.',
+                        details:{salvat:server?.data,local:record.payload.data},
+                        actions:[{label:'Deschide ciorna mea',value:'local',primary:true},{label:'Deschide devizul salvat',value:'saved'}]});
+                    /* Până la alegerea explicită, formularul conține doar versiunea salvată citită. */
+                    if (choice !== 'local') {
+                        if (draftUser === record.userId) {
+                            consumeDraftSelection();
+                            setSaveStatus('Devizul salvat este deschis. Ciorna ta este păstrată.');
+                        }
+                        return;
+                    }
+                }
+                if (!draftUser || record.userId !== draftUser || localDraft?.dirty() || !selectedDraftAvailable(record)) return;
+                const previous = {payload:captureDraft(),id:currentDevizId,base:draftBase,conflict:draftConflict,recovered:draftRecovered,unavailable:draftUnavailable};
+                draftSuspended = true;
+                renderDraftData(record.payload);
+                currentDevizId = record.documentId || null;
+                draftBase = record.payload.base;
+                draftConflict = conflict; draftRecovered = true; draftUnavailable = false;
+                conflictStatus.textContent = conflict ? 'Devizul salvat s-a schimbat. La salvarea ciornei vei confirma înlocuirea lui.' : '';
+                if (!localDraft.restore(record)) {
+                    /* Ștergerea din alt tab poate ajunge chiar între randare și atașarea copiei. */
+                    renderDraftData(previous.payload);
+                    currentDevizId = previous.id; draftBase = previous.base; draftConflict = previous.conflict;
+                    draftRecovered = previous.recovered; draftUnavailable = previous.unavailable;
+                    conflictStatus.textContent = previous.conflict ? 'Devizul salvat s-a schimbat. La salvarea ciornei vei confirma înlocuirea lui.' : '';
+                    setDraftStatus('Ciorna a fost ștearsă între timp. Formularul curent a fost păstrat.',true);
+                    consumeDraftSelection(); return;
+                }
+                consumeDraftSelection();
+                setSaveStatus('Ciornă recuperată. Modificările nu sunt încă salvate.');
+            } catch (error) { setDraftStatus(error.message || 'Ciorna nu a putut fi deschisă. A fost păstrată.',true); }
+            finally { draftRecovering = false; draftSuspended = draftIdentityChanged; }
+        }
+        async function initializeLocalDrafts() {
+            const authGeneration = draftAuthGeneration;
+            try {
+                const {data, error} = await sb.auth.getUser();
+                if (error || !data?.user) throw new Error('Identitatea pentru ciorna locală nu poate fi verificată.');
+                const {data: profile, error: profileError} = await sb.from('auth_profiles').select('rol_id,permissions').eq('id',data.user.id).single();
+                if (profileError || !HubLocalDrafts.canUse(profile)) throw new Error('Ciorne locale indisponibile: accesul Deviz final nu este confirmat.');
+                if (draftIdentityChanged || authGeneration !== draftAuthGeneration) throw new Error('Sesiunea s-a schimbat. Redeschide pagina după autentificare.');
+                draftUser = data.user.id;
+                draftStore = HubLocalDrafts.store(draftProject,draftUser,text => setDraftStatus(text,true));
+                localDraft = HubLocalDrafts.editor({storage:draftStore,capture:captureDraft,comparable:draftComparable,
+                    documentId:() => currentDevizId,status:setDraftStatus,isCurrent:() => Boolean(draftUser) && !draftSuspended});
+                draftSuspended = false;
+                const requested = new URLSearchParams(location.search).get('localDraft');
+                if (requested) {
+                    const selected = draftStore.list().find(row => row.id === requested);
+                    if (selected) await restoreLocalDraft(selected);
+                    else { setDraftStatus('Ciorna cerută nu este disponibilă pentru utilizatorul curent.',true); consumeDraftSelection(); }
+                }
+                draftMenu = await HubLocalDrafts.mount({project:draftProject,userId:draftUser,allowed:true,automatic:!requested,client:sb,
+                    warn:text => setDraftStatus(text,true),onChoose:restoreLocalDraft,
+                    filter:row => { const relevant = currentDevizId || cleanDbId(new URLSearchParams(location.search).get('id')); return !relevant || Number(row.documentId) === Number(relevant); }});
+            } catch (error) { setDraftStatus(error.message || 'Ciorne locale indisponibile. Salvează manual devizul.',true); }
+        }
+        /* Observăm doar formularul, fără polling și fără a reseta activitatea sesiunii. */
+        document.addEventListener('input', event => { if (event.target.closest('main')) draftChanged(); });
+        document.addEventListener('change', event => { if (event.target.closest('main')) draftChanged(); });
+        const draftObserver = new MutationObserver(draftChanged);
+        [lucrariRowsBody,constatariRowsBody,manoperaRowsBody,pieseRowsBody,avansSelectedList].forEach(body => draftObserver.observe(body,{childList:true}));
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') localDraft?.flush(); });
+        window.addEventListener('pagehide', () => localDraft?.flush());
+        window.addEventListener('hub:before-signout', () => { localDraft?.flush(); draftSuspended = true; });
+        window.addEventListener('beforeunload', event => {
+            if (!draftSuspended && localDraft?.dirty()) { localDraft.flush(); event.preventDefault(); event.returnValue = ''; }
+        });
+        sb.auth.onAuthStateChange((event,session) => {
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') draftAuthGeneration++;
+            if (draftUser && (event === 'SIGNED_OUT' || session?.user?.id !== draftUser)) {
+                /* Nu citim sau randăm ciornele contului următor în pagina veche. */
+                localDraft?.flush(); localDraft?.stop(); draftSuspended = true; draftIdentityChanged = true; draftUser = null; draftMenu?.dispose(); HubLocalDrafts.dismiss();
+                resetDevizDataInPlace(); syncFieldsFromState(); renderLucrariRows(); renderConstatariRows(); renderManoperaRows(); renderPieseRows(); renderSelectedAvansuri();
+                document.querySelector('main').inert = true;
+                HubLocalDrafts.clearVisits(); conflictStatus.textContent = ''; setDraftStatus('Sesiunea s-a schimbat. Redeschide pagina după autentificare.',true);
+            }
+        });
 
         document.querySelectorAll('.tab-button').forEach((button) => {
             button.addEventListener('click', () => switchTab(button.dataset.tabTarget));
@@ -2701,7 +2981,7 @@
             if (!devizData.lucrariSolicitate.length) addLucrareRow();
         }
 
-        btnAddLucrareRow.addEventListener('click', addLucrareRow);
+        btnAddLucrareRow.addEventListener('click', () => addLucrareRow());
 
         function addConstatareRow(item = null) {
             ensureConstatariState();
@@ -2721,7 +3001,7 @@
             if (!devizData.constatari.length) addConstatareRow();
         }
 
-        btnAddConstatareRow.addEventListener('click', addConstatareRow);
+        btnAddConstatareRow.addEventListener('click', () => addConstatareRow());
 
         function addManoperaRow(item = null) {
             ensureManoperaState();
@@ -2741,7 +3021,7 @@
             if (!devizData.manopera.rows.length) addManoperaRow();
         }
 
-        btnAddManoperaRow.addEventListener('click', addManoperaRow);
+        btnAddManoperaRow.addEventListener('click', () => addManoperaRow());
 
         function addPiesaRow(item = null) {
             ensurePieseState();
@@ -2761,13 +3041,14 @@
             if (!devizData.piese.length) addPiesaRow();
         }
 
-        btnAddPiesaRow.addEventListener('click', addPiesaRow);
+        btnAddPiesaRow.addEventListener('click', () => addPiesaRow());
 
         btnDevizNou.addEventListener('click', async () => {
             if (uncertainCreate) {
                 setSaveStatus('Verifică mai întâi rezultatul creării incerte prin încărcarea devizului.', 'error');
                 return;
             }
+            if (!preserveDraft()) return;
             currentDevizId = null;
             resetDevizDataInPlace();
             savedAdvanceSignature = '[]';
@@ -2781,7 +3062,9 @@
             renderSelectedAvansuri();
             updateSummaryTotals();
             switchTab('tab-antet');
-            await generateNextFinalId();
+            draftLoading = true; document.querySelector('main').inert = true;
+            try { await generateNextFinalId(); draftLoaded(); }
+            finally { draftLoading = false; document.querySelector('main').inert = draftIdentityChanged; }
         });
 
         btnIncarcaDeviz.addEventListener('click', async () => {
@@ -2813,6 +3096,6 @@
         window.removePiesaRow = removePiesaRow;
     </script>
     <!-- Autodeconectare după inactivitate -->
-    <script src="/js/session-timeout.js?v=2"></script>
+    <script src="/js/session-timeout.js?v=20261017-drafts"></script>
 </body>
 </html>
