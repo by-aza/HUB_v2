@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="HUB AUTO — Evidență Piese, prototip DEMO cu date fictive în memorie.">
+  <title>HUB AUTO — Evidență Piese (DEMO)</title>
+  <style>
+    /* Flatpickr adds a positioning rule at runtime; keep a same-origin sheet available on file://. */
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css">
+</head>
+<body>
+  <div class="ep-app">
+    <!-- Antetul modulului: identitate, badge DEMO și acțiunea principală -->
+    <header class="ep-header">
+      <div class="ep-brand">
+        <span class="ep-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 3.8 7.5v9L12 21l8.2-4.5v-9L12 3Z"/>
+            <path d="M3.8 7.5 12 12l8.2-4.5M12 12v9"/>
+          </svg>
+        </span>
+        <div class="ep-brand-copy">
+          <span class="ep-brand-eyebrow">HUB AUTO <i>v2</i></span>
+          <div class="ep-title-line">
+            <h1>Evidență Piese</h1>
+            <span class="ep-demo-badge" title="Prototip cu date fictive, fără persistență">DEMO</span>
+          </div>
+          <p class="ep-demo-note">date fictive · resetare la refresh</p>
+        </div>
+      </div>
+
+      <div class="ep-header-actions">
+        <span class="ep-header-hint">Furnizori <b>→</b> facturi <b>→</b> piese <b>→</b> mașini</span>
+        <button type="button" class="ep-button ep-button-primary ep-new-invoice" id="newInvoiceBtn">
+          <span class="ep-plus" aria-hidden="true">+</span>
+          <span>Factură nouă</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigarea principală între cele cinci registre -->
+    <nav class="ep-tabbar" aria-label="Secțiunile modulului Evidență Piese">
+      <div class="ep-tabs" role="tablist" aria-label="Registre">
+        <button type="button" class="ep-tab is-active" id="tab-parts" role="tab" aria-selected="true" aria-controls="listPanel" data-tab="parts">
+          Piese <span class="ep-tab-count" data-count="parts" title="Poziții de factură">0</span>
+        </button>
+        <button type="button" class="ep-tab" id="tab-unassigned" role="tab" aria-selected="false" aria-controls="listPanel" data-tab="unassigned">
+          De atribuit <span class="ep-tab-count" data-count="unassigned" title="Poziții cu bucăți rămase de alocat">0</span>
+        </button>
+        <button type="button" class="ep-tab" id="tab-invoices" role="tab" aria-selected="false" aria-controls="listPanel" data-tab="invoices">
+          Facturi <span class="ep-tab-count" data-count="invoices">0</span>
+        </button>
+        <button type="button" class="ep-tab" id="tab-suppliers" role="tab" aria-selected="false" aria-controls="listPanel" data-tab="suppliers">
+          Furnizori <span class="ep-tab-count" data-count="suppliers">0</span>
+        </button>
+        <button type="button" class="ep-tab" id="tab-returns" role="tab" aria-selected="false" aria-controls="listPanel" data-tab="returns">
+          Retururi <span class="ep-tab-count" data-count="returns">0</span>
+        </button>
+      </div>
+      <p class="ep-tabbar-note">Actualizat <span>23.10.2026</span></p>
+    </nav>
+
+    <main class="ep-main">
+      <!-- Indicatori generali, calculați din datele DEMO -->
+      <section class="ep-kpi-grid" id="kpiGrid" aria-label="Indicatori generali"></section>
+
+      <div class="ep-workspace">
+        <!-- Registrul activ: cap, filtre, tabel și subsol -->
+        <section class="ep-panel ep-list-panel" id="listPanel" role="tabpanel" aria-labelledby="tab-parts">
+          <div class="ep-list-head">
+            <div>
+              <h2 id="listTitle">Piese</h2>
+              <p id="listSubtitle">Toate pozițiile intrate din facturile de furnizori.</p>
+            </div>
+            <div class="ep-list-head-actions">
+              <button type="button" class="ep-button ep-button-primary ep-add-supplier" id="addSupplierBtn" hidden>
+                <span class="ep-plus" aria-hidden="true">+</span>
+                <span>Adaugă furnizor</span>
+              </button>
+              <span class="ep-result-count" id="resultCount" aria-live="polite">0 poziții</span>
+            </div>
+          </div>
+
+          <div class="ep-toolbar">
+            <label class="ep-search" for="searchInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+              </svg>
+              <input type="search" id="searchInput" autocomplete="off" aria-label="Caută în registrul activ" placeholder="Caută piesă, cod, număr auto, factură sau furnizor…">
+            </label>
+            <select id="statusFilter" aria-label="Filtru status"></select>
+            <select id="supplierFilter" aria-label="Filtru furnizor"></select>
+            <select id="assignmentFilter" aria-label="Filtru atribuire">
+              <option value="all">Toate atribuirile</option>
+              <option value="assigned">Complet alocate</option>
+              <option value="unassigned">Cu bucăți nealocate</option>
+            </select>
+            <button type="button" class="ep-button ep-button-ghost ep-reset" id="resetFilters">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              Resetează
+            </button>
+          </div>
+
+          <div class="ep-bulk-bar" id="bulkBar" hidden>
+            <span class="ep-bulk-count" id="bulkCount" aria-live="polite">0 poziții selectate</span>
+            <div class="ep-bulk-actions">
+              <button type="button" class="ep-button ep-button-primary ep-bulk-assign" id="bulkAssignBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m5 16-1-4 2.2-4.5A2 2 0 0 1 8 6h8a2 2 0 0 1 1.8 1.5L20 12l-1 4"></path>
+                  <path d="M4 16h16M7 19h.01M17 19h.01"></path>
+                  <circle cx="7.5" cy="16.5" r="1.5"></circle>
+                  <circle cx="16.5" cy="16.5" r="1.5"></circle>
+                </svg>
+                <span>Atribuie mașină</span>
+              </button>
+              <button type="button" class="ep-button ep-button-ghost ep-bulk-clear" id="bulkClearBtn">Golește selecția</button>
+            </div>
+          </div>
+
+          <div class="ep-table-wrap" id="tableWrap">
+            <table class="ep-table" id="dataTable">
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="ep-list-footer">
+            <span id="tableSummary" aria-live="polite"></span>
+            <span class="ep-footer-hint" id="footerHint">Selectează un rând pentru detalii</span>
+          </div>
+        </section>
+
+        <!-- Panoul contextual de detalii; devine drawer sub 1100px -->
+        <aside class="ep-panel ep-details" id="detailsPanel" aria-labelledby="detailsTitle">
+          <div class="ep-details-head">
+            <div>
+              <span class="ep-eyebrow" id="detailsEyebrow">Detalii</span>
+              <h2 id="detailsTitle">Detalii piesă</h2>
+            </div>
+            <button type="button" class="ep-icon-button" id="closeDetails" aria-label="Închide panoul de detalii" title="Închide panoul">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <path d="m6 6 12 12M18 6 6 18"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="ep-details-body" id="detailsBody"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- Fundalul drawer-ului de detalii pe ecrane mici -->
+  <div class="ep-detail-backdrop" id="detailBackdrop" hidden></div>
+
+  <!-- Formularul de adăugare a unei facturi de furnizor -->
+  <div class="ep-modal-overlay" id="invoiceModal" hidden>
+    <div class="ep-modal ep-invoice-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" aria-describedby="invoiceFormHelp">
+      <header class="ep-modal-head ep-invoice-head">
+        <div>
+          <span class="ep-eyebrow">Factură nouă · DEMO</span>
+          <h2 id="invoiceModalTitle">Adaugă factură furnizor</h2>
+        </div>
+        <button type="button" class="ep-icon-button" id="invoiceModalClose" aria-label="Închide formularul de factură">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </header>
+
+      <form class="ep-invoice-form" id="invoiceForm" novalidate>
+        <div class="ep-modal-body ep-invoice-body" id="invoiceBody">
+          <div class="ep-form-alert" id="invoiceFormError" role="alert" tabindex="-1" hidden></div>
+
+          <div class="ep-invoice-meta">
+            <label class="ep-field ep-field-supplier" for="invoiceSupplier">
+              <span>Furnizor <b class="ep-required">*</b></span>
+              <select id="invoiceSupplier" required></select>
+            </label>
+            <label class="ep-field" for="invoiceNumber">
+              <span>Număr factură <b class="ep-required">*</b></span>
+              <input type="text" id="invoiceNumber" autocomplete="off" placeholder="ex. FA-1102" required>
+            </label>
+            <label class="ep-field" for="invoiceDate">
+              <span>Data facturii <b class="ep-required">*</b></span>
+              <input type="text" id="invoiceDate" autocomplete="off" placeholder="zz.ll.aaaa" required>
+            </label>
+            <label class="ep-field" for="invoiceStatus">
+              <span>Status document</span>
+              <select id="invoiceStatus">
+                <option value="În firmă">În firmă</option>
+                <option value="Pregătită pentru contabilitate">Pregătită pentru contabilitate</option>
+                <option value="Trimisă în contabilitate">Trimisă în contabilitate</option>
+              </select>
+            </label>
+            <label class="ep-field ep-field--wide" for="invoiceNotes">
+              <span>Observații <small>opțional</small></span>
+              <textarea id="invoiceNotes" rows="2" maxlength="500" placeholder="Note despre recepție, diferențe sau termene…"></textarea>
+            </label>
+          </div>
+
+          <p class="ep-invoice-help" id="invoiceFormHelp">
+            Prețurile de achiziție se introduc <b>cu TVA inclus</b>. Numărul de înmatriculare este opțional; piesele fără mașină rămân în <b>De atribuit</b>.
+          </p>
+
+          <section class="ep-invoice-section" aria-labelledby="invoicePartsTitle">
+            <div class="ep-invoice-section-head">
+              <div>
+                <h3 id="invoicePartsTitle">Piese pe factură</h3>
+                <p>Totalul fiecărei linii și totalurile facturii se calculează automat.</p>
+              </div>
+              <button type="button" class="ep-button ep-button-ghost ep-add-line" id="addInvoiceLine">
+                <span class="ep-plus" aria-hidden="true">+</span>
+                <span>Adaugă piesă</span>
+              </button>
+            </div>
+
+            <div class="ep-invoice-lines-wrap">
+              <table class="ep-invoice-lines">
+                <thead>
+                  <tr>
+                    <th scope="col" class="ep-line-no-col"><span class="ep-sr-only">Poziția</span></th>
+                    <th scope="col">Denumire piesă <b class="ep-required">*</b></th>
+                    <th scope="col">Cod piesă</th>
+                    <th scope="col">Cant. <b class="ep-required">*</b></th>
+                    <th scope="col">Preț unitar <span class="ep-th-nowrap">cu TVA <b class="ep-required">*</b></span></th>
+                    <th scope="col">TVA %</th>
+                    <th scope="col">Înmatriculare</th>
+                    <th scope="col">Observații</th>
+                    <th scope="col">Total linie</th>
+                    <th scope="col"><span class="ep-sr-only">Acțiuni</span></th>
+                  </tr>
+                </thead>
+                <tbody id="invoiceLinesBody"></tbody>
+              </table>
+            </div>
+
+            <div class="ep-invoice-lines-foot">
+              <span id="invoiceLineCount">1 poziție</span>
+              <span>Înmatricularea poate fi completată și ulterior.</span>
+            </div>
+          </section>
+        </div>
+
+        <div class="ep-invoice-summary">
+          <p class="ep-invoice-summary-note">Prețuri cu TVA inclus · fără adaos comercial</p>
+          <div class="ep-invoice-totals">
+            <div class="ep-invoice-total">
+              <span>Total fără TVA</span>
+              <strong id="invoiceSubtotal">0,00 lei</strong>
+            </div>
+            <div class="ep-invoice-total">
+              <span>TVA</span>
+              <strong id="invoiceVat">0,00 lei</strong>
+              <small id="invoiceVatRateSummary">21%</small>
+            </div>
+            <div class="ep-invoice-total ep-invoice-total--grand">
+              <span>Total cu TVA</span>
+              <strong id="invoiceTotal">0,00 lei</strong>
+            </div>
+          </div>
+        </div>
+
+        <footer class="ep-modal-foot ep-invoice-foot">
+          <div class="ep-invoice-foot-actions">
+            <button type="button" class="ep-button ep-button-ghost" id="invoiceCancel">Anulează</button>
+            <button type="submit" class="ep-button ep-button-primary" id="invoiceSave">Salvează factura</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Formularul de adăugare / editare a unui furnizor -->
+  <div class="ep-modal-overlay" id="supplierModal" hidden>
+    <div class="ep-modal ep-supplier-modal" role="dialog" aria-modal="true" aria-labelledby="supplierModalTitle" aria-describedby="supplierModalNote">
+      <header class="ep-modal-head ep-supplier-head">
+        <div>
+          <span class="ep-eyebrow" id="supplierModalEyebrow">Furnizor nou · DEMO</span>
+          <h2 id="supplierModalTitle">Adaugă furnizor</h2>
+          <p class="ep-supplier-head-note" id="supplierModalNote">Completează datele firmei.</p>
+        </div>
+        <button type="button" class="ep-icon-button" id="supplierModalClose" aria-label="Închide formularul de furnizor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </header>
+
+      <form class="ep-supplier-form" id="supplierForm" novalidate>
+        <div class="ep-modal-body ep-supplier-body" id="supplierBody">
+          <div class="ep-form-alert" id="supplierFormError" role="alert" tabindex="-1" hidden></div>
+
+          <div class="ep-supplier-grid">
+            <label class="ep-field ep-field--wide" for="supplierName">
+              <span>Denumire furnizor <b class="ep-required">*</b></span>
+              <input type="text" id="supplierName" data-trim autocomplete="organization" maxlength="160" placeholder="ex. Auto Parts SRL" required>
+            </label>
+            <label class="ep-field" for="supplierCui">
+              <span>CUI / Cod fiscal <small>opțional</small></span>
+              <input type="text" id="supplierCui" data-trim data-normalize="cui" autocomplete="off" maxlength="40" placeholder="ex. RO12345678">
+            </label>
+            <label class="ep-field" for="supplierRegCom">
+              <span>Nr. Registrul Comerțului</span>
+              <input type="text" id="supplierRegCom" data-trim data-normalize="regcom" autocomplete="off" maxlength="60" placeholder="ex. J40/1234/2010">
+            </label>
+            <label class="ep-field" for="supplierContact">
+              <span>Persoană de contact</span>
+              <input type="text" id="supplierContact" data-trim autocomplete="name" maxlength="120" placeholder="ex. Andrei Popescu">
+            </label>
+            <label class="ep-field" for="supplierCity">
+              <span>Oraș</span>
+              <input type="text" id="supplierCity" data-trim autocomplete="address-level2" maxlength="80" placeholder="ex. București">
+            </label>
+            <label class="ep-field" for="supplierPhone">
+              <span>Telefon</span>
+              <input type="tel" id="supplierPhone" data-trim autocomplete="tel" maxlength="40" placeholder="ex. 021 300 1100">
+            </label>
+            <label class="ep-field" for="supplierEmail">
+              <span>Email <small>opțional</small></span>
+              <input type="email" id="supplierEmail" data-trim autocomplete="email" maxlength="160" placeholder="ex. comenzi@furnizor.ro">
+            </label>
+            <label class="ep-field ep-field--wide" for="supplierAddress">
+              <span>Adresă</span>
+              <input type="text" id="supplierAddress" data-trim autocomplete="street-address" maxlength="240" placeholder="ex. Str. Preciziei 12, Sector 6">
+            </label>
+          </div>
+
+          <section class="ep-supplier-section" aria-labelledby="supplierBanksTitle">
+            <div class="ep-supplier-section-head">
+              <div>
+                <h3 id="supplierBanksTitle">Conturi bancare</h3>
+                <p>Adaugă unul sau mai multe conturi. Câmpul „Bancă” este opțional.</p>
+              </div>
+              <button type="button" class="ep-button ep-button-ghost ep-add-line" id="addSupplierBank">
+                <span class="ep-plus" aria-hidden="true">+</span>
+                <span>Adaugă cont</span>
+              </button>
+            </div>
+            <div class="ep-bank-list" id="supplierBankList"></div>
+            <p class="ep-bank-empty" id="supplierBankEmpty" hidden>Niciun cont bancar adăugat.</p>
+          </section>
+
+          <label class="ep-field ep-field--wide ep-supplier-notes-field" for="supplierNotes">
+            <span>Observații <small>opțional</small></span>
+            <textarea id="supplierNotes" data-trim rows="3" maxlength="500" placeholder="Note despre colaborare, termene de livrare sau condiții…"></textarea>
+          </label>
+        </div>
+
+        <footer class="ep-modal-foot ep-supplier-foot">
+          <div class="ep-supplier-foot-actions">
+            <button type="button" class="ep-button ep-button-ghost" id="supplierCancel">Anulează</button>
+            <button type="submit" class="ep-button ep-button-primary" id="supplierSave">Salvează furnizorul</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Atribuirea uneia sau mai multor piese pe aceeași mașină -->
+  <div class="ep-modal-overlay" id="assignmentModal" hidden>
+    <div class="ep-modal ep-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle" aria-describedby="assignmentModalNote">
+      <header class="ep-modal-head ep-assignment-head">
+        <div>
+          <span class="ep-eyebrow" id="assignmentModalEyebrow">Atribuire · DEMO</span>
+          <h2 id="assignmentModalTitle">Atribuie mașină</h2>
+          <p class="ep-assignment-head-note" id="assignmentModalNote">Asociază pozițiile selectate cu un număr de înmatriculare.</p>
+        </div>
+        <button type="button" class="ep-icon-button" id="assignmentModalClose" aria-label="Închide atribuirea">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </header>
+
+      <form class="ep-assignment-form" id="assignmentForm" novalidate>
+        <div class="ep-modal-body ep-assignment-body" id="assignmentBody">
+          <div class="ep-form-alert" id="assignmentFormError" role="alert" tabindex="-1" hidden></div>
+
+          <div class="ep-assignment-summary">
+            <div>
+              <span class="ep-assignment-label">Poziții selectate</span>
+              <strong id="assignmentCount">0 poziții</strong>
+            </div>
+            <span class="ep-assignment-summary-note" id="assignmentSummaryNote">Alege cantitatea de alocat.</span>
+          </div>
+
+          <div class="ep-assignment-list" id="assignmentPartsList"></div>
+
+          <div class="ep-assignment-fields">
+            <label class="ep-field" for="assignmentQty" id="assignmentQtyField">
+              <span>Cantitate de alocat <b class="ep-required">*</b></span>
+              <input type="number" id="assignmentQty" min="1" step="1" inputmode="numeric" aria-describedby="assignmentQuantityPreview" required>
+            </label>
+            <label class="ep-field" for="assignmentPlate">
+              <span>Număr de înmatriculare <b class="ep-required">*</b></span>
+              <input type="text" id="assignmentPlate" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="ex. CT11AAA" required>
+            </label>
+            <label class="ep-field" for="assignmentModel">
+              <span>Model vehicul <small>opțional</small></span>
+              <input type="text" id="assignmentModel" autocomplete="off" maxlength="80" placeholder="ex. Tesla Model 3" aria-describedby="assignmentModelWarning">
+            </label>
+          </div>
+
+          <p class="ep-assignment-note" id="assignmentQuantityPreview" role="status" aria-live="polite"></p>
+          <p class="ep-assignment-note is-warning" id="assignmentModelWarning" role="status" aria-live="polite" hidden></p>
+          <div class="ep-assignment-note" id="assignmentModeNote"></div>
+        </div>
+
+        <footer class="ep-modal-foot ep-assignment-foot">
+          <div class="ep-assignment-foot-actions">
+            <button type="button" class="ep-button ep-button-ghost" id="assignmentCancel">Anulează</button>
+            <button type="submit" class="ep-button ep-button-primary" id="assignmentSave">Confirmă atribuirea</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Import DF strict simulat, la prețurile originale de achiziție -->
+  <div class="ep-modal-overlay" id="dfModal" hidden>
+    <div class="ep-modal ep-df-modal" role="dialog" aria-modal="true" aria-labelledby="dfModalTitle" aria-describedby="dfModalNote">
+      <header class="ep-modal-head">
+        <div>
+          <span class="ep-eyebrow">Deviz Final · simulare DEMO</span>
+          <h2 id="dfModalTitle">Importă în DF · DEMO</h2>
+          <p class="ep-df-head-note" id="dfModalNote">Prețuri de achiziție cu TVA, fără adaos.</p>
+        </div>
+        <button type="button" class="ep-icon-button" id="dfModalClose" aria-label="Închide importul DEMO">✕</button>
+      </header>
+      <form class="ep-df-form" id="dfForm" novalidate>
+        <div class="ep-modal-body ep-df-body" id="dfBody">
+          <div class="ep-form-alert" id="dfFormError" role="alert" tabindex="-1" hidden></div>
+          <div id="dfPicker">
+            <label class="ep-field ep-df-vehicle" for="dfPlate">
+              <span>Mașină existentă <b class="ep-required">*</b></span>
+              <select id="dfPlate" required></select>
+            </label>
+            <p class="ep-detail-note">Disponibilul exclude retururile, importurile anterioare și DF-urile istorice.</p>
+            <div class="ep-df-table-wrap">
+              <table class="ep-df-table">
+                <thead><tr><th scope="col">Selectează</th><th scope="col">Piesă / factură / furnizor</th><th scope="col">Cantități</th><th scope="col">Cant. import</th><th scope="col">Achiziție / buc. cu TVA</th><th scope="col">Valoare cu TVA</th></tr></thead>
+                <tbody id="dfRows"></tbody>
+              </table>
+            </div>
+            <p class="ep-detail-note" id="dfEmpty" hidden>Mașina nu are alocări în memoria DEMO.</p>
+            <div class="ep-df-totals">
+              <span id="dfSelectionCount" aria-live="polite">0 alocări · 0 buc.</span>
+              <strong>Total achiziție cu TVA: <span id="dfTotal">0,00 lei</span></strong>
+            </div>
+            <p class="ep-detail-note" id="dfPreviewNote" role="status" aria-live="polite"></p>
+          </div>
+          <section id="dfSummary" aria-label="Rezumat import DEMO" hidden>
+            <div id="dfSummaryBody"></div>
+          </section>
+        </div>
+        <footer class="ep-modal-foot ep-df-foot">
+          <button type="button" class="ep-button ep-button-ghost" id="dfCancel">Anulează</button>
+          <div class="ep-df-foot-actions">
+            <button type="button" class="ep-button ep-button-ghost" id="dfNewImport" hidden>Import nou</button>
+            <button type="submit" class="ep-button ep-button-primary" id="dfSave">Confirmă importul DEMO</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Retururi furnizor: cantități rezervate și urmărire numai în memoria DEMO -->
+  <div class="ep-modal-overlay" id="returnModal" hidden>
+    <div class="ep-modal ep-return-modal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle" aria-describedby="returnModalNote">
+      <header class="ep-modal-head">
+        <div>
+          <span class="ep-eyebrow">Retur furnizor · DEMO</span>
+          <h2 id="returnModalTitle">Înregistrează retur</h2>
+          <p class="ep-return-head-note" id="returnModalNote">Cererea către furnizor se transmite extern.</p>
+        </div>
+        <button type="button" class="ep-icon-button" id="returnModalClose" aria-label="Închide formularul de retur">✕</button>
+      </header>
+      <form class="ep-return-form" id="returnForm" novalidate>
+        <div class="ep-modal-body ep-return-body" id="returnBody">
+          <div class="ep-form-alert" id="returnFormError" role="alert" tabindex="-1" hidden></div>
+          <div class="ep-detail-card" id="returnContext"></div>
+          <div class="ep-return-grid" id="returnCreateFields">
+            <label class="ep-field ep-field--wide" for="returnSource">
+              <span>Sursa cantității <b class="ep-required">*</b></span>
+              <select id="returnSource" required></select>
+            </label>
+            <label class="ep-field" for="returnQty">
+              <span>Cantitate retur <b class="ep-required">*</b></span>
+              <input type="number" id="returnQty" min="1" step="1" inputmode="numeric" aria-describedby="returnAvailability" required>
+            </label>
+            <label class="ep-field" for="returnReference">
+              <span>Număr cerere / referință <small>opțional</small></span>
+              <input type="text" id="returnReference" maxlength="100" autocomplete="off">
+            </label>
+            <label class="ep-field ep-field--wide" for="returnReason">
+              <span>Motiv <b class="ep-required">*</b></span>
+              <input type="text" id="returnReason" maxlength="240" required>
+            </label>
+            <label class="ep-field ep-field--wide" for="returnNotes">
+              <span>Observații <small>opțional</small></span>
+              <textarea id="returnNotes" rows="2" maxlength="500"></textarea>
+            </label>
+          </div>
+          <div class="ep-return-grid" id="returnStatusFields" hidden>
+            <label class="ep-field" for="returnCurrentStatus"><span>Stadiu actual</span><input type="text" id="returnCurrentStatus" readonly></label>
+            <label class="ep-field" for="returnNextStatus"><span>Următorul stadiu</span><input type="text" id="returnNextStatus" readonly></label>
+          </div>
+          <label class="ep-field ep-return-date" for="returnDate">
+            <span id="returnDateLabel">Data cererii</span>
+            <input type="date" id="returnDate" required>
+          </label>
+          <p class="ep-detail-note" id="returnAvailability" role="status" aria-live="polite"></p>
+        </div>
+        <footer class="ep-modal-foot ep-return-foot">
+          <div class="ep-return-foot-actions">
+            <button type="button" class="ep-button ep-button-ghost" id="returnCancel">Anulează</button>
+            <button type="submit" class="ep-button ep-button-primary" id="returnSave">Înregistrează returul</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dialog informativ reutilizabil pentru acțiunile din etapa următoare -->
+  <div class="ep-modal-overlay" id="infoModal" hidden>
+    <div class="ep-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle" aria-describedby="infoModalMessage">
+      <header class="ep-modal-head">
+        <div>
+          <span class="ep-eyebrow" id="infoModalEyebrow">Etapa 2</span>
+          <h2 id="infoModalTitle">Funcționalitate în pregătire</h2>
+        </div>
+        <button type="button" class="ep-icon-button" id="infoModalClose" aria-label="Închide mesajul">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </header>
+      <div class="ep-modal-body">
+        <p id="infoModalMessage"></p>
+        <div class="ep-info-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 11v5M12 8h.01"></path>
+          </svg>
+          <span>Această acțiune nu modifică datele DEMO. La refresh, pagina revine la datele fictive inițiale.</span>
+        </div>
+      </div>
+      <footer class="ep-modal-foot">
+        <button type="button" class="ep-button ep-button-primary" id="infoModalOk">Am înțeles</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Confirmarea salvării; dispare automat, fără persistență -->
+  <div class="ep-toast" id="successToast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="ep-toast-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m5 12 4 4L19 6"></path>
+      </svg>
+    </span>
+    <span class="ep-toast-copy">
+      <strong id="successToastTitle">Factură salvată</strong>
+      <span id="successToastMessage"></span>
+    </span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ro.js"></script>
+  <script src="../../js/evidenta_piese.js"></script>
+</body>
+</html>
