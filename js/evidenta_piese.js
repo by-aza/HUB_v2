@@ -175,6 +175,9 @@
 
     dfImports: [],
 
+    /* Trimiteri în magazie: registru DEMO separat, gol la fiecare refresh. */
+    warehouseTransfers: [],
+
     returns: [
       {
         id: "ret-15", code: "RET-015", partId: "p-08", qty: 1, reason: "Comandă greșită",
@@ -206,6 +209,19 @@
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${paths}</svg>`;
 
   const ICONS = {
+    /* Lucide Warehouse (ISC), SVG local: https://lucide.dev/icons/warehouse.
+       Copyright (c) Lucide Contributors. Permission to use, copy, modify,
+       and/or distribute this software for any purpose with or without fee is
+       hereby granted, provided that the above copyright notice and this
+       permission notice appear in all copies. THE SOFTWARE IS PROVIDED "AS IS"
+       AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE
+       INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+       EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+       CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
+       USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+       OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+       PERFORMANCE OF THIS SOFTWARE. */
+    warehouse: svg('<path d="M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11"/><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8z"/><path d="M6 13h12M6 17h12"/>', 'class="lucide lucide-warehouse"'),
     cube: svg('<path d="M12 3 3.8 7.5v9L12 21l8.2-4.5v-9L12 3Z"/><path d="M3.8 7.5 12 12l8.2-4.5M12 12v9"/>'),
     tag: svg('<path d="M20 13 13 20 4 11V4h7l9 9Z"/><circle cx="7.5" cy="7.5" r="1.2"/>'),
     wallet: svg('<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19v14H6.5A2.5 2.5 0 0 1 4 16.5v-9Z"/><path d="M4 8h15M15.5 12.5h3"/>'),
@@ -326,7 +342,10 @@
     trigger: null,
     saving: false,
     toastTimer: 0,
-    datePicker: null
+    datePicker: null,
+    lastDateValue: "",
+    entryStartedAt: null,
+    entryTimer: 0
   };
 
   const supplierUi = {
@@ -347,6 +366,8 @@
   };
 
   const returnUi = { partId: null, editingId: null, expectedStatus: null, trigger: null, saving: false };
+  /* Starea formularului de trimitere, fără recepție sau integrare de stoc. */
+  const warehouseUi = { partId: null, invoiceId: null, sources: null, trigger: null, saving: false };
   const dfUi = { plate: "", contextPartId: null, rows: new Map(), selection: new Map(), trigger: null, saving: false };
 
   /* -----------------------------------------------------------------------
@@ -511,11 +532,18 @@
   // Cheia compusă identifică stabil sursa atât în registru, cât și în import.
   const allocationId = (part, index) => `${part.id}:allocation:${index}`;
   const importsForPart = (partId) => DATA.dfImports.filter((entry) => entry.partId === partId);
+  /* Magazia rezervă sursa originală; alocările nu se reduc și nu se reordonează. */
+  const warehouseForPart = (partId) => DATA.warehouseTransfers.filter((entry) => entry.partId === partId);
+  const warehouseQty = (part, source = null) => warehouseForPart(part.id)
+    .filter((entry) => !source || (entry.source.type === source.type
+      && (source.type !== "allocation" || entry.source.allocationIndex === source.allocationIndex)))
+    .reduce((sum, entry) => sum + entry.qty, 0);
+  const allocationWarehouseQty = (part, index) => warehouseQty(part, { type: "allocation", allocationIndex: index });
   const allocationImportedQty = (part, index) => importsForPart(part.id)
     .filter((entry) => entry.allocationId === allocationId(part, index)).reduce((sum, entry) => sum + entry.qty, 0);
   const demoImportedQty = (part) => importsForPart(part.id).reduce((sum, entry) => sum + entry.qty, 0);
   const dfEligibleQty = (part, index) => part.df ? 0
-    : (allocationsForPart(part)[index]?.qty || 0) - allocationReturnQty(part, index) - allocationImportedQty(part, index);
+    : (allocationsForPart(part)[index]?.qty || 0) - allocationReturnQty(part, index) - allocationImportedQty(part, index) - allocationWarehouseQty(part, index);
   const partDfEligibleQty = (part) => allocationsForPart(part).reduce((sum, allocation, index) => sum + dfEligibleQty(part, index), 0);
   // Alocările păstrează asocierea istorică. Retururile consumă disponibilul
   // sursei lor chiar de la cerere, inclusiv după finalizare (fără dublă scădere).
@@ -527,29 +555,71 @@
   const reservedQty = (part) => returnsForPart(part.id).filter((item) => item.status !== "Finalizat").reduce((sum, item) => sum + item.qty, 0);
   const returnedQty = (part) => returnsForPart(part.id).filter((item) => item.status === "Finalizat").reduce((sum, item) => sum + item.qty, 0);
   const allocationReturnQty = (part, index) => returnCommittedQty(part, { type: "allocation", allocationIndex: index });
-  const availableAllocatedQty = (part) => allocatedQty(part) - allocationsForPart(part).reduce((sum, allocation, index) => sum + allocationReturnQty(part, index), 0);
-  const remainingQty = (part) => part.qty - allocatedQty(part) - returnCommittedQty(part, { type: "unallocated" });
+  const availableAllocatedQty = (part) => allocatedQty(part) - allocationsForPart(part).reduce((sum, allocation, index) => sum + allocationReturnQty(part, index) + allocationWarehouseQty(part, index), 0);
+  const remainingQty = (part) => part.qty - allocatedQty(part) - returnCommittedQty(part, { type: "unallocated" }) - warehouseQty(part, { type: "unallocated" });
   const returnCapacity = (part, source) => source.type === "unallocated" ? remainingQty(part)
     : source.type === "allocation" && Number.isInteger(source.allocationIndex)
-      ? (allocationsForPart(part)[source.allocationIndex]?.qty || 0) - allocationReturnQty(part, source.allocationIndex) - allocationImportedQty(part, source.allocationIndex) : 0;
+      ? (allocationsForPart(part)[source.allocationIndex]?.qty || 0) - allocationReturnQty(part, source.allocationIndex) - allocationImportedQty(part, source.allocationIndex) - allocationWarehouseQty(part, source.allocationIndex) : 0;
   const returnableQty = (part) => remainingQty(part) + availableAllocatedQty(part) - demoImportedQty(part);
   const allocationCapacity = (part, mode, index) => remainingQty(part)
     + (mode === "reassign" ? allocationsForPart(part)[index]?.qty || 0 : 0);
-  const allocationSummary = (part) => [
-    `${availableAllocatedQty(part)}/${part.qty} buc. alocate fără retur`,
-    remainingQty(part) > 0 && `${remainingQty(part)} buc. de atribuit`,
-    demoImportedQty(part) > 0 && `${demoImportedQty(part)} buc. în DEMO DF`,
-    partDfEligibleQty(part) > 0 && `${partDfEligibleQty(part)} buc. eligibile pentru import`,
-    reservedQty(part) > 0 && `${reservedQty(part)} buc. rezervate retur`,
-    returnedQty(part) > 0 && `${returnedQty(part)} buc. returnate`
-  ].filter(Boolean).join(" · ");
+
+  /* Eligibilitatea magaziei exclude DF istoric, montaj, retur și orice rezervare anterioară. */
+  const warehouseCapacity = (part, source) => !part || part.df || part.status === "Montată" || !source ? 0 : Math.max(0, returnCapacity(part, source));
+  const warehouseSources = (part) => [
+    { value: "unallocated", source: { type: "unallocated" } },
+    ...allocationsForPart(part).map((allocation, index) => ({ value: `allocation:${index}`, source: { type: "allocation", allocationIndex: index } }))
+  ];
+  const warehouseEligibleQty = (part) => !part ? 0 : warehouseSources(part).reduce((sum, entry) => sum + warehouseCapacity(part, entry.source), 0);
+  /* Exclusiv prezentare: destinații disjuncte, fără schimbarea disponibilului de business.
+     Atribuite exclude DF, retur și magazie; DF istoric folosește asocierea păstrată. */
+  const partQuantityDisplay = (part) => ({
+    assigned: part.df ? 0 : availableAllocatedQty(part) - demoImportedQty(part),
+    unassigned: remainingQty(part),
+    warehouse: warehouseQty(part),
+    returning: reservedQty(part),
+    returned: returnedQty(part),
+    imported: part.df ? availableAllocatedQty(part) : demoImportedQty(part)
+  });
+  const quantityDisplayLabels = {
+    assigned: "Atribuite", warehouse: "Spre magazie", unassigned: "De atribuit",
+    returning: "În retur", returned: "Returnate", imported: "Importate în DF"
+  };
+  const quantityDisplayEntries = (quantities) => Object.entries(quantityDisplayLabels)
+    .filter(([key]) => quantities[key] > 0).map(([key, label]) => ({ key, label, qty: quantities[key] }));
+  const quantityDisplayText = (quantities) => quantityDisplayEntries(quantities)
+    .map(({ label, qty }) => `${label}: ${qty} buc.`).join(" · ");
+  const allocationSummary = (part) => quantityDisplayText(partQuantityDisplay(part));
+  /* Totalul de factură agregă doar prezentarea, nu recalculă prețuri sau eligibilitate. */
+  const invoiceQuantityDisplay = (parts) => parts.reduce((totals, part) => {
+    Object.entries(partQuantityDisplay(part)).forEach(([key, qty]) => { totals[key] = (totals[key] || 0) + qty; });
+    return totals;
+  }, {});
+  const quantityDetailRows = (quantities) => quantityDisplayEntries(quantities)
+    .map(({ key, label, qty }) => detailRow(label, `${qty} buc.`, key === "warehouse" ? "ep-warehouse-text" : "")).join("");
+  /* Facturi: vocabularul și ordinea pieselor rămân distincte de statusul hârtiei. */
+  const invoicePartsRows = (quantities) => [
+    ["assigned", "Atribuite la mașini"], ["imported", "Importate în DF"],
+    ["warehouse", "Spre magazie"], ["returning", "În retur"],
+    ["returned", "Returnate"], ["unassigned", "De atribuit"]
+  ].filter(([key]) => quantities[key] > 0)
+    .map(([key, label]) => detailRow(label, `${quantities[key]} buc.`, key === "warehouse" ? "ep-warehouse-text" : "")).join("");
+  /* Informare fără scriere: alocarea nu confirmă DF-ul, iar fotocopiile nu sunt urmărite în DEMO. */
+  const invoiceDocumentNotice = (invoice, quantities) => INVOICE_STATUSES.slice(1).includes(invoice.status)
+    && ["assigned", "unassigned", "returning", "warehouse"].some((key) => quantities[key] > 0)
+    ? "Există cantități încă de urmărit. Verifică DF-urile și fotocopiile înainte de predare; statusul ales manual nu a fost modificat."
+    : "";
   const allocationDisplayText = (part, index) => {
     const allocation = allocationsForPart(part)[index];
-    return [`${allocation.qty} buc. asociate`, allocation.model,
-      allocationImportedQty(part, index) > 0 && `${allocationImportedQty(part, index)} în DEMO DF`,
-      dfEligibleQty(part, index) > 0 && `${dfEligibleQty(part, index)} eligibile`,
-      allocationReturnQty(part, index) > 0 && `${allocationReturnQty(part, index)} în retur`
-    ].filter(Boolean).join(" · ");
+    const records = returnsForPart(part.id).filter((entry) => returnSource(entry).type === "allocation" && returnSource(entry).allocationIndex === index);
+    const quantities = {
+      assigned: part.df ? 0 : dfEligibleQty(part, index),
+      warehouse: allocationWarehouseQty(part, index),
+      returning: records.filter((entry) => entry.status !== "Finalizat").reduce((sum, entry) => sum + entry.qty, 0),
+      returned: records.filter((entry) => entry.status === "Finalizat").reduce((sum, entry) => sum + entry.qty, 0),
+      imported: part.df ? allocation.qty - allocationReturnQty(part, index) - allocationWarehouseQty(part, index) : allocationImportedQty(part, index)
+    };
+    return [allocation.model, quantityDisplayText(quantities)].filter(Boolean).join(" · ");
   };
   const returnSourceLabel = (item) => {
     const source = returnSource(item);
@@ -563,7 +633,8 @@
   const recordedNoteState = (part) => JSON.stringify({
     allocations: allocationsForPart(part).map((allocation) => [normalizePlate(allocation.plate), allocation.qty, allocation.model || null]),
     returns: returnsForPart(part.id).map((item) => [item.id, item.status, item.qty]),
-    imports: importsForPart(part.id).map((entry) => [entry.reference, entry.qty])
+    imports: importsForPart(part.id).map((entry) => [entry.reference, entry.qty]),
+    warehouse: warehouseForPart(part.id).map((entry) => [entry.id, entry.qty])
   });
   const demoPartNoteSnapshots = new Map(DATA.parts.map((part) => [part.id, { note: part.note, state: recordedNoteState(part) }]));
   const invoiceNoteState = (invoice) => JSON.stringify(partsForInvoice(invoice.id).map((part) => [part.id, recordedNoteState(part)]));
@@ -611,6 +682,7 @@
       remainingPositions: parts.filter((part) => remainingQty(part) > 0).length,
       reservedUnits: parts.reduce((sum, part) => sum + reservedQty(part), 0),
       returnedUnits: parts.reduce((sum, part) => sum + returnedQty(part), 0),
+      warehouseUnits: parts.reduce((sum, part) => sum + warehouseQty(part), 0),
       demoImportedUnits: parts.reduce((sum, part) => sum + demoImportedQty(part), 0),
       dfEligibleUnits: parts.reduce((sum, part) => sum + partDfEligibleQty(part), 0),
       legacyDfPositions: parts.filter((part) => Boolean(part.df)).length,
@@ -646,6 +718,20 @@
   const detailRow = (label, valueHTML, valueClass = "") =>
     `<div class="ep-detail-row"><span>${escapeHTML(label)}</span><strong class="${valueClass}">${valueHTML}</strong></div>`;
 
+  /* Status cantitativ: violet doar pentru magazie, cu defalcare când linia este mixtă. */
+  const partStatusMarkup = (part) => !warehouseQty(part) ? statusBadge(part.status)
+    : `<span class="ep-badge ep-warehouse-badge">${warehouseQty(part) < part.qty ? "Cantități mixte" : "Trimis în magazie"}</span>`;
+
+  /* Istoricul expedierilor afișează sursa și data reale ale acțiunii DEMO. */
+  const warehouseHistory = (records) => records.length ? `<section class="ep-detail-section ep-warehouse-history">
+    <h4>Trimis în magazie · ${records.reduce((sum, entry) => sum + entry.qty, 0)} buc.</h4>
+    <div class="ep-detail-card">${records.map((entry) => `<div class="ep-warehouse-record">
+      <strong>${escapeHTML(entry.reference)} · ${entry.qty} buc.</strong>
+      <small>${escapeHTML(partById(entry.partId)?.name || "")} · ${escapeHTML(returnSourceLabel(entry))}</small>
+      <time datetime="${escapeHTML(entry.createdAt)}">${escapeHTML(new Date(entry.createdAt).toLocaleString("ro-RO"))}</time>
+      ${entry.notes ? `<p>${escapeHTML(entry.notes)}</p>` : ""}
+    </div>`).join("")}</div></section>` : "";
+
   const partHaystack = (part) => {
     const invoice = invoiceById(part.invoiceId);
     const supplier = invoice ? supplierById(invoice.supplierId) : null;
@@ -654,6 +740,7 @@
       ...allocationsForPart(part).flatMap((allocation) => [allocation.plate, allocation.model]),
       ...returnsForPart(part.id).flatMap((item) => [item.code, item.reference, item.reason, item.status, returnSourceLabel(item)]),
       ...importsForPart(part.id).flatMap((entry) => [entry.reference, entry.plate, entry.allocationId]),
+      ...warehouseForPart(part.id).flatMap((entry) => ["Trimis în magazie", entry.reference, entry.notes, returnSourceLabel(entry)]),
       part.df, part.location, part.note, invoice?.number, invoice?.date && formatDate(invoice.date),
       supplier?.name
     ];
@@ -662,7 +749,8 @@
   const invoiceHaystack = (invoice) => {
     const supplier = supplierById(invoice.supplierId);
     return [invoice.number, invoice.date && formatDate(invoice.date), invoice.status, invoice.note, supplier?.name,
-      ...DATA.dfImports.filter((entry) => entry.invoiceId === invoice.id).flatMap((entry) => [entry.reference, entry.plate])];
+      ...DATA.dfImports.filter((entry) => entry.invoiceId === invoice.id).flatMap((entry) => [entry.reference, entry.plate]),
+      ...DATA.warehouseTransfers.filter((entry) => entry.invoiceId === invoice.id).flatMap((entry) => ["Trimis în magazie", entry.reference, entry.notes, returnSourceLabel(entry)])];
   };
 
   const supplierHaystack = (supplier) => {
@@ -748,7 +836,7 @@
 
   const TABLE_COLUMNS = {
     parts: ["", "Piesă / cod", "Factură", "Furnizor", "Mașină atribuită", "Preț achiziție", "Status", "Deviz"],
-    invoices: ["", "Factură", "Furnizor", "Poziții", "Atribuire", "Valoare factură", "Status document"],
+    invoices: ["", "Factură", "Furnizor", "Poziții / bucăți", "Situația pieselor", "Valoare factură", "Document fizic"],
     suppliers: ["", "Furnizor", "CUI", "Contact", "Facturi", "Poziții", "Valoare"],
     returns: ["", "Retur", "Piesă", "Factură", "Furnizor", "Cant.", "Motiv", "Status"]
   };
@@ -770,6 +858,7 @@
       if (!Number.isInteger(allocationIndex) || !allocationsForPart(part)[allocationIndex]) return "Selectează alocarea pe care dorești să o corectezi.";
       if (allocationReturnQty(part, allocationIndex) > 0) return "Alocarea are cantități rezervate sau returnate. Asocierea se păstrează pentru trasabilitatea retururilor și nu poate fi corectată.";
       if (allocationImportedQty(part, allocationIndex) > 0) return "Alocarea are importuri DEMO DF. Asocierea și cantitatea sunt protejate pentru trasabilitatea importurilor.";
+      if (allocationWarehouseQty(part, allocationIndex) > 0) return "Alocarea are cantități trimise în magazie. Asocierea și cantitatea sunt protejate pentru trasabilitatea transferurilor.";
       return "";
     }
     if (remainingQty(part) <= 0) return `Piesa ${part.name} nu mai are bucăți disponibile pentru atribuire.`;
@@ -778,9 +867,10 @@
 
   const plateCell = (part) => {
     const allocations = allocationsForPart(part);
-    return `<span class="ep-allocation-list">${allocations.map((allocation, index) =>
-      `<span class="ep-plate-cell"><span class="ep-plate">${escapeHTML(allocation.plate)}</span><small>${escapeHTML(allocationDisplayText(part, index))}</small></span>`
-    ).join("")}<small class="ep-allocation-summary">${allocatedQty(part) > 0 && remainingQty(part) > 0 ? "Parțial · " : ""}${allocationSummary(part)}</small></span>`;
+    /* În tabel păstrăm numerele auto; cantitățile apar o singură dată, pe linie. */
+    return `<span class="ep-allocation-list">${allocations.map((allocation) =>
+      `<span class="ep-plate-cell"><span class="ep-plate">${escapeHTML(allocation.plate)}</span></span>`
+    ).join("")}<small class="ep-allocation-summary">${allocationSummary(part)}</small></span>`;
   };
 
   const priceCell = (part) => {
@@ -813,7 +903,7 @@
       <td><span class="ep-supplier-cell">${escapeHTML(supplier.name)}</span></td>
       <td>${plateCell(part)}</td>
       <td>${priceCell(part)}</td>
-      <td>${statusBadge(part.status)}</td>
+      <td>${partStatusMarkup(part)}</td>
       <td>${dfReferenceCell(part)}</td>
     </tr>`;
   };
@@ -821,19 +911,17 @@
   const renderInvoiceRow = (invoice) => {
     const supplier = supplierById(invoice.supplierId);
     const totals = invoiceTotals(invoice.id);
-    const percent = totals.units ? Math.round((totals.allocatedUnits / totals.units) * 100) : 0;
+    const quantities = invoiceQuantityDisplay(partsForInvoice(invoice.id));
+    const notice = invoiceDocumentNotice(invoice, quantities);
     const selected = state.selectedId === invoice.id;
     return `<tr data-id="${escapeHTML(invoice.id)}" tabindex="0" aria-selected="${selected}"${selected ? ' class="is-selected"' : ""}>
       <td class="ep-col-check">${selectButton(invoice.id, `Selectează factura ${invoice.number}`)}</td>
       <td><div class="ep-invoice-cell"><strong>${escapeHTML(invoice.number)}</strong><small>${formatDate(invoice.date)}</small></div></td>
       <td><span class="ep-supplier-cell">${escapeHTML(supplier.name)}</span></td>
-      <td>${totals.count} ${totals.count === 1 ? "poziție" : "poziții"}</td>
-      <td><div class="ep-progress-mini"><span>${totals.allocatedUnits}/${totals.units} buc. alocate fără retur</span><small>${totals.assigned}/${totals.count} poziții complete${totals.partial ? ` · ${totals.partial} parțiale` : ""}</small>
-        ${totals.demoImportedUnits || totals.dfEligibleUnits ? `<small>${[totals.demoImportedUnits && `${totals.demoImportedUnits} buc. DEMO DF`, totals.dfEligibleUnits && `${totals.dfEligibleUnits} eligibile`].filter(Boolean).join(" · ")}</small>` : ""}
-        ${totals.reservedUnits || totals.returnedUnits ? `<small>${[totals.reservedUnits && `${totals.reservedUnits} buc. rezervate retur`, totals.returnedUnits && `${totals.returnedUnits} returnate`].filter(Boolean).join(" · ")}</small>` : ""}
-        <div class="ep-progress-track"><div class="ep-progress-fill" style="width:${percent}%"></div></div></div></td>
+      <td><div class="ep-cell-stack"><strong>${totals.count} ${totals.count === 1 ? "poziție" : "poziții"}</strong><small>${totals.units} buc.</small></div></td>
+      <td><div class="ep-quantity-summary">${escapeHTML(quantityDisplayText(quantities))}</div></td>
       <td><span class="ep-money">${formatMoney(totals.total)}<small>cu TVA</small></span></td>
-      <td>${statusBadge(invoice.status)}</td>
+      <td><span class="ep-invoice-document-status">${statusBadge(invoice.status)}${notice ? `<span class="ep-invoice-notice-mark" tabindex="0" role="note" aria-label="${escapeHTML(notice)}" title="${escapeHTML(notice)}">${ICONS.info}</span>` : ""}</span></td>
     </tr>`;
   };
 
@@ -932,7 +1020,9 @@
       kpiCard("Poziții înregistrate", DATA.parts.length, `${units} buc. · ${DATA.invoices.length} facturi · ${DATA.suppliers.length} furnizori`, "cube", "info"),
       kpiCard("Poziții de atribuit", unassigned, `${remaining} buc. rămase de alocat`, "tag", "warning"),
       kpiCard("Valoare achiziții", formatMoney(totalValue, 0), "cu TVA · estimare DEMO", "wallet", "success", "ep-kpi-money"),
-      kpiCard("Retururi deschise", openReturns, `din ${DATA.returns.length} cereri înregistrate`, "rotate", "danger")
+      kpiCard("Retururi deschise", openReturns, `din ${DATA.returns.length} cereri înregistrate`, "rotate", "danger"),
+      /* Al cincilea KPI numără bucăți trimise, nu poziții sau operații. */
+      kpiCard("Piese spre magazie", DATA.warehouseTransfers.reduce((sum, entry) => sum + entry.qty, 0), "buc. trimise · sesiunea DEMO", "warehouse", "warehouse")
     ].join("");
   };
 
@@ -1042,7 +1132,7 @@
     if (state.tab === "parts" || state.tab === "unassigned") {
       const units = rows.reduce((sum, part) => sum + part.qty, 0);
       const remaining = rows.reduce((sum, part) => sum + remainingQty(part), 0);
-      els.tableSummary.textContent += ` · ${units} buc. pe facturi · ${remaining} buc. rămase`;
+      els.tableSummary.textContent += ` · ${units} buc. pe facturi${remaining > 0 ? ` · De atribuit: ${remaining} buc.` : ""}`;
       const imported = rows.reduce((sum, part) => sum + demoImportedQty(part), 0);
       if (imported > 0) els.tableSummary.textContent += ` · ${imported} buc. în DEMO DF`;
     }
@@ -1070,6 +1160,9 @@
     }
     importsForPart(part.id).forEach((entry) => {
       events.push({ date: entry.createdAt.slice(0, 10), title: `${entry.reference} · ${entry.qty} buc. · ${entry.plate}`, by: "Import simulat DEMO · preț de achiziție", actualDate: true });
+    });
+    warehouseForPart(part.id).forEach((entry) => {
+      events.push({ date: entry.localDate, title: `Trimis în magazie · ${entry.qty} buc. · ${entry.reference}`, by: returnSourceLabel(entry), actualDate: true });
     });
     if (part.status === "Montată") {
       events.push({ date: addDays(invoice.date, 3), title: "Marcată ca montată", by: "Mihai Ionescu · service" });
@@ -1120,12 +1213,16 @@
               <span>${part.qty} ${part.qty === 1 ? "bucată" : "bucăți"}</span>
             </p>
           </div>
-          ${statusBadge(part.status)}
+          <div class="ep-part-status-actions">
+            ${partStatusMarkup(part)}
+            <!-- Editare compactă lângă status; păstrează acțiunea existentă. -->
+            <button type="button" class="ep-button ep-button-ghost ep-part-edit" data-action="edit-part" data-id="${escapeHTML(part.id)}">${ICONS.edit} Editează</button>
+          </div>
         </div>
       </div>
 
       <div class="ep-detail-stats">
-        <div><span>Cantitate</span><strong>${part.qty} buc.</strong></div>
+        <div><span>Cumpărate</span><strong>${part.qty} buc.</strong></div>
         <div><span>Preț unitar cu TVA</span><strong>${formatMoney(part.price)}</strong></div>
         <div><span>Total cu TVA</span><strong>${formatMoney(lineTotal)}</strong></div>
       </div>
@@ -1145,20 +1242,20 @@
       </section>
 
       <section class="ep-detail-section">
-        <h4>Atribuire actuală</h4>
+        <h4>Destinația pieselor</h4>
         <div class="ep-detail-card">
-          ${allocatedQty(part) !== availableAllocatedQty(part) ? detailRow("Asocieri auto (istoric)", `${allocatedQty(part)} buc.`) : ""}
-          ${detailRow("Alocate fără retur", `${availableAllocatedQty(part)} buc.`)}
-          ${remainingQty(part) > 0 ? detailRow("Nealocate disponibile", `${remainingQty(part)} buc.`) : ""}
-          ${reservedQty(part) > 0 ? detailRow("Rezervate pentru retur", `${reservedQty(part)} buc.`) : ""}
-          ${returnedQty(part) > 0 ? detailRow("Returnate (finalizate)", `${returnedQty(part)} buc.`) : ""}
+          ${quantityDetailRows(partQuantityDisplay(part))}
+        </div>
+        <!-- Istoricul auto și acțiunile rămân accesibile fără repetarea totalurilor curente. -->
+        ${allocationsForPart(part).length ? `<details class="ep-quantity-history">
+          <summary>Alocări pe mașini · detalii și istoric</summary>
           ${allocationsForPart(part).map((allocation, index) => `
             <div class="ep-allocation-detail">
-              <div class="ep-plate-cell"><span class="ep-plate">${escapeHTML(allocation.plate)}</span><small>${escapeHTML(allocationDisplayText(part, index))}</small></div>
-              <button type="button" class="ep-button ep-button-ghost" data-action="reassign-part" data-id="${escapeHTML(part.id)}" data-allocation-index="${index}"${assignmentLocked || allocationReturnQty(part, index) > 0 || allocationImportedQty(part, index) > 0 ? ' disabled aria-disabled="true" title="Asociere protejată de DF, import DEMO sau retur; se păstrează trasabilitatea"' : ""}>Corectează alocarea</button>
+              <div class="ep-plate-cell"><span class="ep-plate">${escapeHTML(allocation.plate)}</span><small>Asociere inițială: ${allocation.qty} buc.</small><small>${escapeHTML(allocationDisplayText(part, index))}</small></div>
+              <button type="button" class="ep-button ep-button-ghost" data-action="reassign-part" data-id="${escapeHTML(part.id)}" data-allocation-index="${index}"${assignmentLocked || allocationReturnQty(part, index) > 0 || allocationImportedQty(part, index) > 0 || allocationWarehouseQty(part, index) > 0 ? ' disabled aria-disabled="true" title="Asociere protejată de DF, import DEMO, retur sau magazie; se păstrează trasabilitatea"' : ""}>Corectează alocarea</button>
               ${allocationsForPart(part).length > 1 && dfEligibleQty(part, index) > 0 ? `<button type="button" class="ep-button ep-button-ghost" data-action="import-demo-df" data-id="${escapeHTML(part.id)}" data-plate="${escapeHTML(allocation.plate)}">Importă în DF · DEMO</button>` : ""}
             </div>`).join("")}
-        </div>
+        </details>` : ""}
         <div class="ep-assignment-cta">
           ${remainingQty(part) > 0 ? `<button type="button" class="ep-button ep-button-primary ep-wide" data-action="assign-part" data-id="${escapeHTML(part.id)}"${assignmentLocked ? ' disabled aria-disabled="true"' : ""}>
             ${ICONS.car} Atribuie mașină · ${remainingQty(part)} buc. disponibile
@@ -1170,11 +1267,9 @@
       ${allocatedQty(part) > 0 || part.df || demoImportedQty(part) > 0 ? `<section class="ep-detail-section">
         <h4>Deviz final</h4>
         <div class="ep-detail-card">
-          ${part.df
-            ? detailRow("Referință istorică", `<span class="ep-df">${escapeHTML(part.df)}</span>`)
-            : detailRow("Neimportate · eligibile DF", `${partDfEligibleQty(part)} buc.`)}
-          ${demoImportedQty(part) > 0 ? detailRow("Importate în DEMO DF", `${demoImportedQty(part)} buc.`) : ""}
-          <div class="ep-allocation-list">${dfReferences(importsForPart(part.id))}</div>
+          ${part.df ? detailRow("Referință istorică", `<span class="ep-df">${escapeHTML(part.df)}</span>`) : ""}
+          ${demoImportedQty(part) > 0 ? `<div class="ep-allocation-list">${dfReferences(importsForPart(part.id))}</div>` : ""}
+          ${!part.df && !demoImportedQty(part) ? '<p class="ep-detail-note">Importul folosește piesele atribuite mașinii.</p>' : ""}
         </div>
         <div class="ep-assignment-cta"><button type="button" class="ep-button ep-button-primary ep-wide" data-action="import-demo-df" data-id="${escapeHTML(part.id)}"${partDfEligibleQty(part) <= 0 ? " disabled" : ""}>Importă în DF · DEMO</button></div>
       </section>` : ""}
@@ -1195,14 +1290,16 @@
         <button type="button" class="ep-button ep-button-primary ep-wide" data-action="view-invoice" data-id="${escapeHTML(invoice.id)}">
           ${ICONS.file} Vezi factura
         </button>
-        <button type="button" class="ep-button" data-action="edit-part" data-id="${escapeHTML(part.id)}">
-          ${ICONS.edit} Editează
+        <button type="button" class="ep-button ep-warehouse-button" data-action="warehouse-part" data-id="${escapeHTML(part.id)}"${warehouseEligibleQty(part) <= 0 ? ' disabled title="Nu există cantități eligibile pentru magazie"' : ""}>
+          ${ICONS.box} Magazie
         </button>
         <button type="button" class="ep-button ep-button-danger" data-action="return-part" data-id="${escapeHTML(part.id)}"
           ${returnLocked ? 'disabled title="Retur blocat: referință DF sau lipsă de cantitate disponibilă"' : ""}>
           ${ICONS.rotate} Retur
         </button>
       </div>
+
+      ${warehouseHistory(warehouseForPart(part.id))}
 
       <section class="ep-detail-section">
         <h4>Istoric status</h4>
@@ -1219,7 +1316,7 @@
         ${plateCell(part)}
       </span>
       <span class="ep-money">${formatMoney(part.qty * part.price)}</span>
-      ${statusBadge(part.status)}
+      ${partStatusMarkup(part)}
     </button>`;
   };
 
@@ -1227,7 +1324,8 @@
     const supplier = supplierById(invoice.supplierId);
     const totals = invoiceTotals(invoice.id);
     const parts = partsForInvoice(invoice.id);
-    const percent = totals.units ? Math.round((totals.allocatedUnits / totals.units) * 100) : 0;
+    const quantities = invoiceQuantityDisplay(parts);
+    const notice = invoiceDocumentNotice(invoice, quantities);
 
     return `
       <div class="ep-detail-hero">
@@ -1237,22 +1335,18 @@
             <h3>${escapeHTML(invoice.number)}</h3>
             <p class="ep-detail-sub"><span>${formatDate(invoice.date)}</span><span>·</span><span>${escapeHTML(supplier.name)}</span></p>
           </div>
-          ${statusBadge(invoice.status)}
         </div>
       </div>
 
       <div class="ep-detail-stats">
         <div><span>Poziții</span><strong>${totals.count}</strong></div>
-        <div><span>Alocate fără retur</span><strong>${totals.allocatedUnits}/${totals.units} buc.</strong></div>
+        <div><span>Bucăți fizice</span><strong>${totals.units}</strong></div>
         <div><span>Total cu TVA</span><strong class="ep-detail-stat-money">${formatMoney(totals.total, 0)}</strong></div>
       </div>
 
       <section class="ep-detail-section">
-        <h4>Date document</h4>
+        <h4>Valori factură</h4>
         <div class="ep-detail-card">
-          ${detailRow("Furnizor", escapeHTML(supplier.name))}
-          ${detailRow("Data facturii", formatDate(invoice.date))}
-          ${detailRow("Status document", statusBadge(invoice.status))}
           ${detailRow("Valoare fără TVA", formatMoney(totals.subtotal))}
           ${detailRow(vatLabelForRates(totals.rates), formatMoney(totals.vat))}
           ${detailRow("Total cu TVA", formatMoney(totals.total))}
@@ -1261,36 +1355,46 @@
       </section>
 
       <section class="ep-detail-section">
-        <h4>Atribuire piese</h4>
+        <h4>SITUAȚIA PIESELOR</h4>
         <div class="ep-detail-card">
-          ${detailRow("Poziții complet alocate", `${totals.assigned} din ${totals.count}`)}
-          ${totals.partial > 0 ? detailRow("Poziții parțial alocate", String(totals.partial)) : ""}
-          ${detailRow("Bucăți alocate fără retur", `${totals.allocatedUnits} din ${totals.units}`)}
-          ${totals.demoImportedUnits > 0 ? detailRow("Importate în DEMO DF", `${totals.demoImportedUnits} buc.`) : ""}
-          ${totals.dfEligibleUnits > 0 || totals.demoImportedUnits > 0 ? detailRow("Neimportate · eligibile DF", `${totals.dfEligibleUnits} buc.`) : ""}
-          ${totals.legacyDfPositions > 0 ? detailRow("Poziții cu DF istoric", String(totals.legacyDfPositions)) : ""}
-          <div class="ep-allocation-list">${dfReferences(DATA.dfImports.filter((entry) => entry.invoiceId === invoice.id))}</div>
-          ${totals.reservedUnits > 0 ? detailRow("Rezervate pentru retur", `${totals.reservedUnits} buc.`) : ""}
-          ${totals.returnedUnits > 0 ? detailRow("Returnate (finalizate)", `${totals.returnedUnits} buc.`) : ""}
-          <div class="ep-progress-track" style="margin:7px 0 8px">
-            <div class="ep-progress-fill" style="width:${percent}%"></div>
-          </div>
-          <p class="ep-detail-note">${totals.remainingUnits} buc. disponibile în ${totals.remainingPositions} poziții de atribuit.</p>
+          ${invoicePartsRows(quantities)}
+          ${totals.remainingPositions > 0 ? `<p class="ep-detail-note">De atribuit în ${totals.remainingPositions} ${totals.remainingPositions === 1 ? "poziție" : "poziții"} de factură.</p>` : ""}
         </div>
       </section>
+
+      <!-- Gestionarea documentului fizic este manuală și independentă de situația pieselor. -->
+      <section class="ep-detail-section ep-invoice-document">
+        <h4>SITUAȚIA DOCUMENTULUI</h4>
+        <div class="ep-detail-card">
+          ${detailRow("Status document fizic", statusBadge(invoice.status))}
+          <p class="ep-detail-note">Factura fizică rămâne în birou până sunt finalizate DF-urile necesare și fotocopiile pentru toate mașinile relevante. Atribuirea pieselor și importul DEMO în DF nu confirmă pregătirea documentelor.</p>
+          <p class="ep-detail-note">Statusul documentului este ales manual, separat de situația pieselor.</p>
+          ${notice ? `<p class="ep-invoice-document-notice" role="note">${ICONS.info}<span>${escapeHTML(notice)}</span></p>` : ""}
+        </div>
+        <div class="ep-assignment-cta">
+          <button type="button" class="ep-button ep-wide" data-action="edit-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.edit} Editează factura</button>
+        </div>
+      </section>
+
+      ${totals.demoImportedUnits > 0 || totals.legacyDfPositions > 0 ? `<section class="ep-detail-section">
+        <h4>Referințe Deviz Final</h4>
+        <div class="ep-detail-card">
+          ${[...new Set(parts.filter((part) => part.df).map((part) => part.df))].map((reference) => `<span class="ep-df">${escapeHTML(reference)} · istoric</span>`).join(" ")}
+          <div class="ep-allocation-list">${dfReferences(DATA.dfImports.filter((entry) => entry.invoiceId === invoice.id))}</div>
+        </div>
+      </section>` : ""}
 
       <section class="ep-detail-section">
         <h4>Piese pe factură</h4>
         <div class="ep-compact-list">${parts.map(compactPartRow).join("")}</div>
       </section>
 
+      ${warehouseHistory(DATA.warehouseTransfers.filter((entry) => entry.invoiceId === invoice.id))}
+
       <div class="ep-detail-actions">
         <button type="button" class="ep-button ep-button-primary ep-wide" data-action="import-invoice-demo-df" data-id="${escapeHTML(invoice.id)}"${totals.dfEligibleUnits <= 0 ? " disabled" : ""}>Importă în DF · DEMO</button>
         <button type="button" class="ep-button ep-button-primary ep-wide" data-action="open-invoice-parts" data-id="${escapeHTML(invoice.id)}">
           ${ICONS.box} Vezi piesele
-        </button>
-        <button type="button" class="ep-button ep-wide" data-action="edit-invoice" data-id="${escapeHTML(invoice.id)}">
-          ${ICONS.edit} Editează factura
         </button>
       </div>`;
   };
@@ -1671,6 +1775,34 @@
   const lineField = (row, field) => row.querySelector(`[data-field="${field}"]`);
   const invoiceLineRows = () => [...els.invoiceLinesBody.querySelectorAll("tr[data-line-id]")];
 
+  /* Data locală se recalculează la fiecare formular nou, inclusiv după miezul nopții. */
+  const localInvoiceToday = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  };
+
+  /* Cronometru discret, exclusiv în memorie; nu intră în datele facturii. */
+  const renderInvoiceEntryTimer = () => {
+    const seconds = invoiceUi.entryStartedAt === null ? 0 : Math.floor((performance.now() - invoiceUi.entryStartedAt) / 1000);
+    els.invoiceEntryTimer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  };
+  const startInvoiceEntryTimer = () => {
+    if (els.invoiceModal.hidden || invoiceUi.entryStartedAt !== null) return;
+    invoiceUi.entryStartedAt = performance.now();
+    invoiceUi.entryTimer = window.setInterval(renderInvoiceEntryTimer, 1000);
+  };
+  const stopInvoiceEntryTimer = () => {
+    renderInvoiceEntryTimer();
+    window.clearInterval(invoiceUi.entryTimer);
+    invoiceUi.entryTimer = 0;
+  };
+  const resetInvoiceEntryTimer = () => {
+    window.clearInterval(invoiceUi.entryTimer);
+    invoiceUi.entryTimer = 0;
+    invoiceUi.entryStartedAt = null;
+    renderInvoiceEntryTimer();
+  };
+
   const readFormNumber = (value) => {
     const clean = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
     return clean ? Number(clean) : Number.NaN;
@@ -1808,7 +1940,7 @@
       invoiceUi.datePicker.setDate(iso || null, false, "Y-m-d");
       return;
     }
-    if (els.invoiceDate) els.invoiceDate.value = iso || "";
+    if (els.invoiceDate) els.invoiceDate.value = iso ? formatDate(iso) : "";
   };
 
   const readInvoiceDate = () => {
@@ -1910,7 +2042,7 @@
 
       return {
         name,
-        code: codeInput.value.trim(),
+        code: codeInput.value.trim().toUpperCase(),
         qty,
         price: priceCents / 100,
         vatRate,
@@ -1943,12 +2075,14 @@
 
   const resetInvoiceForm = () => {
     if (!els.invoiceForm) return;
+    resetInvoiceEntryTimer();
     els.invoiceForm.reset();
     setSelectOptions(els.invoiceSupplier, [
       { value: "", label: "Alege furnizorul" },
       ...DATA.suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name }))
     ], "");
-    setInvoiceDate(DEMO_TODAY);
+    invoiceUi.lastDateValue = localInvoiceToday();
+    setInvoiceDate(invoiceUi.lastDateValue);
     els.invoiceStatus.value = "În firmă";
     els.invoiceNumber.value = "";
     els.invoiceNotes.value = "";
@@ -2003,6 +2137,7 @@
   const closeInvoiceModal = ({ restoreFocus = true } = {}) => {
     if (els.invoiceModal.hidden) return;
     if (invoiceUi.datePicker) invoiceUi.datePicker.close();
+    stopInvoiceEntryTimer();
     els.invoiceModal.hidden = true;
     document.body.classList.remove("ep-modal-open");
     document.removeEventListener("keydown", handleInvoiceModalKeydown);
@@ -2820,7 +2955,7 @@
       }
       const eligible = dfEligibleQty(part, row.allocationIndex);
       if (!Number.isInteger(qty) || qty <= 0 || qty > eligible) {
-        errors.push({ key, message: `${part.name}: introdu între 1 și ${eligible} buc. Retururile și importurile anterioare nu pot fi importate din nou.` });
+        errors.push({ key, message: `${part.name}: introdu între 1 și ${eligible} buc. Retururile, magazia și importurile anterioare sunt excluse.` });
         continue;
       }
       if (!Number.isFinite(part.price) || part.price <= 0 || !invoiceById(part.invoiceId)) {
@@ -2846,7 +2981,7 @@
     els.dfPreviewNote.textContent = validation.ok ? "Se creează o referință DEMO DF nouă."
       : !dfUi.selection.size ? hasEligible
         ? "Selectează alocările eligibile și verifică numărul de bucăți înainte de confirmare."
-        : !dfUi.plate ? els.dfEmpty.textContent : "Mașina nu mai are cantități eligibile. Importurile existente, referințele DF istorice și retururile sunt excluse."
+        : !dfUi.plate ? els.dfEmpty.textContent : "Mașina nu mai are cantități eligibile. Importurile existente, referințele DF istorice, retururile și magazia sunt excluse."
         : validation.errors.map((error) => error.message).join(" ");
     els.dfRows.querySelectorAll("[data-df-total]").forEach((element) => {
       const entry = validation.lines.find((line) => line.allocationId === element.dataset.dfTotal);
@@ -2872,7 +3007,7 @@
       return `<tr>
         <td data-label="Selectează" class="ep-df-select-cell"><input type="checkbox" class="ep-row-check" data-df-select="${key}" aria-label="Importă ${escapeHTML(part.name)} · alocarea ${row.allocationIndex + 1}"${eligible <= 0 ? " disabled" : ""}></td>
         <td data-label="Piesă / factură / furnizor" class="ep-df-part"><strong>${escapeHTML(part.name)}</strong><small>${escapeHTML(part.code || "—")} · ${escapeHTML(invoice.number)}</small><small>${escapeHTML(supplier.name)} · alocarea ${row.allocationIndex + 1}</small></td>
-        <td data-label="Cantități"><small>Alocate: ${row.allocation.qty} buc.</small><small>Deja DEMO DF: ${imported} buc.</small>${allocationReturnQty(part, row.allocationIndex) > 0 ? `<small>Rezervate / returnate: ${allocationReturnQty(part, row.allocationIndex)} buc.</small>` : ""}<strong>Eligibile: ${eligible} buc.</strong>${part.df ? `<small>Protejat: ${escapeHTML(part.df)} (istoric)</small>` : ""}</td>
+        <td data-label="Cantități"><small>Alocate: ${row.allocation.qty} buc.</small><small>Deja DEMO DF: ${imported} buc.</small>${allocationReturnQty(part, row.allocationIndex) > 0 ? `<small>Rezervate / returnate: ${allocationReturnQty(part, row.allocationIndex)} buc.</small>` : ""}${allocationWarehouseQty(part, row.allocationIndex) > 0 ? `<small class="ep-warehouse-text">Trimis în magazie: ${allocationWarehouseQty(part, row.allocationIndex)} buc.</small>` : ""}<strong>Eligibile: ${eligible} buc.</strong>${part.df ? `<small>Protejat: ${escapeHTML(part.df)} (istoric)</small>` : ""}</td>
         <td data-label="Cant. import"><label class="ep-field ep-df-qty"><span class="ep-sr-only">Cantitate pentru ${escapeHTML(part.name)}, alocarea ${row.allocationIndex + 1}</span><input type="number" min="1" max="${eligible}" step="1" inputmode="numeric" value="${Math.max(0, eligible)}" data-df-qty="${key}" disabled></label></td>
         <td data-label="Achiziție / buc. cu TVA">${formatMoney(part.price)}</td>
         <td data-label="Valoare cu TVA"><strong data-df-total="${key}">${formatMoney(0)}</strong></td>
@@ -2978,6 +3113,124 @@
     showDfSummary(reference);
     showToast("Import DF simulat", `${reference} · ${records.reduce((sum, entry) => sum + entry.qty, 0)} buc. pentru ${dfUi.plate}. Valorile de achiziție și facturile au rămas neschimbate.`);
     window.requestAnimationFrame(() => els.dfNewImport.focus({ preventScroll: true }));
+  };
+
+  /* -----------------------------------------------------------------------
+     Trimitere în magazie: o sursă per operație, rezervată imediat la confirmare
+     ----------------------------------------------------------------------- */
+  const clearWarehouseError = () => {
+    els.warehouseFormError.hidden = true;
+    els.warehouseFormError.textContent = "";
+  };
+  const selectedWarehouseSource = () => warehouseUi.sources?.get(els.warehouseSource.value) || null;
+  const updateWarehouseAvailability = ({ resetQty = false } = {}) => {
+    const part = partById(warehouseUi.partId);
+    const capacity = warehouseCapacity(part, selectedWarehouseSource());
+    els.warehouseQty.max = String(capacity);
+    if (resetQty) els.warehouseQty.value = capacity > 0 ? "1" : "";
+    els.warehouseSave.disabled = capacity <= 0;
+    els.warehouseAvailability.textContent = `${capacity} buc. eligibile din sursa selectată. Confirmarea le rezervă imediat pentru magazie.`;
+  };
+  const openWarehouseModal = ({ partId, trigger = document.activeElement } = {}) => {
+    if (!els.warehouseModal.hidden) return;
+    const part = partById(partId);
+    if (warehouseEligibleQty(part) <= 0) {
+      showToast("Magazie indisponibilă", part?.df ? `Poziție protejată de ${part.df}.` : "Nu există cantități eligibile pentru trimitere.");
+      return;
+    }
+    warehouseUi.partId = part.id;
+    warehouseUi.invoiceId = part.invoiceId;
+    warehouseUi.trigger = trigger;
+    warehouseUi.saving = false;
+    /* Copia sursei păstrează mașina istorică și detectează schimbarea ei înainte de salvare. */
+    warehouseUi.sources = new Map(warehouseSources(part).map(({ value, source }) => {
+      const allocation = source.type === "allocation" ? allocationsForPart(part)[source.allocationIndex] : null;
+      return [value, { ...source, ...(allocation ? { allocationId: allocationId(part, source.allocationIndex), plate: allocation.plate, model: allocation.model } : {}) }];
+    }));
+    els.warehouseForm.reset();
+    clearWarehouseError();
+    els.warehouseContext.innerHTML = detailRow("Piesă", escapeHTML(part.name))
+      + detailRow("Factură", escapeHTML(invoiceById(part.invoiceId).number))
+      + detailRow("Cantitate originală", `${part.qty} buc.`);
+    els.warehouseSource.innerHTML = [...warehouseUi.sources].map(([value, source]) => {
+      const capacity = warehouseCapacity(part, source);
+      return `<option value="${value}"${capacity <= 0 ? " disabled" : ""}>${escapeHTML(returnSourceLabel({ source }))} · ${capacity} buc. eligibile</option>`;
+    }).join("");
+    els.warehouseSource.value = [...warehouseUi.sources].find(([, source]) => warehouseCapacity(part, source) > 0)[0];
+    updateWarehouseAvailability({ resetQty: true });
+    els.warehouseBody.scrollTop = 0;
+    els.warehouseModal.hidden = false;
+    document.body.classList.add("ep-modal-open");
+    document.addEventListener("keydown", handleWarehouseModalKeydown);
+    window.requestAnimationFrame(() => els.warehouseQty.focus({ preventScroll: true }));
+  };
+  const closeWarehouseModal = ({ restoreFocus = true } = {}) => {
+    if (els.warehouseModal.hidden) return;
+    els.warehouseModal.hidden = true;
+    document.body.classList.remove("ep-modal-open");
+    document.removeEventListener("keydown", handleWarehouseModalKeydown);
+    if (restoreFocus && warehouseUi.trigger && document.contains(warehouseUi.trigger)) warehouseUi.trigger.focus({ preventScroll: true });
+    warehouseUi.partId = null;
+    warehouseUi.invoiceId = null;
+    warehouseUi.sources = null;
+    warehouseUi.trigger = null;
+    warehouseUi.saving = false;
+  };
+  /* Escape închide formularul; Tab și Shift+Tab rămân în dialog. */
+  const handleWarehouseModalKeydown = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeWarehouseModal();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusables = [...els.warehouseModal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter((element) => element.offsetParent !== null);
+    const first = focusables[0], last = focusables.at(-1);
+    if (first && event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (last && !event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  const saveWarehouseTransfer = (event) => {
+    event.preventDefault();
+    if (warehouseUi.saving || els.warehouseModal.hidden) return;
+    clearWarehouseError();
+    const part = partById(warehouseUi.partId);
+    const source = selectedWarehouseSource();
+    const qty = Number(els.warehouseQty.value);
+    const allocation = source?.type === "allocation" && part ? allocationsForPart(part)[source.allocationIndex] : null;
+    const sourceValid = part && part.invoiceId === warehouseUi.invoiceId && source
+      && (source.type === "unallocated" || (allocation && source.allocationId === allocationId(part, source.allocationIndex)
+        && source.plate === allocation.plate && source.model === allocation.model));
+    const capacity = sourceValid ? warehouseCapacity(part, source) : 0;
+    if (!sourceValid || !Number.isInteger(qty) || qty <= 0 || qty > capacity) {
+      els.warehouseFormError.textContent = !sourceValid ? "Sursa s-a schimbat. Redeschide formularul."
+        : `Introdu între 1 și ${capacity} buc. eligibile. Retururile, DF și trimiterile anterioare sunt excluse.`;
+      els.warehouseFormError.hidden = false;
+      els.warehouseFormError.focus({ preventScroll: true });
+      updateWarehouseAvailability();
+      return;
+    }
+    warehouseUi.saving = true;
+    els.warehouseSave.disabled = true;
+    const previousLength = DATA.warehouseTransfers.length;
+    const reference = `DEMO-MAG-${String(previousLength + 1).padStart(3, "0")}`;
+    try {
+      DATA.warehouseTransfers.push({ id: reference, reference, partId: part.id, invoiceId: part.invoiceId,
+        qty, source: { ...source }, notes: els.warehouseNotes.value.trim(),
+        createdAt: new Date().toISOString(), localDate: localInvoiceToday() });
+    } catch (error) {
+      DATA.warehouseTransfers.length = previousLength;
+      warehouseUi.saving = false;
+      els.warehouseSave.disabled = false;
+      els.warehouseFormError.textContent = "Trimiterea nu a fost salvată. Încearcă din nou.";
+      els.warehouseFormError.hidden = false;
+      return;
+    }
+    closeWarehouseModal({ restoreFocus: false });
+    if (state.selectedId && !getVisibleRows().some((row) => row.id === state.selectedId)) state.selectedId = null;
+    renderAll();
+    showToast("Trimis în magazie · DEMO", `${reference} · ${qty} buc. rezervate. Factura și asocierile istorice rămân păstrate.`);
+    window.requestAnimationFrame(() => (els.detailsPanel.classList.contains("is-open") ? els.closeDetails : els.searchInput).focus({ preventScroll: true }));
   };
 
   /* -----------------------------------------------------------------------
@@ -3230,6 +3483,9 @@
       case "return-part":
         openReturnModal({ partId: id, trigger });
         break;
+      case "warehouse-part":
+        openWarehouseModal({ partId: id, trigger });
+        break;
       case "update-return":
         openReturnModal({ returnId: id, trigger });
         break;
@@ -3267,6 +3523,9 @@
       "returnCreateFields", "returnStatusFields", "returnSource", "returnQty", "returnReference", "returnReason",
       "returnNotes", "returnCurrentStatus", "returnNextStatus", "returnDate", "returnDateLabel", "returnAvailability",
       "returnModalClose", "returnCancel", "returnSave"].forEach((id) => { els[id] = document.getElementById(id); });
+    ["warehouseModal", "warehouseForm", "warehouseBody", "warehouseFormError", "warehouseContext", "warehouseSource",
+      "warehouseQty", "warehouseNotes", "warehouseAvailability", "warehouseModalClose", "warehouseCancel", "warehouseSave"]
+      .forEach((id) => { els[id] = document.getElementById(id); });
     ["dfModal", "dfModalTitle", "dfForm", "dfBody", "dfFormError", "dfPicker", "dfPlate", "dfRows", "dfEmpty",
       "dfSelectionCount", "dfTotal", "dfPreviewNote", "dfSummary", "dfSummaryBody", "dfModalClose", "dfCancel", "dfNewImport", "dfSave"]
       .forEach((id) => { els[id] = document.getElementById(id); });
@@ -3307,6 +3566,7 @@
     els.invoiceModalClose = document.getElementById("invoiceModalClose");
     els.invoiceCancel = document.getElementById("invoiceCancel");
     els.invoiceSave = document.getElementById("invoiceSave");
+    els.invoiceEntryTimer = document.getElementById("invoiceEntryTimer");
     els.addSupplierBtn = document.getElementById("addSupplierBtn");
     els.supplierModal = document.getElementById("supplierModal");
     els.supplierForm = document.getElementById("supplierForm");
@@ -3344,7 +3604,6 @@
       ariaDateFormat: "d.m.Y",
       allowInput: true,
       disableMobile: true,
-      defaultDate: DEMO_TODAY,
       parseDate: (dateStr, format) => {
         if (format === "d.m.Y") {
           const iso = parseRomanianDate(dateStr);
@@ -3363,7 +3622,10 @@
         const label = els.invoiceDate.closest(".ep-field");
         if (label) label.htmlFor = altInput.id;
       },
-      onChange: () => {
+      onChange: (selectedDates, dateStr) => {
+        /* Flatpickr emite schimbări sintetice; pornește timpul doar dacă data s-a schimbat. */
+        if (dateStr !== invoiceUi.lastDateValue) startInvoiceEntryTimer();
+        invoiceUi.lastDateValue = dateStr;
         const altInput = invoiceUi.datePicker?.altInput;
         if (altInput) {
           altInput.classList.remove("is-invalid");
@@ -3478,6 +3740,22 @@
       }
     });
 
+    /* Magazie: confirmarea rezervă cantitatea; închiderea nu produce mișcări. */
+    els.warehouseForm.addEventListener("submit", saveWarehouseTransfer);
+    els.warehouseModalClose.addEventListener("click", () => closeWarehouseModal());
+    els.warehouseCancel.addEventListener("click", () => closeWarehouseModal());
+    els.warehouseModal.addEventListener("click", (event) => {
+      if (event.target === els.warehouseModal) closeWarehouseModal();
+    });
+    els.warehouseSource.addEventListener("change", () => {
+      clearWarehouseError();
+      updateWarehouseAvailability({ resetQty: true });
+    });
+    els.warehouseForm.addEventListener("input", clearWarehouseError);
+    els.warehouseForm.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target.matches("input") && !event.isComposing) event.preventDefault();
+    });
+
     /* Retururi furnizor: rezervare imediată și confirmarea etapei următoare. */
     els.returnForm.addEventListener("submit", saveReturn);
     els.returnModalClose.addEventListener("click", () => closeReturnModal());
@@ -3547,6 +3825,7 @@
     els.addInvoiceLine.addEventListener("click", () => addInvoiceLine(true));
 
     els.invoiceForm.addEventListener("input", (event) => {
+      if (event.isTrusted) startInvoiceEntryTimer();
       clearInvoiceErrorMessage();
       if (event.target.matches(".is-invalid")) {
         event.target.classList.remove("is-invalid");
@@ -3555,7 +3834,17 @@
       updateInvoiceFormTotals();
     });
 
+    /* Selecturile pornesc timpul la schimbare; simpla focalizare nu îl pornește. */
+    els.invoiceForm.addEventListener("change", (event) => {
+      if (event.isTrusted) startInvoiceEntryTimer();
+    });
+
     els.invoiceForm.addEventListener("focusout", (event) => {
+      /* Majuscule la ieșirea din cod: păstrează caracterele și cursorul în timpul editării. */
+      if (event.target.matches('[data-field="code"]')) {
+        event.target.value = event.target.value.toUpperCase();
+        return;
+      }
       if (event.target === els.invoiceNumber) {
         event.target.value = normalizeInvoiceNumber(event.target.value);
         return;
@@ -3576,8 +3865,17 @@
     }, { passive: false });
 
     els.invoiceForm.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || !event.target.matches("input")) return;
+      /* Enter avansează numai prin inputurile liniilor; Tab rămâne nativ. */
+      if (event.key !== "Enter" || event.isComposing || event.defaultPrevented || !event.target.matches("input")) return;
+      if (event.target === invoiceUi.datePicker?.altInput || event.target.closest(".flatpickr-calendar")) return;
       event.preventDefault();
+      if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      const row = event.target.closest("tr[data-line-id]");
+      if (!row) return;
+      const fields = [...row.querySelectorAll("input[data-field]:not([disabled])")];
+      const nextField = fields[fields.indexOf(event.target) + 1];
+      if (nextField) nextField.focus();
+      else lineField(row.nextElementSibling || addInvoiceLine(false), "name")?.focus();
     });
 
     els.invoiceLinesBody.addEventListener("click", (event) => {
@@ -3641,7 +3939,7 @@
 
     /* Escape închide drawer-ul mobil, dacă nu există un modal deschis */
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape" || !els.infoModal.hidden || !els.invoiceModal.hidden || !els.supplierModal.hidden || !els.assignmentModal.hidden || !els.returnModal.hidden || !els.dfModal.hidden) return;
+      if (event.key !== "Escape" || !els.infoModal.hidden || !els.invoiceModal.hidden || !els.supplierModal.hidden || !els.assignmentModal.hidden || !els.returnModal.hidden || !els.dfModal.hidden || !els.warehouseModal.hidden) return;
       if (els.detailsPanel.classList.contains("is-open")) clearSelection();
     });
   };
