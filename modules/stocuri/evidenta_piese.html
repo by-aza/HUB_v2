@@ -12,12 +12,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261025-readability">
 </head>
 <body>
   <div class="ep-app">
     <!-- Antetul modulului: identitate, badge DEMO și acțiunea principală -->
     <header class="ep-header">
+      <!-- Întoarcere normală la HUB, în stânga identității, după modelul din avans.html. -->
+      <a class="ep-back-hub" href="../../index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7M5 12h14"/></svg>
+        <span>Înapoi</span>
+      </a>
       <div class="ep-brand">
         <span class="ep-brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -37,13 +42,6 @@
 
       <div class="ep-header-actions">
         <span class="ep-header-hint">Furnizori <b>→</b> facturi <b>→</b> piese <b>→</b> mașini</span>
-        <!-- Link direct spre HUB, cu săgeata Lucide și stilul discret al antetului -->
-        <a class="ep-button ep-button-ghost ep-back-hub" href="../../index.html">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
-          </svg>
-          <span>Înapoi la HUB</span>
-        </a>
         <button type="button" class="ep-button ep-button-primary ep-new-invoice" id="newInvoiceBtn">
           <span class="ep-plus" aria-hidden="true">+</span>
           <span>Factură nouă</span>
@@ -75,6 +73,7 @@
 
     <main class="ep-main">
       <!-- Indicatori generali, calculați din datele DEMO -->
+      <!-- Cinci KPI: poziții, atribuire, valoare, retururi și bucăți spre magazie. -->
       <section class="ep-kpi-grid" id="kpiGrid" aria-label="Indicatori generali"></section>
 
       <div class="ep-workspace">
@@ -278,6 +277,8 @@
         </div>
 
         <footer class="ep-modal-foot ep-invoice-foot">
+          <!-- Timp opțional de introducere; fără câmp de formular sau persistență. -->
+          <span class="ep-invoice-entry-timer" title="Timp de la prima modificare până la salvare" role="timer" aria-label="Timp de introducere">Timp <span id="invoiceEntryTimer">0:00</span></span>
           <div class="ep-invoice-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="invoiceCancel">Anulează</button>
             <button type="submit" class="ep-button ep-button-primary" id="invoiceSave">Salvează factura</button>
@@ -452,7 +453,7 @@
               <span>Mașină existentă <b class="ep-required">*</b></span>
               <select id="dfPlate" required></select>
             </label>
-            <p class="ep-detail-note">Disponibilul exclude retururile, importurile anterioare și DF-urile istorice.</p>
+            <p class="ep-detail-note">Disponibilul exclude retururile, trimiterile în magazie, importurile anterioare și DF-urile istorice.</p>
             <div class="ep-df-table-wrap">
               <table class="ep-df-table">
                 <thead><tr><th scope="col">Selectează</th><th scope="col">Piesă / factură / furnizor</th><th scope="col">Cantități</th><th scope="col">Cant. import</th><th scope="col">Achiziție / buc. cu TVA</th><th scope="col">Valoare cu TVA</th></tr></thead>
@@ -538,6 +539,46 @@
     </div>
   </div>
 
+  <!-- Trimitere în magazie: rezervare cantitativă DEMO, fără recepție sau stoc real. -->
+  <div class="ep-modal-overlay" id="warehouseModal" hidden>
+    <div class="ep-modal ep-warehouse-modal" role="dialog" aria-modal="true" aria-labelledby="warehouseModalTitle" aria-describedby="warehouseModalNote">
+      <header class="ep-modal-head">
+        <div>
+          <span class="ep-eyebrow ep-warehouse-text">Magazie · DEMO</span>
+          <h2 id="warehouseModalTitle">Trimite în magazie</h2>
+          <p class="ep-detail-note" id="warehouseModalNote">Cantitatea se rezervă la confirmare. Datele se resetează la refresh.</p>
+        </div>
+        <button type="button" class="ep-icon-button" id="warehouseModalClose" aria-label="Închide trimiterea în magazie">✕</button>
+      </header>
+      <form class="ep-warehouse-form" id="warehouseForm" novalidate>
+        <div class="ep-modal-body ep-warehouse-body" id="warehouseBody">
+          <div class="ep-form-alert" id="warehouseFormError" role="alert" tabindex="-1" hidden></div>
+          <div class="ep-detail-card" id="warehouseContext"></div>
+          <!-- Sursa identifică bucățile nealocate sau alocarea auto păstrată în istoric. -->
+          <div class="ep-warehouse-fields">
+            <label class="ep-field" for="warehouseSource">
+              <span>Sursa cantității <b class="ep-required">*</b></span>
+              <select id="warehouseSource" required></select>
+            </label>
+            <label class="ep-field" for="warehouseQty">
+              <span>Cantitate <b class="ep-required">*</b></span>
+              <input type="number" id="warehouseQty" min="1" step="1" inputmode="numeric" aria-describedby="warehouseAvailability" required>
+            </label>
+            <label class="ep-field" for="warehouseNotes">
+              <span>Observații <small>opțional</small></span>
+              <textarea id="warehouseNotes" rows="2" maxlength="500"></textarea>
+            </label>
+          </div>
+          <p class="ep-detail-note" id="warehouseAvailability" role="status" aria-live="polite"></p>
+        </div>
+        <footer class="ep-modal-foot">
+          <button type="button" class="ep-button ep-button-ghost" id="warehouseCancel">Anulează</button>
+          <button type="submit" class="ep-button ep-warehouse-button" id="warehouseSave">Trimite în magazie · DEMO</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
   <!-- Dialog informativ reutilizabil pentru acțiunile din etapa următoare -->
   <div class="ep-modal-overlay" id="infoModal" hidden>
     <div class="ep-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle" aria-describedby="infoModalMessage">
@@ -583,6 +624,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ro.js"></script>
-  <script src="../../js/evidenta_piese.js"></script>
+  <script src="../../js/evidenta_piese.js?v=20261025-facturi-ux"></script>
 </body>
 </html>
