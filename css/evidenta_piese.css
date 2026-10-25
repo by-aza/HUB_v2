@@ -84,15 +84,24 @@ tr:focus-visible {
    ------------------------------------------------------------------------- */
 .ep-header {
   min-height: 66px;
-  display: flex;
+  /* Trei zone ca în avans.html: întoarcere, identitate, acțiune principală. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  padding: 10px 18px;
+  gap: 16px;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #191c23 0%, #171a21 100%);
   flex: none;
 }
-.ep-brand { min-width: 0; display: flex; align-items: center; gap: 11px; }
+/* Linkul din avans.html: săgeată 20px, text uppercase 12px, fără fundal sau chenar. */
+.ep-back-hub { justify-self: start; display: inline-flex; align-items: center; gap: 8px; color: #98a0ad; text-decoration: none; white-space: nowrap; transition: color .15s; }
+.ep-back-hub > span { font-size: 12px; font-weight: 700; line-height: 16px; letter-spacing: .1em; text-transform: uppercase; }
+.ep-back-hub svg { flex: none; width: 20px; height: 20px; transition: transform .15s; }
+.ep-back-hub:hover { color: #f1f2f4; }
+.ep-back-hub:hover svg { transform: translateX(-4px); }
+.ep-back-hub:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; border-radius: 3px; }
+.ep-brand { min-width: 0; justify-self: center; display: flex; align-items: center; gap: 11px; }
 .ep-brand-mark {
   width: 38px;
   height: 38px;
@@ -174,9 +183,6 @@ tr:focus-visible {
 }
 .ep-button svg { width: 14px; height: 14px; flex: none; }
 .ep-button:hover { border-color: var(--line-strong); filter: brightness(1.1); }
-/* linkul spre HUB reutilizează butonul discret și rămâne accesibil la tastatură */
-.ep-back-hub { flex: none; text-decoration: none; }
-.ep-back-hub:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .ep-button-primary {
   border-color: rgba(45, 212, 207, .42);
   color: #eafffd;
@@ -287,7 +293,8 @@ tr:focus-visible {
 .ep-kpi-grid {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Cinci indicatori pe desktop; aceeași densitate și aceleași carduri HUB. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .ep-kpi {
@@ -315,6 +322,10 @@ tr:focus-visible {
 .ep-kpi--warning .ep-kpi-icon { color: var(--amber); background: rgba(245, 179, 43, .11); }
 .ep-kpi--success .ep-kpi-icon { color: var(--green); background: rgba(39, 199, 154, .11); }
 .ep-kpi--danger .ep-kpi-icon { color: var(--rose); background: rgba(239, 71, 87, .11); }
+/* KPI magazie: violet discret, fără schimbarea culorilor celorlalte stări. */
+.ep-kpi--warehouse { border-color: rgba(167, 139, 250, .20); }
+.ep-kpi--warehouse .ep-kpi-icon { color: #c9b6ff; background: rgba(167, 139, 250, .11); }
+.ep-kpi--warehouse .ep-kpi-copy > span, .ep-kpi--warehouse .ep-kpi-copy > small { white-space: normal; overflow-wrap: anywhere; }
 .ep-kpi-copy { min-width: 0; display: grid; gap: 0; }
 .ep-kpi-copy > span { color: var(--muted); font-size: 9.5px; }
 .ep-kpi-copy strong {
@@ -715,6 +726,15 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-detail-row .ep-df { font-size: 8.5px; }
 .ep-detail-note { margin: 0; padding: 8px 0; color: #cbd0d8; font-size: 10px; line-height: 1.5; }
 .ep-detail-note strong { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+
+/* Facturi: statusul hârtiei și informarea discretă sunt separate de cantitățile pieselor. */
+.ep-invoice-document { padding-top: 12px; border-top: 1px solid var(--line); }
+.ep-invoice-document-status { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.ep-invoice-notice-mark { display: inline-flex; color: var(--amber); cursor: help; }
+.ep-invoice-notice-mark svg { width: 13px; height: 13px; }
+.ep-invoice-notice-mark:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 3px; }
+.ep-invoice-document-notice { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 8px; padding: 7px; border: 1px solid rgba(245, 179, 43, .20); border-radius: 6px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.ep-invoice-document-notice svg { flex: none; width: 13px; height: 13px; margin-top: 1px; color: var(--amber); }
 .ep-preserved-note { white-space: pre-wrap; }
 .ep-note-history { margin-top: 8px; font-size: 10px; }
 .ep-note-history summary { color: var(--muted); cursor: pointer; }
@@ -751,6 +771,32 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
 .ep-detail-actions .ep-button { min-height: 34px; font-size: 10.5px; }
 .ep-detail-actions .ep-wide { grid-column: 1 / -1; }
+
+/* Status și editare piesă: buton compact, lângă starea cantitativă curentă. */
+.ep-part-status-actions { flex: 0 1 48%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.ep-part-edit { min-height: 26px; padding: 0 7px; font-size: 9px; }
+.ep-part-edit svg { width: 12px; height: 12px; }
+
+/* Magazie: nuanță violet dedicată, fără modificarea tokenilor de status HUB. */
+.ep-warehouse-text, .ep-warehouse-history h4 { color: #c9b6ff; }
+.ep-warehouse-badge { color: #d7c9ff; border: 1px solid rgba(167, 139, 250, .32); background: rgba(167, 139, 250, .12); white-space: normal; }
+.ep-warehouse-button { color: #d7c9ff; border-color: rgba(167, 139, 250, .38); background: rgba(167, 139, 250, .10); }
+.ep-warehouse-button:hover:not(:disabled) { border-color: #a78bfa; background: rgba(167, 139, 250, .20); }
+.ep-warehouse-status { display: grid; gap: 4px; min-width: 0; }
+.ep-warehouse-status > small { color: var(--muted); font-size: 9px; line-height: 1.5; white-space: normal; }
+
+/* Historicul trimiterilor: sursă, cantitate, moment și notițe cu încadrare în panou. */
+.ep-warehouse-record { display: grid; gap: 3px; padding: 8px 0; overflow-wrap: anywhere; }
+.ep-warehouse-record + .ep-warehouse-record { border-top: 1px solid var(--line); }
+.ep-warehouse-record > strong { color: #d7c9ff; font-size: 10px; }
+.ep-warehouse-record > small, .ep-warehouse-record > time { color: var(--muted); font-size: 9px; }
+.ep-warehouse-record > p { margin: 3px 0 0; font-size: 10px; white-space: pre-wrap; }
+
+/* Formular compact de trimitere; corpul derulează pe ecranele mici. */
+.ep-warehouse-modal { width: min(580px, calc(100vw - 24px)); }
+.ep-warehouse-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.ep-warehouse-body { flex: 1; min-height: 0; }
+.ep-warehouse-fields { display: grid; gap: 10px; margin-top: 12px; }
 
 /* Mini-indicatori, liste compacte și pași de retur */
 .ep-detail-stats {
@@ -979,16 +1025,18 @@ body.ep-drawer-open { overflow: hidden; }
 
 @media (max-width: 900px) {
   .ep-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Ultimul KPI ocupă rândul rămas, fără un card izolat pe mobil/tabletă. */
+  .ep-kpi--warehouse { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
-  .ep-header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
-  .ep-brand { width: 100%; }
+  /* Antet pe două coloane ca în referință; acțiunea rămâne aliniată la dreapta. */
+  .ep-header { grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 12px; }
+  .ep-brand { width: auto; justify-self: start; }
   .ep-brand-mark { width: 35px; height: 35px; }
   .ep-title-line h1 { font-size: 17px; }
-  .ep-header-actions { width: 100%; gap: 10px; }
-  /* acțiunile antetului împart rândul pe mobil fără a depăși lățimea paginii */
-  .ep-new-invoice { flex: 1; width: auto; min-width: 0; min-height: 38px; }
+  .ep-header-actions { grid-column: 1 / -1; justify-self: end; width: auto; gap: 10px; }
+  .ep-new-invoice { width: auto; min-height: 38px; }
   .ep-tabbar { min-height: 46px; padding: 0 8px; }
   .ep-tabs { flex: 1; gap: 0; }
   .ep-tab { height: 46px; flex: 1; justify-content: center; padding: 0 6px; gap: 4px; font-size: 10.5px; }
@@ -1020,6 +1068,14 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-modal { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
   .ep-modal-head, .ep-modal-body { padding-left: 13px; padding-right: 13px; }
   .ep-modal-foot { padding: 9px 13px; }
+}
+
+/* Telefoane înguste: linkul complet și Factură nouă sus, identitatea pe rândul următor. */
+@media (max-width: 540px) {
+  .ep-header { grid-template-columns: minmax(0, 1fr) auto; }
+  .ep-back-hub { grid-column: 1; grid-row: 1; }
+  .ep-header-actions { grid-column: 2; grid-row: 1; }
+  .ep-brand { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (max-width: 420px) {
@@ -1606,6 +1662,10 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-assignment-cta .ep-wide { width: 100%; }
 .ep-allocation-list { display: grid; gap: 5px; }
 .ep-allocation-summary { color: var(--muted); font-size: 9px; white-space: normal; }
+/* Destinații scurte în tabel; istoricul pe mașini se deschide în panoul de detalii. */
+.ep-quantity-summary { color: var(--muted); font-size: 9px; line-height: 1.6; white-space: normal; }
+.ep-quantity-history { margin-top: 9px; }
+.ep-quantity-history > summary { color: var(--muted); font-size: 10px; cursor: pointer; }
 .ep-allocation-detail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .ep-allocation-detail .ep-button { min-height: 28px; font-size: 9px; }
 .ep-compact-row-main .ep-allocation-list { margin-top: 5px; }
@@ -1684,7 +1744,27 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-df-foot-actions { display: flex; gap: 7px; }
 .ep-df-link { display: inline-block; width: fit-content; padding: 1px 0; border: 0; color: var(--cyan); background: transparent; font: 500 9px/1.5 var(--mono); text-align: left; }
 .ep-df-link:hover { text-decoration: underline; }
+
+/* Lizibilitate +1–2px numai în Piese, De atribuit și Facturi; păstrăm paddingul rândurilor. */
+/* Ierarhia rămâne: denumiri, valori principale, apoi coduri/date/descrieri. */
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table th { font-size: 10px; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table td { font-size: 12px; line-height: 1.45; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-cell-stack strong { font-size: 12.5px; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table :is(.ep-invoice-cell strong, .ep-supplier-cell, .ep-money) { font-size: 11.5px; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-code { font-size: 10.5px; line-height: 1.4; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table :is(.ep-invoice-cell small, .ep-plate-cell small, .ep-cell-stack > small, .ep-allocation-summary, .ep-quantity-summary, .ep-df, .ep-df-link) { font-size: 11px; line-height: 1.45; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-plate { font-size: 11px; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-money small { font-size: 10.5px; line-height: 1.4; }
+#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-badge { font-size: 10px; }
 .ep-invoice-foot, .ep-supplier-foot, .ep-assignment-foot, .ep-return-foot { justify-content: flex-end; }
+
+/* Cronometru factură: text discret, aliniat la stânga, fără culori de status. */
+.ep-invoice-entry-timer {
+  margin-right: auto;
+  color: var(--muted-2);
+  font: 500 9px/1.5 var(--mono);
+  white-space: nowrap;
+}
 
 @media (max-width: 620px) {
   .ep-bulk-bar { flex-wrap: wrap; }
