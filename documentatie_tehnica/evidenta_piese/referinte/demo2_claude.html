@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Evidență Piese v2 · Demo 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Culori: aici se schimbă fundalul, cardurile, accentul (mod luminos) ===== */
+:root{--bg:#f4f6f9;--card:#fff;--card2:#eef1f5;--line:#d9dee6;--text:#161a22;--muted:#5d6675;--accent:#0f9d99;--accent-ink:#fff;--warn:#8a5600;--warnbg:#fff1cf;--bad:#c4263a;--badbg:#fde8eb;--ok:#13805f;--input:#fff;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* ===== Culori mod întunecat (stilul HUB: fundal #14161c, accent turcoaz) ===== */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161c;--card:#1b1e26;--card2:#232731;--line:#2e3340;--text:#f1f2f4;--muted:#98a0ad;--accent:#2dd4cf;--accent-ink:#06211f;--warn:#f5b32b;--warnbg:#3a2f12;--bad:#ff8e99;--badbg:#3b1a20;--ok:#5fd9b5;--input:#14161c}}
+:root[data-theme="dark"]{--bg:#14161c;--card:#1b1e26;--card2:#232731;--line:#2e3340;--text:#f1f2f4;--muted:#98a0ad;--accent:#2dd4cf;--accent-ink:#06211f;--warn:#f5b32b;--warnbg:#3a2f12;--bad:#ff8e99;--badbg:#3b1a20;--ok:#5fd9b5;--input:#14161c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:16px}
+.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace}
+
+/* ===== Antet: titlu + insigna DEMO ===== */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.top h1{margin:0;font-size:20px;font-weight:700}
+.badge{padding:2px 8px;border-radius:99px;background:var(--warnbg);color:var(--warn);font-size:12px;font-weight:700}
+.top p{margin:0;color:var(--muted);font-size:13px;flex-basis:100%}
+
+/* ===== Pașii fluxului: doar ecranul 1 e activ acum ===== */
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.step{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--muted);font-size:13px}
+.step.on{border-color:var(--accent);color:var(--text);font-weight:600}
+.step.off{opacity:.55}
+/* Pașii 1 și 2 sunt butoane pe care se poate apăsa */
+button.step{font:inherit;cursor:pointer}button.step:hover{color:var(--text)}
+[hidden]{display:none!important}
+/* Ecranul 3: contoare sus, linii cu istoric de închidere, formularul de închidere */
+.kpis{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.kpi{padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
+.kpi b{display:block;font-size:20px}.kpi span{font-size:12px;color:var(--muted)}
+.pill.ok-pill{color:var(--ok);font-weight:600}.pill.late{color:var(--warn)}
+.lr{padding:8px 0;border-top:1px solid var(--line)}.lr .top{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}
+.hist{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{display:inline-flex;gap:6px;align-items:center;padding:2px 8px;border-radius:99px;background:var(--card2);font-size:12px}
+.tag button{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0}.tag button:hover{color:var(--bad)}
+.closer{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:8px}
+.closer input,.closer select{width:auto;min-width:90px}
+.btn.sm{height:32px;padding:0 10px;font-size:13px}
+.take{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+/* Ecranul 2: antetul cardului unei mașini, rândurile de piese, placa mare */
+.gh{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between}.gh h3{margin:0}
+.chip.big{font-size:15px;padding:3px 10px}.pick{margin:8px 0 4px;line-height:2}
+.ln.f2{grid-template-columns:minmax(0,1fr) auto auto auto}.ln small{color:var(--muted)}
+@media (max-width:800px){.ln.f2{grid-template-columns:1fr auto}}
+
+/* ===== Cardurile paginii ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:16px}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.row+.row{margin-top:10px}
+.f{display:grid;gap:4px;font-size:12.5px;color:var(--muted);min-width:0}
+input,select{width:100%;height:36px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:var(--input);color:var(--text);font:inherit}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input.bad{border-color:var(--bad);background:var(--badbg)}
+.req{color:var(--bad)}
+
+/* ===== Alegerea prețului: fără TVA / cu TVA (se bifează o dată pe factură) ===== */
+.seg{display:flex;gap:6px}
+.seg label{flex:1;display:flex;align-items:center;justify-content:center;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--input);color:var(--text);cursor:pointer;font-size:13px}
+.seg label:has(input:checked){border-color:var(--accent);background:var(--card2);font-weight:600}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent)}
+.vatbox{display:flex;gap:6px;align-items:center}.vatbox input{width:70px}
+/* Data: câmpul de text + butonul de calendar în dreapta (aici se aliniază iconița) */
+.dwrap{position:relative;display:block}.dwrap input#date{padding-right:38px}
+.cal{position:absolute;right:3px;top:3px;width:30px;height:30px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.cal:hover{color:var(--accent);background:var(--card2)}.cal svg{width:17px;height:17px}
+/* Selectorul nativ de dată: invizibil, doar ancorează calendarul sub câmp */
+#datePick{position:absolute;left:0;bottom:0;width:100%;height:36px;opacity:0;pointer-events:none;border:0;padding:0}
+/* Codul piesei se vede cu litere mari încă din timpul scrierii */
+[data-f=code]{text-transform:uppercase}
+
+/* ===== Liniile facturii: o linie = o grilă cu 7 coloane ===== */
+.line{display:grid;grid-template-columns:2.3fr 1fr .6fr .9fr 1.1fr 1.25fr 34px;gap:6px;align-items:start;padding:5px 0;border-top:1px solid var(--line)}
+.line.head{border-top:0;padding-bottom:0;font-size:12px;color:var(--muted)}
+.line .lb{display:none;font-size:12px;color:var(--muted)}
+.c{display:grid;gap:3px;min-width:0}
+.val{font-size:12px;line-height:1.35;padding-top:2px;text-align:right}
+.val b{display:block;font-weight:600;font-size:13px}.val small{color:var(--muted)}
+.plate{text-transform:uppercase;font-family:"JetBrains Mono",ui-monospace,monospace}
+.x{height:36px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+.x:hover{color:var(--bad);border-color:var(--bad)}
+.add{margin-top:8px}
+
+/* ===== Butoane ===== */
+.btn{height:38px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:var(--card2);color:var(--text);font:inherit;font-weight:600;cursor:pointer}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:hover{filter:brightness(1.07)}
+
+/* ===== Totaluri + verificarea totalului de pe hârtie + cronometru ===== */
+.foot{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between}
+.tot{display:flex;gap:18px;flex-wrap:wrap}
+.tot div{display:grid;gap:1px;font-size:12px;color:var(--muted)}
+.tot b{font-size:16px;color:var(--text)}
+.paper{width:190px}
+.msg{font-size:12.5px;margin:6px 0 0;min-height:18px}
+.msg.warn{color:var(--warn)}.msg.ok{color:var(--ok)}
+.timer{padding:4px 10px;border-radius:99px;background:var(--card2);font-size:13px}
+.actions{display:flex;gap:8px;align-items:center}
+.err{display:none;margin:0 0 12px;padding:10px 12px;border:1px solid var(--bad);border-radius:8px;background:var(--badbg);color:var(--bad);font-size:13px}
+.err ul{margin:4px 0 0 18px;padding:0}
+
+/* ===== Lista facturilor introduse ===== */
+.inv{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:var(--card)}
+.inv header{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between}
+.inv h3{margin:0;font-size:15px}
+.meta{color:var(--muted);font-size:12.5px}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--card2);font-size:12px;color:var(--muted)}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;padding:6px 0;border-top:1px solid var(--line);font-size:13px;align-items:center}
+.ln:first-of-type{margin-top:8px}
+.chip{padding:2px 8px;border-radius:6px;background:var(--card2);font-weight:700;font-size:12px}
+.chip.none{background:var(--warnbg);color:var(--warn);font-family:inherit;font-weight:600}
+.empty{color:var(--muted);padding:10px 0}
+
+/* ===== Mesajul de confirmare (jos, dispare singur) ===== */
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100vw - 24px);padding:10px 14px;border-radius:10px;background:var(--text);color:var(--bg);font-size:13px;z-index:5}
+
+/* ===== Telefon: liniile devin carduri, câmpurile primesc etichete ===== */
+@media (max-width:800px){
+  .row{grid-template-columns:1fr 1fr}
+  .line.head{display:none}
+  .line{grid-template-columns:1fr 1fr;padding:10px 0}
+  .line .lb{display:block}
+  .c.n,.c.v{grid-column:1/-1}
+  .val{text-align:left}
+  .x{grid-column:1/-1}
+  .paper{width:100%}
+}
+@media (max-width:480px){.row{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Antet -->
+  <div class="top">
+    <h1>Evidență Piese v2</h1><span class="badge">DEMO 2</span>
+    <p>Date fictive. La refresh totul revine la început. Nu se leagă de HUB, de DF sau de baza de date.</p>
+  </div>
+
+  <!-- Pașii fluxului (ecranele 2 și 3 urmează după ce confirmi ecranul 1) -->
+  <div class="steps">
+    <button type="button" class="step on" data-tab="new">1. Factură nouă</button>
+    <button type="button" class="step" data-tab="find">2. Căutare după mașină</button>
+    <button type="button" class="step" data-tab="close">3. Închidere linii</button>
+  </div>
+
+  <div id="viewNew">
+  <!-- ===== ECRANUL 1: formularul de factură ===== -->
+  <form id="f" class="card" novalidate autocomplete="off">
+    <h2>Factură nouă</h2>
+    <p class="hint">Scrie prețul exact cum e tipărit pe factură. Liniile goale se ignoră la salvare. Enter în câmpul „Mașină” trece la linia următoare.</p>
+    <div class="err" id="err" role="alert"></div>
+
+    <!-- Datele facturii -->
+    <div class="row">
+      <label class="f"><span>Furnizor <span class="req">*</span></span>
+        <input id="sup" list="sups" placeholder="alege sau scrie">
+        <datalist id="sups"><option value="Auto Parts SRL"><option value="Motorparts Distribution"><option value="Piese Auto Expert"><option value="AP Trade"></datalist>
+      </label>
+      <label class="f"><span>Număr factură <span class="req">*</span></span><input id="num" placeholder="ex. FA-1102"></label>
+      <label class="f"><span>Data facturii <span class="req">*</span></span><span class="dwrap"><input id="date" placeholder="zz.ll.aaaa" inputmode="numeric" maxlength="10"><button type="button" class="cal" id="calBtn" aria-label="Alege data din calendar" title="Alege din calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></button><input type="date" id="datePick" tabindex="-1" aria-hidden="true"></span></label>
+      <div class="f">Prețurile de pe factură sunt
+        <div class="seg">
+          <label><input type="radio" name="mode" value="net" checked>fără TVA</label>
+          <label><input type="radio" name="mode" value="gross">cu TVA</label>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <label class="f">Mașina implicită pentru liniile fără mașină
+        <input id="defPlate" class="plate" placeholder="ex. CT11AAA">
+      </label>
+      <label class="f">Cota TVA a facturii (de validat)
+        <span class="vatbox"><input id="vat" value="21" inputmode="decimal"> %</span>
+      </label>
+    </div>
+
+    <!-- Liniile: aici se scrie piesa, cantitatea, prețul și mașina -->
+    <h2 style="margin-top:16px">Piese pe factură</h2>
+    <div class="line head"><span>Denumire piesă</span><span>Cod (opțional)</span><span>Cant.</span><span>Preț unitar</span><span>Mașină</span><span style="text-align:right">Valoare linie</span><span></span></div>
+    <div id="lines"></div>
+    <button type="button" class="btn add" id="addLine">+ Adaugă linie</button>
+
+    <!-- Totaluri, verificare cu hârtia, cronometru și butoane -->
+    <div class="foot" style="margin-top:16px">
+      <div>
+        <div class="tot"><div>Fără TVA<b id="tNet" class="mono">0,00 lei</b></div><div>TVA<b id="tVat" class="mono">0,00 lei</b></div><div>Cu TVA<b id="tGross" class="mono">0,00 lei</b></div></div>
+        <label class="f paper" style="margin-top:10px">Total cu TVA de pe hârtie (opțional)<input id="paper" inputmode="decimal" placeholder="ex. 1240,50"></label>
+        <p class="msg" id="paperMsg"></p>
+      </div>
+      <div class="actions">
+        <span class="timer mono" title="Timpul de la prima tastă până la salvare">⏱ <span id="timer">0:00</span></span>
+        <button type="button" class="btn" id="clearBtn">Golește</button>
+        <button type="submit" class="btn main">Salvează factura</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Lista facturilor introduse (rezultatul salvării) -->
+  <div class="card">
+    <h2>Facturi introduse</h2>
+    <p class="hint">Toate rămân „pe raft” până când liniile se închid (ecranul 3).</p>
+    <div id="list"></div>
+  </div>
+  </div>
+
+  <!-- ===== ECRANUL 2: căutare după mașină ===== -->
+  <div id="viewFind" hidden>
+    <div class="card">
+      <h2>Căutare după mașină</h2>
+      <p class="hint">Scrie numărul mașinii sau o piesă, un cod, o factură, un furnizor. Apar și facturile introduse pe ecranul 1.</p>
+      <div class="row">
+        <label class="f" style="grid-column:span 2"><span>Caută</span><input id="q" placeholder="ex. CT11AAA, filtru, FA-1101" autocomplete="off"></label>
+        <label class="f"><span>Arată</span><select id="qScope"><option value="all">Toate piesele</option><option value="none">Doar fără mașină</option></select></label>
+      </div>
+      <p class="msg" id="qInfo"></p>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <!-- ===== ECRANUL 3: închiderea liniilor ===== -->
+  <div id="viewClose" hidden>
+    <div class="card">
+      <h2>Închidere linii</h2>
+      <p class="hint">O linie se închide când fiecare bucată are un final: folosită într-un DF, predată în magazie sau returnată. Când toate liniile unei facturi sunt închise, hârtia poate merge la contabilitate.</p>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="card">
+      <h2>De preluat în magazie</h2>
+      <p class="hint">Piese predate de colegi, încă nepreluate fizic.</p>
+      <div id="toTake"></div>
+    </div>
+    <div class="card"><div class="row"><label class="f"><span>Arată facturile</span><select id="cFilter"><option value="open">Cu linii deschise</option><option value="ready">Gata pentru contabilitate</option><option value="all">Toate</option></select></label></div></div>
+    <div id="closeList"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ===== Ajutoare: formatare bani, număr auto, text sigur ===== */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const money=c=>new Intl.NumberFormat("ro-RO",{minimumFractionDigits:2,maximumFractionDigits:2}).format(c/100)+" lei";
+const toC=v=>{const n=Number(String(v).trim().replace(/\s/g,"").replace(",","."));return String(v).trim()&&Number.isFinite(n)?Math.round(n*100):NaN};
+const plateOf=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dmy=iso=>iso.split("-").reverse().join(".");
+const mmss=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+/* Data implicită = ziua de azi, luată de pe calculatorul care deschide pagina */
+const TODAY=(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`})();
+/* Data se scrie zz.ll.aaaa; aici se transformă în formatul intern aaaa-ll-zz (gol dacă e invalidă) */
+const isoOf=v=>{const m=String(v).trim().match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);if(!m)return"";const iso=`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;const d=new Date(iso+"T12:00:00Z");return!isNaN(d)&&d.toISOString().slice(0,10)===iso?iso:""};
+/* Prima literă din denumire devine mare */
+const cap=s=>s?s.charAt(0).toLocaleUpperCase("ro-RO")+s.slice(1):s;
+
+/* ===== Calcul TVA pe factură: din „fără TVA” sau „cu TVA”, în bani întregi ===== */
+function calc(sum,mode,rate){
+  if(mode==="net"){const vat=Math.round(sum*rate/100);return{net:sum,vat,gross:sum+vat}}
+  const net=Math.round(sum/(1+rate/100));return{net,vat:sum-net,gross:sum};
+}
+const mode=()=>$('input[name=mode]:checked').value;
+const rate=()=>{const r=Number($("#vat").value.replace(",","."));return Number.isFinite(r)&&r>=0&&r<=100?r:NaN};
+
+/* ===== Date de pornire: o factură fictivă ca lista să nu fie goală ===== */
+const invoices=[{supplier:"Motorparts Distribution",number:"FA-1101",date:"2026-10-14",mode:"net",rate:21,secs:74,
+  lines:[{name:"Disc frână față",code:"0986479B10",qty:1,price:34710,plate:"B123XYZ"},
+         {name:"Plăcuțe frână față",code:"0986424510",qty:1,price:23140,plate:"B123XYZ"},
+         {name:"Filtru ulei Mann",code:"W712/95",qty:2,price:2686,plate:""}]},
+ {supplier:"Auto Parts SRL",number:"FA-1098",date:"2026-10-12",mode:"net",rate:21,secs:95,
+  lines:[{name:"Bară față Tesla Model 3",code:"1495070-S0",qty:1,price:102479,plate:"CT11AAA"},
+         {name:"Bară spate Tesla",code:"1495069-S0",qty:1,price:115702,plate:""},
+         {name:"Far stânga VW Golf VII",code:"5G1941035",qty:1,price:71074,plate:"CT73CSL"},
+         {name:"Grilă radiator BMW X3",code:"51138072085",qty:1,price:44628,plate:"CJ21ABC"}]},
+ {supplier:"AP Trade",number:"FA-1095",date:"2026-10-09",mode:"net",rate:21,secs:80,
+  lines:[{name:"Capotă motor Hyundai i30",code:"6640012A00",qty:1,price:153719,plate:"CT55AAA"},
+         {name:"Set bare portbagaj Skoda Octavia",code:"5E9071153",qty:1,price:52893,plate:"IS99TUD"},
+         {name:"Filtru aer Mann",code:"C25114",qty:1,price:4793,plate:"CT11AAA"},
+         {name:"Lampă stop spate Ford Focus",code:"8M5113405",qty:1,price:26446,plate:""}]},
+ /* Cazul cu surplus: 12 bucati comandate, 2 folosite, 10 de decis */
+ {supplier:"Piese Auto Expert",number:"FA-1103",date:"2026-10-02",mode:"net",rate:21,secs:60,
+  lines:[{name:"Ventil roată Hummer",code:"HV-4410",qty:12,price:1240,plate:"CT88HUM",closed:[{type:"df",qty:2,ref:"DF-204"}]}]},
+ /* Factură complet închisă: gata pentru contabilitate, cu o bucată de preluat în magazie */
+ {supplier:"Motorparts Distribution",number:"FA-1090",date:"2026-10-05",mode:"net",rate:21,secs:45,
+  lines:[{name:"Ștergebătoare față Bosch",code:"A863S",qty:2,price:7851,plate:"CT73CSL",closed:[{type:"df",qty:1,ref:"DF-199"},{type:"mag",qty:1}]}]}];
+/* Închideri fictive de pornire */
+invoices[0].lines[0].closed=[{type:"df",qty:1,ref:"DF-210"}];invoices[0].lines[1].closed=[{type:"df",qty:1,ref:"DF-210"}];
+invoices[1].lines[2].closed=[{type:"df",qty:1,ref:"DF-199"}];
+
+/* ===== O linie nouă în formular; mașina implicită se completează singură ===== */
+function lineHTML(){return `<div class="line" data-line>
+  <label class="c n"><span class="lb">Denumire piesă</span><input data-f="name" placeholder="ex. Disc frână față"></label>
+  <label class="c"><span class="lb">Cod (opțional)</span><input data-f="code"></label>
+  <label class="c"><span class="lb">Cant.</span><input data-f="qty" value="1" inputmode="numeric"></label>
+  <label class="c"><span class="lb">Preț unitar</span><input data-f="price" inputmode="decimal" placeholder="0,00"></label>
+  <label class="c"><span class="lb">Mașină</span><input data-f="plate" class="plate" placeholder="CT11AAA"></label>
+  <div class="c v"><span class="lb">Valoare linie</span><div class="val" data-val></div></div>
+  <button type="button" class="x" data-x aria-label="Șterge linia">✕</button></div>`}
+function addLine(focus){
+  $("#lines").insertAdjacentHTML("beforeend",lineHTML());
+  const row=$("#lines").lastElementChild, p=$('[data-f=plate]',row), d=plateOf($("#defPlate").value);
+  if(d){p.value=d;p.dataset.auto="1"}
+  if(focus)$('[data-f=name]',row).focus();
+  return row;
+}
+
+/* ===== Recalcularea valorilor pe linii și a totalurilor ===== */
+function update(){
+  const m=mode(),r=rate();let sum=0;
+  $$("[data-line]").forEach(row=>{
+    const q=Number($('[data-f=qty]',row).value),p=toC($('[data-f=price]',row).value),box=$("[data-val]",row);
+    if(Number.isInteger(q)&&q>0&&p>0&&!isNaN(r)){const c=calc(q*p,m,r);sum+=q*p;
+      box.innerHTML=`<b class="mono">${money(c.gross)}</b><small>fără TVA ${money(c.net)}</small>`}
+    else box.textContent="";
+  });
+  const t=calc(sum,m,isNaN(r)?0:r);
+  $("#tNet").textContent=money(t.net);$("#tVat").textContent=money(t.vat);$("#tGross").textContent=money(t.gross);
+  /* Verificare cu totalul de pe hârtie: avertizează dacă diferă */
+  const pm=$("#paperMsg"),pc=toC($("#paper").value);
+  if(isNaN(pc)||!sum){pm.textContent="";pm.className="msg";return}
+  const diff=pc-t.gross;
+  if(Math.abs(diff)<=5){pm.textContent="Totalul se potrivește cu factura.";pm.className="msg ok"}
+  else{pm.textContent=`Diferență de ${money(Math.abs(diff))} față de suma liniilor. Verifică prețurile și cantitățile.`;pm.className="msg warn"}
+}
+
+/* ===== Cronometru: pornește la prima tastă, se oprește la salvare ===== */
+let t0=null,tick=null;
+const secs=()=>t0?Math.round((Date.now()-t0)/1000):0;
+function startTimer(){if(t0)return;t0=Date.now();tick=setInterval(()=>$("#timer").textContent=mmss(secs()),1000)}
+function stopTimer(){const s=secs();clearInterval(tick);t0=null;return s}
+
+/* ===== Golirea formularului (o linie goală, data de azi) ===== */
+function resetForm(){
+  $("#f").reset();$("#date").value=dmy(TODAY);$("#vat").value="21";$("#lines").innerHTML="";
+  addLine(false);
+  clearInterval(tick);t0=null;$("#timer").textContent="0:00";
+  $("#err").style.display="none";$$(".bad").forEach(e=>e.classList.remove("bad"));update();
+}
+
+/* ===== Salvarea: validări clare, apoi factura intră în listă ===== */
+function save(e){
+  e.preventDefault();
+  const errs=[],bad=[],add=(m,el)=>{errs.push(m);if(el)bad.push(el)};
+  $$(".bad").forEach(x=>x.classList.remove("bad"));
+  const supplier=$("#sup").value.trim(),number=$("#num").value.trim().replace(/\s+/g," ").toUpperCase(),dateRaw=$("#date").value.trim(),date=isoOf(dateRaw),r=rate();
+  $("#num").value=number;
+  if(!supplier)add("Alege sau scrie furnizorul.",$("#sup"));
+  if(!number)add("Scrie numărul facturii.",$("#num"));
+  else if(supplier&&invoices.some(i=>i.supplier.toLowerCase()===supplier.toLowerCase()&&i.number===number))add(`Factura ${number} există deja la ${supplier}.`,$("#num"));
+  if(!dateRaw)add("Scrie data facturii (zz.ll.aaaa).",$("#date"));else if(!date)add("Data facturii nu este validă. Folosește formatul zz.ll.aaaa.",$("#date"));
+  if(isNaN(r))add("Cota TVA trebuie să fie între 0 și 100.",$("#vat"));
+  const lines=[];
+  $$("[data-line]").forEach((row,i)=>{
+    const g=f=>$(`[data-f=${f}]`,row),name=cap(g("name").value.trim()),price=g("price").value.trim(),code=g("code").value.trim().replace(/\s+/g," ").toUpperCase(),plate=plateOf(g("plate").value);
+    g("plate").value=plate;
+    if(!name&&!price&&!code&&!plate)return;                 /* linie goală: se ignoră */
+    const n=i+1,qty=Number(g("qty").value),pc=toC(price);
+    if(!name)add(`Linia ${n}: scrie denumirea piesei.`,g("name"));
+    if(!Number.isInteger(qty)||qty<=0)add(`Linia ${n}: cantitatea trebuie să fie un număr întreg, minim 1.`,g("qty"));
+    if(!(pc>0))add(`Linia ${n}: scrie prețul unitar (mai mare ca 0).`,g("price"));
+    if(plate&&!(/^[A-Z0-9]{4,12}$/.test(plate)&&/[A-Z]/.test(plate)&&/\d/.test(plate)))add(`Linia ${n}: numărul de mașină nu pare valid (4-12 litere și cifre).`,g("plate"));
+    lines.push({name,code,qty,price:pc,plate,closed:[]});
+  });
+  if(!lines.length)add("Adaugă cel puțin o piesă pe factură.",null);
+  if(errs.length){
+    $("#err").innerHTML=`<b>Factura nu a fost salvată</b><ul>${errs.map(m=>`<li>${esc(m)}</li>`).join("")}</ul>`;
+    $("#err").style.display="block";bad.forEach(b=>b.classList.add("bad"));
+    (bad[0]||$("#err")).scrollIntoView({block:"center"});if(bad[0])bad[0].focus();return;
+  }
+  const s=stopTimer();
+  invoices.unshift({supplier,number,date,mode:mode(),rate:r,lines,secs:s});
+  render();resetForm();toast(`Factura ${number} a fost salvată: ${lines.length} ${lines.length===1?"linie":"linii"}, ${mmss(s)} minute.`);
+  $("#list").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ===== Lista facturilor introduse ===== */
+function render(){
+  $("#list").innerHTML=invoices.length?invoices.map(inv=>{
+    const sum=inv.lines.reduce((a,l)=>a+l.qty*l.price,0),t=calc(sum,inv.mode,inv.rate),buc=inv.lines.reduce((a,l)=>a+l.qty,0);
+    const noCar=inv.lines.filter(l=>!l.plate).length;
+    return `<article class="inv"><header><h3>${esc(inv.number)} <span class="meta">· ${esc(inv.supplier)} · ${dmy(inv.date)}</span></h3>
+      <span class="meta">${inv.lines.length} linii · ${buc} buc. · <b class="mono">${money(t.gross)}</b> cu TVA · ${money(t.net)} fără TVA</span></header>
+      <p class="meta" style="margin:6px 0 0"><span class="pill">Pe raft · așteaptă DF</span> <span class="pill">introdusă în ${mmss(inv.secs)}</span>${noCar?` <span class="pill">${noCar} ${noCar===1?"linie":"linii"} fără mașină</span>`:""}</p>
+      ${inv.lines.map(l=>`<div class="ln"><span>${esc(l.name)}${l.code?` <span class="meta mono">${esc(l.code)}</span>`:""}</span>
+        <span class="meta mono">${l.qty} × ${money(l.price)}</span>
+        ${l.plate?`<span class="chip plate">${esc(l.plate)}</span>`:`<span class="chip none">fără mașină</span>`}</div>`).join("")}</article>`}).join("")
+    :`<p class="empty">Nicio factură încă. Completează formularul de mai sus.</p>`;
+}
+
+/* ===== Mesaj scurt de confirmare ===== */
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,4500)}
+
+/* ===== Evenimente ===== */
+$("#f").addEventListener("input",e=>{
+  startTimer();e.target.classList.remove("bad");
+  if(e.target.id==="defPlate"){                       /* mașina implicită intră în liniile necompletate */
+    const d=plateOf(e.target.value);e.target.value=d;
+    $$('[data-f=plate]').forEach(p=>{if(!p.value||p.dataset.auto){p.value=d;p.dataset.auto=d?"1":""}});
+  }
+  if(e.target.dataset.f==="plate"){delete e.target.dataset.auto}   /* corectat de mână: nu se mai suprascrie */
+  update();
+});
+$("#f").addEventListener("keydown",e=>{
+  if(e.key!=="Enter"||e.target.tagName!=="INPUT")return;
+  e.preventDefault();
+  const row=e.target.closest("[data-line]");
+  if(!row)return;
+  if(e.target.dataset.f==="plate"){                   /* Enter pe mașină: linia următoare (se creează dacă nu există) */
+    const next=row.nextElementSibling||addLine(false);$('[data-f=name]',next).focus();
+  }else{const f=$$("input",row),i=f.indexOf(e.target);f[i+1]?.focus()}
+});
+$("#lines").addEventListener("click",e=>{
+  if(!e.target.closest("[data-x]"))return;
+  e.target.closest("[data-line]").remove();if(!$("[data-line]"))addLine(false);update();
+});
+$("#lines").addEventListener("focusout",e=>{if(e.target.dataset.f==="plate")e.target.value=plateOf(e.target.value);if(e.target.dataset.f==="name")e.target.value=cap(e.target.value.trim());if(e.target.dataset.f==="code")e.target.value=e.target.value.trim().replace(/\s+/g," ").toUpperCase()});
+$("#addLine").addEventListener("click",()=>addLine(true));
+$("#clearBtn").addEventListener("click",resetForm);
+/* Calendar: butonul deschide selectorul nativ; data aleasă se scrie ca zz.ll.aaaa */
+$("#calBtn").addEventListener("click",()=>{const p=$("#datePick");p.value=isoOf($("#date").value);try{p.showPicker()}catch(_){p.focus()}});
+$("#datePick").addEventListener("change",e=>{if(e.target.value){$("#date").value=dmy(e.target.value);$("#date").classList.remove("bad")}});
+$("#f").addEventListener("submit",save);
+$$('input[name=mode]').forEach(r=>r.addEventListener("change",update));
+
+render();resetForm();
+/* Dacă browserul golește data după încărcare (restaurare de formular), se pune din nou ziua de azi */
+/* ===== Ecranul 2: căutarea. Textul se compară fără diacritice, spații sau cratime ===== */
+const nz=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[\s\-./]/g,"");
+function findRows(){
+  const q=nz($("#q").value),only=$("#qScope").value==="none",rows=[];
+  invoices.forEach(inv=>inv.lines.forEach(l=>{
+    if(only&&l.plate)return;                                  /* filtrul „Doar fără mașină” */
+    if(q&&![l.plate,l.name,l.code,inv.number,inv.supplier].some(f=>nz(f).includes(q)))return;
+    const c=calc(l.qty*l.price,inv.mode,inv.rate);rows.push({inv,l,net:c.net,gross:c.gross});
+  }));
+  return rows;
+}
+/* Cardurile pe mașini: antet cu total, facturile de scos de pe raft, apoi piesele */
+function renderFind(){
+  const rows=findRows(),groups=new Map();
+  rows.forEach(r=>{const k=r.l.plate||"";if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});
+  const keys=[...groups.keys()].sort((a,b)=>!a?1:!b?-1:a.localeCompare(b));   /* „Fără mașină” la sfârșit */
+  $("#qInfo").textContent=rows.length?`${keys.filter(Boolean).length} mașini · ${rows.length} linii găsite · totalurile sunt pe piesele afișate`:"";
+  $("#results").innerHTML=rows.length?keys.map(k=>{
+    const g=groups.get(k),net=g.reduce((a,r)=>a+r.net,0),gross=g.reduce((a,r)=>a+r.gross,0),buc=g.reduce((a,r)=>a+r.l.qty,0);
+    const invs=[...new Map(g.map(r=>[r.inv.supplier+"|"+r.inv.number,r.inv])).values()];
+    return `<section class="card"><header class="gh"><h3>${k?`<span class="chip plate big">${esc(k)}</span>`:`<span class="chip none big">Fără mașină atribuită</span>`}</h3>
+      <span class="meta">${g.length} linii · ${buc} buc. · <b class="mono">${money(gross)}</b> cu TVA · ${money(net)} fără TVA</span></header>
+      <p class="meta pick"><b>Facturi de scos de pe raft:</b> ${invs.map(i=>`<span class="pill">${esc(i.number)} · ${esc(i.supplier)} · ${dmy(i.date)}</span>`).join(" ")}</p>
+      ${g.map(r=>`<div class="ln f2"><span>${esc(r.l.name)}${r.l.code?` <span class="meta mono">${esc(r.l.code)}</span>`:""}</span>
+        <span class="meta mono">${r.l.qty} × ${money(r.l.price)} <small>${r.inv.mode==="net"?"fără TVA":"cu TVA"}</small></span>
+        <span class="mono">${money(r.gross)}</span><span class="meta">${esc(r.inv.number)}</span></div>`).join("")}</section>`}).join("")
+    :`<div class="card empty">Nicio piesă găsită. Încearcă alt număr de mașină sau alt cuvânt.</div>`;
+}
+/* Schimbarea între ecrane: se arată unul, se ascunde celălalt */
+function showTab(t){
+  $("#viewNew").hidden=t!=="new";$("#viewFind").hidden=t!=="find";$("#viewClose").hidden=t!=="close";
+  $$("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  if(t==="find")renderFind();
+  if(t==="close"){openCloser=null;renderClose()}
+}
+$$("[data-tab]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+$("#q").addEventListener("input",renderFind);$("#qScope").addEventListener("change",renderFind);
+
+/* ===== Ecranul 3: închiderea liniilor. Fiecare bucată trebuie să aibă un final: DF, magazie sau retur ===== */
+const cl=l=>l.closed||(l.closed=[]);                          /* lista închiderilor unei linii */
+const left=l=>l.qty-cl(l).reduce((a,c)=>a+c.qty,0);            /* bucăți încă fără final */
+const openOf=inv=>inv.lines.filter(l=>left(l)>0);               /* liniile deschise ale facturii */
+const daysOn=iso=>Math.max(0,Math.round((Date.parse(TODAY+"T12:00:00Z")-Date.parse(iso+"T12:00:00Z"))/864e5));
+const LBL={df:"folosite în",mag:"predate în magazie",ret:"returnate"};
+let openCloser=null;                                            /* linia cu formularul de închidere deschis */
+
+function closeLine(l,i,j){
+  const r=left(l),is=l===openCloser,at=`data-i="${i}" data-j="${j}"`;
+  const hist=cl(l).map((c,k)=>`<span class="tag">${c.qty} buc. ${LBL[c.type]}${c.type==="df"?" "+esc(c.ref):""}${c.type==="mag"?(c.taken?" · preluate":" · de preluat"):""}${c.taken?"":`<button type="button" data-act="undo" ${at} data-k="${k}" title="Anulează" aria-label="Anulează">✕</button>`}</span>`).join("");
+  const form=`<div class="closer"><label class="f"><span>Ce s-a întâmplat</span><select id="cType"><option value="df">Folosite într-un DF</option><option value="mag">Predate în magazie</option><option value="ret">Returnate</option></select></label>
+    <label class="f"><span>Bucăți</span><input id="cQty" value="${r}" inputmode="numeric" style="width:80px"></label>
+    <label class="f" id="cRefBox"><span>Număr DF</span><input id="cRef" placeholder="ex. DF-204"></label>
+    <button type="button" class="btn main sm" data-act="confirm" ${at}>Confirmă</button><p class="msg warn" id="cErr" style="flex-basis:100%"></p></div>`;
+  return `<div class="lr"><div class="top"><span>${esc(l.name)} <span class="meta mono">${esc(l.code)}</span> ${l.plate?`<span class="chip plate">${esc(l.plate)}</span>`:`<span class="chip none">fără mașină</span>`}</span>
+    <span class="meta">${r>0?`<b>Rămase ${r} din ${l.qty} buc.</b>`:`Închisă · ${l.qty} buc.`}</span></div>
+    ${hist?`<div class="hist">${hist}</div>`:""}
+    ${r>0?`<div class="hist"><button type="button" class="btn sm" data-act="rest" ${at}>Restul (${r} buc.) în magazie</button><button type="button" class="btn sm" data-act="form" ${at}>${is?"Renunță":"Închide…"}</button></div>`:""}
+    ${is&&r>0?form:""}</div>`;
+}
+/* Contoare sus, lista „de preluat” și cardurile facturilor */
+function renderClose(){
+  const f=$("#cFilter").value,pend=[];
+  invoices.forEach((inv,i)=>inv.lines.forEach((l,j)=>cl(l).forEach((c,k)=>{if(c.type==="mag"&&!c.taken)pend.push({inv,l,c,i,j,k})})));
+  $("#kpis").innerHTML=`<div class="kpi"><b>${invoices.reduce((a,v)=>a+openOf(v).length,0)}</b><span>linii deschise</span></div><div class="kpi"><b>${invoices.filter(v=>!openOf(v).length).length}</b><span>facturi gata pentru contabilitate</span></div><div class="kpi"><b>${pend.length}</b><span>de preluat în magazie</span></div>`;
+  $("#toTake").innerHTML=pend.length?pend.map(p=>`<div class="take"><span>${esc(p.l.name)} <span class="meta mono">${esc(p.l.code)}</span> · <b>${p.c.qty} buc.</b> <span class="meta">· factura ${esc(p.inv.number)}${p.l.plate?` · pentru ${esc(p.l.plate)}`:""}</span></span><button type="button" class="btn sm" data-act="take" data-i="${p.i}" data-j="${p.j}" data-k="${p.k}">Am preluat</button></div>`).join(""):`<p class="empty">Nimic de preluat acum.</p>`;
+  const shown=invoices.map((inv,i)=>({inv,i})).filter(({inv})=>{const ready=!openOf(inv).length;return f==="all"||(f==="ready"?ready:!ready)});
+  $("#closeList").innerHTML=shown.length?shown.map(({inv,i})=>{
+    const o=openOf(inv);
+    return `<article class="inv"><header><h3>${esc(inv.number)} <span class="meta">· ${esc(inv.supplier)} · ${dmy(inv.date)}</span></h3>
+      ${o.length?`<span class="pill late">${o.length} ${o.length===1?"linie deschisă":"linii deschise"} · pe raft de ${daysOn(inv.date)} zile</span>`:`<span class="pill ok-pill">✓ Gata pentru contabilitate</span>`}</header>
+      ${inv.lines.map((l,j)=>closeLine(l,i,j)).join("")}</article>`}).join("")
+    :`<div class="card empty">Nicio factură în această listă.</div>`;
+}
+/* Acțiunile: am preluat, anulează, restul în magazie, deschide formularul, confirmă */
+$("#viewClose").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const l=invoices[b.dataset.i]?.lines[b.dataset.j],a=b.dataset.act;if(!l)return;
+  if(a==="take")cl(l)[b.dataset.k].taken=true;
+  else if(a==="undo")cl(l).splice(b.dataset.k,1);
+  else if(a==="rest")cl(l).push({type:"mag",qty:left(l)});
+  else if(a==="form")openCloser=openCloser===l?null:l;
+  else if(a==="confirm"){
+    const type=$("#cType").value,qty=Number($("#cQty").value),ref=$("#cRef").value.trim().toUpperCase().replace(/\s+/g," ");
+    if(!Number.isInteger(qty)||qty<1||qty>left(l)){$("#cErr").textContent=`Bucățile trebuie să fie între 1 și ${left(l)}.`;return}
+    if(type==="df"&&!ref){$("#cErr").textContent="Scrie numărul DF.";return}
+    cl(l).push(type==="df"?{type,qty,ref}:{type,qty});openCloser=null;
+  }
+  renderClose();
+});
+$("#viewClose").addEventListener("change",e=>{if(e.target.id==="cType")$("#cRefBox").hidden=e.target.value!=="df"});
+$("#cFilter").addEventListener("change",renderClose);
+
+const fillDate=()=>{if(!$("#date").value.trim())$("#date").value=dmy(TODAY)};
+window.addEventListener("load",fillDate);window.addEventListener("pageshow",fillDate);
+</script>
+</body>
+</html>
