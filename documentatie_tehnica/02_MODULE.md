@@ -31,6 +31,14 @@ Dashboardul nu este un backend intermediar: el interoghează direct Supabase. C�
 
 ## 3. Birou și devize
 
+**Navigare BIROU — actualizare locală 04.11.2026.** În meniul din
+[index.html](../index.html), ordinea este: Deviz Estimativ → Evidență Avansuri →
+Cereri de plată → Registru Telefoane → Deviz Final → Căutare Deviz → Contracte →
+Comenzi Piese SH → Clienți & Notificări. Vizibilitatea păstrează regulile de acces existente.
+Culorile iconițelor și tooltip-ul sidebar-ului sunt descrise în
+[regulile vizuale de navigare](DESIGN_SYSTEM_HUB.md#sidebar-hub--actualizare-locală-04112026).
+Ordinea este confirmată în sursa locală; versiunea publicată rămâne **NEEDS_REVIEW**.
+
 ### 3.1 Deviz estimativ
 
 - fișier: `modules/devize/deviz.html`;

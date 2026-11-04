@@ -128,6 +128,21 @@ Nu schimba mecanismul de navigare al paginilor existente doar pentru a copia asp
 
 În [Comenzi SH JS][sh-js], `#backButton` folosește deja `history.back()`; este comportamentul acelei pagini, nu destinația linkului-model.
 
+### Sidebar HUB — actualizare locală 04.11.2026
+
+În [dashboard][index], iconițele BIROU folosesc culori discrete pentru identificare
+rapidă, accentuate la hover sau când elementul este activ. Textul sidebar-ului
+păstrează stilul normal. Deviz Final folosește verde, iar Căutare Deviz violet,
+pentru a reduce confuzia între cele două destinații.
+
+Sidebar-ul restrâns folosește pentru toate meniurile un tooltip custom rapid la
+hover, care dispare imediat la ieșirea cursorului. Tooltip-ul nu apare când
+sidebar-ul este deschis, inclusiv în meniul mobil. Ordinea BIROU este menținută în
+[documentul modulelor](02_MODULE.md#3-birou-și-devize).
+
+Descriere verificată în sursa locală a repository-ului principal; comportamentul
+aplicației complete în browser și versiunea publicată rămân **NEEDS_REVIEW**.
+
 ## 5. Butoane și acțiuni
 
 | Sursă | Selectori/clase reale | Valori relevante |
