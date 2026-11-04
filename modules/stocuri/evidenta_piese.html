@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261025-readability">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261105-totals-alignment">
 </head>
 <body>
   <div class="ep-app">
@@ -215,7 +215,7 @@
           </div>
 
           <p class="ep-invoice-help" id="invoiceFormHelp">
-            Prețurile de achiziție se introduc <b>cu TVA inclus</b>. Numărul de înmatriculare este opțional; piesele fără mașină rămân în <b>De atribuit</b>.
+            Prețurile de achiziție se introduc <b>fără TVA</b>. Numărul de înmatriculare este opțional; piesele fără mașină rămân în <b>De atribuit</b>.
           </p>
 
           <section class="ep-invoice-section" aria-labelledby="invoicePartsTitle">
@@ -224,12 +224,9 @@
                 <h3 id="invoicePartsTitle">Piese pe factură</h3>
                 <p>Totalul fiecărei linii și totalurile facturii se calculează automat.</p>
               </div>
-              <button type="button" class="ep-button ep-button-ghost ep-add-line" id="addInvoiceLine">
-                <span class="ep-plus" aria-hidden="true">+</span>
-                <span>Adaugă piesă</span>
-              </button>
             </div>
 
+            <!-- Prețuri nete, TVA calculat și coeficient DF separat pe poziție. -->
             <div class="ep-invoice-lines-wrap">
               <table class="ep-invoice-lines">
                 <thead>
@@ -237,12 +234,13 @@
                     <th scope="col" class="ep-line-no-col"><span class="ep-sr-only">Poziția</span></th>
                     <th scope="col">Denumire piesă <b class="ep-required">*</b></th>
                     <th scope="col">Cod piesă</th>
-                    <th scope="col">Cant. <b class="ep-required">*</b></th>
-                    <th scope="col">Preț unitar <span class="ep-th-nowrap">cu TVA <b class="ep-required">*</b></span></th>
+                    <th scope="col">Cantitate <b class="ep-required">*</b></th>
+                    <th scope="col">Preț unitar <span class="ep-th-nowrap">fără TVA <b class="ep-required">*</b></span></th>
+                    <th scope="col">TVA</th>
                     <th scope="col">TVA %</th>
+                    <th scope="col">Adaos</th>
                     <th scope="col">Înmatriculare</th>
-                    <th scope="col">Observații</th>
-                    <th scope="col">Total linie</th>
+                    <th scope="col">Total DF cu TVA</th>
                     <th scope="col"><span class="ep-sr-only">Acțiuni</span></th>
                   </tr>
                 </thead>
@@ -250,18 +248,21 @@
               </table>
             </div>
 
+            <!-- Butonul și explicația împart rândul; pe mobil se pot împacheta. -->
             <div class="ep-invoice-lines-foot">
-              <span id="invoiceLineCount">1 poziție</span>
+              <button type="button" class="ep-button ep-button-ghost ep-add-line" id="addInvoiceLine">
+                <span class="ep-plus" aria-hidden="true">+</span>
+                <span>Adaugă piesă</span>
+              </button>
               <span>Înmatricularea poate fi completată și ulterior.</span>
             </div>
           </section>
         </div>
 
         <div class="ep-invoice-summary">
-          <p class="ep-invoice-summary-note">Prețuri cu TVA inclus · fără adaos comercial</p>
           <div class="ep-invoice-totals">
             <div class="ep-invoice-total">
-              <span>Total fără TVA</span>
+              <span>Achiziție fără TVA</span>
               <strong id="invoiceSubtotal">0,00 lei</strong>
             </div>
             <div class="ep-invoice-total">
@@ -270,15 +271,18 @@
               <small id="invoiceVatRateSummary">21%</small>
             </div>
             <div class="ep-invoice-total ep-invoice-total--grand">
-              <span>Total cu TVA</span>
+              <span>Achiziție cu TVA</span>
               <strong id="invoiceTotal">0,00 lei</strong>
             </div>
+          </div>
+          <!-- Totalurile DF sunt calculate separat de factura de achiziție. -->
+          <div class="ep-invoice-totals">
+            <div class="ep-invoice-total"><span>DF fără TVA</span><strong id="invoiceDfSubtotal">0,00 lei</strong></div>
+            <div class="ep-invoice-total ep-invoice-total--grand"><span>DF cu TVA · calculat</span><strong id="invoiceDfTotal">0,00 lei</strong></div>
           </div>
         </div>
 
         <footer class="ep-modal-foot ep-invoice-foot">
-          <!-- Timp opțional de introducere; fără câmp de formular sau persistență. -->
-          <span class="ep-invoice-entry-timer" title="Timp de la prima modificare până la salvare" role="timer" aria-label="Timp de introducere">Timp <span id="invoiceEntryTimer">0:00</span></span>
           <div class="ep-invoice-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="invoiceCancel">Anulează</button>
             <button type="submit" class="ep-button ep-button-primary" id="invoiceSave">Salvează factura</button>
@@ -482,14 +486,14 @@
     </div>
   </div>
 
-  <!-- Retururi furnizor: cantități rezervate și urmărire numai în memoria DEMO -->
+  <!-- Retur imediat și istoric pe cantitate, exclusiv în memoria DEMO. -->
   <div class="ep-modal-overlay" id="returnModal" hidden>
     <div class="ep-modal ep-return-modal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle" aria-describedby="returnModalNote">
       <header class="ep-modal-head">
         <div>
           <span class="ep-eyebrow">Retur furnizor · DEMO</span>
           <h2 id="returnModalTitle">Înregistrează retur</h2>
-          <p class="ep-return-head-note" id="returnModalNote">Cererea către furnizor se transmite extern.</p>
+          <p class="ep-return-head-note" id="returnModalNote">Cantitatea returnată se scade imediat din disponibil.</p>
         </div>
         <button type="button" class="ep-icon-button" id="returnModalClose" aria-label="Închide formularul de retur">✕</button>
       </header>
@@ -507,24 +511,20 @@
               <input type="number" id="returnQty" min="1" step="1" inputmode="numeric" aria-describedby="returnAvailability" required>
             </label>
             <label class="ep-field" for="returnReference">
-              <span>Număr cerere / referință <small>opțional</small></span>
+              <span>Referință retur <small>opțional</small></span>
               <input type="text" id="returnReference" maxlength="100" autocomplete="off">
             </label>
             <label class="ep-field ep-field--wide" for="returnReason">
-              <span>Motiv <b class="ep-required">*</b></span>
-              <input type="text" id="returnReason" maxlength="240" required>
+              <span>Motiv <small>opțional</small></span>
+              <input type="text" id="returnReason" maxlength="240">
             </label>
             <label class="ep-field ep-field--wide" for="returnNotes">
               <span>Observații <small>opțional</small></span>
               <textarea id="returnNotes" rows="2" maxlength="500"></textarea>
             </label>
           </div>
-          <div class="ep-return-grid" id="returnStatusFields" hidden>
-            <label class="ep-field" for="returnCurrentStatus"><span>Stadiu actual</span><input type="text" id="returnCurrentStatus" readonly></label>
-            <label class="ep-field" for="returnNextStatus"><span>Următorul stadiu</span><input type="text" id="returnNextStatus" readonly></label>
-          </div>
           <label class="ep-field ep-return-date" for="returnDate">
-            <span id="returnDateLabel">Data cererii</span>
+            <span id="returnDateLabel">Data returului</span>
             <input type="date" id="returnDate" required>
           </label>
           <p class="ep-detail-note" id="returnAvailability" role="status" aria-live="polite"></p>
@@ -532,7 +532,7 @@
         <footer class="ep-modal-foot ep-return-foot">
           <div class="ep-return-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="returnCancel">Anulează</button>
-            <button type="submit" class="ep-button ep-button-primary" id="returnSave">Înregistrează returul</button>
+            <button type="submit" class="ep-button ep-button-primary" id="returnSave">Înregistrează retur</button>
           </div>
         </footer>
       </form>
@@ -624,6 +624,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ro.js"></script>
-  <script src="../../js/evidenta_piese.js?v=20261025-facturi-ux"></script>
+  <script src="../../js/evidenta_piese.js?v=20261105-returns"></script>
 </body>
 </html>

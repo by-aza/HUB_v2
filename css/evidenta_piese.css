@@ -515,8 +515,8 @@ tr:focus-visible {
   #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(4) { width: 8%; }
   #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(5) { width: 15%; }
   #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(6) { width: 6%; }
-  #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(7) { width: 21%; }
-  #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(8) { width: 14%; }
+  /* Istoricul retururilor nu mai are coloană de status; motivul primește spațiul liber. */
+  #listPanel[aria-labelledby="tab-returns"] .ep-table th:nth-child(7) { width: 35%; }
 }
 .ep-table tbody tr[data-id] { cursor: pointer; transition: background .12s; }
 .ep-table tbody tr[data-id]:hover { background: rgba(45, 212, 207, .045); }
@@ -771,6 +771,8 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
 .ep-detail-actions .ep-button { min-height: 34px; font-size: 10.5px; }
 .ep-detail-actions .ep-wide { grid-column: 1 / -1; }
+/* Eticheta returului se poate împacheta în panoul îngust de detalii. */
+.ep-detail-actions [data-action="return-part"] { white-space: normal; }
 
 /* Status și editare piesă: buton compact, lângă starea cantitativă curentă. */
 .ep-part-status-actions { flex: 0 1 48%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -849,23 +851,6 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-compact-row-main small { color: var(--muted); font-size: 8.5px; }
 .ep-compact-row .ep-money { flex: none; font-size: 9px; text-align: right; }
 .ep-compact-row .ep-badge { flex: none; padding: 2px 6px; font-size: 8px; }
-
-.ep-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
-.ep-step {
-  display: grid;
-  gap: 3px;
-  justify-items: center;
-  padding: 6px 4px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--muted-2);
-  background: #181b22;
-  font-size: 7.5px;
-  text-align: center;
-}
-.ep-step b { font-size: 7.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
-.ep-step.is-done { border-color: rgba(39, 199, 154, .28); color: #8ce9c9; background: rgba(39, 199, 154, .07); }
-.ep-step.is-current { border-color: rgba(245, 179, 43, .36); color: #f2c45e; background: rgba(245, 179, 43, .07); }
 
 /* Cronologia de status */
 .ep-timeline { position: relative; display: grid; gap: 10px; margin-top: 2px; padding-left: 14px; }
@@ -1168,11 +1153,13 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-invoice-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
 .ep-invoice-section-head h3 { margin: 0; color: var(--text); font-size: 11.5px; font-weight: 800; }
 .ep-invoice-section-head p { margin: 2px 0 0; color: var(--muted-2); font-size: 9px; }
-.ep-add-line { min-height: 30px; padding: 0 9px; font-size: 10px; }
+/* Buton compact în rândul de sub tabel, aliniat la stânga. */
+.ep-add-line { flex: none; margin: 0; min-height: 30px; padding: 0 9px; font-size: 10px; }
 .ep-add-line .ep-plus { font-size: 14px; }
 
-.ep-invoice-lines-wrap { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #171a21; }
-.ep-invoice-lines { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.ep-invoice-lines-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: #171a21; }
+/* Lățimi pentru prețul net, TVA calculat și coeficientul fiecărei poziții. */
+.ep-invoice-lines { min-width: 1000px; width: 100%; border-collapse: collapse; table-layout: fixed; }
 .ep-invoice-lines th {
   padding: 7px 5px;
   border-bottom: 1px solid var(--line);
@@ -1186,15 +1173,18 @@ body.ep-drawer-open { overflow: hidden; }
   white-space: nowrap;
 }
 .ep-invoice-lines th:nth-child(1) { width: 30px; }
-.ep-invoice-lines th:nth-child(2) { width: 20%; }
-.ep-invoice-lines th:nth-child(3) { width: 11%; }
+/* Coloane numerice compacte; denumirea păstrează spațiul principal. */
+.ep-invoice-lines th:nth-child(2) { width: 19%; }
+.ep-invoice-lines th:nth-child(3) { width: 10%; }
 .ep-invoice-lines th:nth-child(4) { width: 7%; }
-.ep-invoice-lines th:nth-child(5) { width: 10%; }
-.ep-invoice-lines th:nth-child(6) { width: 7%; }
-.ep-invoice-lines th:nth-child(7) { width: 10%; }
-.ep-invoice-lines th:nth-child(8) { width: 18%; }
+.ep-invoice-lines th:nth-child(5) { width: 11%; }
+.ep-invoice-lines th:nth-child(6) { width: 9%; }
+.ep-invoice-lines th:nth-child(7) { width: 7%; }
+.ep-invoice-lines th:nth-child(8) { width: 7%; }
 .ep-invoice-lines th:nth-child(9) { width: 10%; }
-.ep-invoice-lines th:nth-child(10) { width: 40px; }
+.ep-invoice-lines th:nth-child(10) { width: 11%; }
+.ep-invoice-lines th:nth-child(11) { width: 36px; }
+.ep-line-vat { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .ep-th-nowrap { white-space: nowrap; }
 .ep-invoice-lines td { padding: 5px; border-bottom: 1px solid rgba(255, 255, 255, .055); vertical-align: top; }
 .ep-invoice-lines tbody tr:last-child td { border-bottom: 0; }
@@ -1239,7 +1229,8 @@ body.ep-drawer-open { overflow: hidden; }
   text-align: center;
 }
 .ep-line-total { padding-top: 11px !important; text-align: right; white-space: nowrap; }
-.ep-line-total strong { display: block; color: var(--text); font: 700 9.5px/1.35 var(--mono); }
+/* Valoarea DF se distinge discret, fără schimbarea lățimii coloanei. */
+.ep-line-total strong { display: block; color: var(--text); font: 800 11px/1.35 var(--mono); }
 .ep-line-total small { color: var(--muted-2); font-size: 7.5px; }
 .ep-line-actions { padding-top: 6px !important; text-align: right; }
 .ep-line-remove {
@@ -1257,33 +1248,37 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-line-remove svg { width: 13px; height: 13px; }
 .ep-line-remove:hover:not(:disabled) { border-color: rgba(239, 71, 87, .48); color: #ff9aa4; background: rgba(239, 71, 87, .08); }
 .ep-line-remove:disabled { opacity: .3; cursor: not-allowed; }
+/* Acțiune în stânga și explicație în dreapta, cu împachetare fără suprapunere. */
 .ep-invoice-lines-foot {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 7px 2px 0;
+  gap: 4px 12px;
+  padding-top: 4px;
   color: var(--muted-2);
   font-size: 8.5px;
 }
-#invoiceLineCount { color: var(--muted); font-weight: 600; }
+.ep-invoice-lines-foot > span { min-width: 0; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
 
+/* Achiziția stă la stânga și DF-ul la dreapta, pe același rând desktop. */
 .ep-invoice-summary {
   flex: none;
   display: flex;
-  align-items: center;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 9px 16px;
+  gap: 4px 12px;
+  padding: 4px 16px;
   border-top: 1px solid var(--line);
   background: var(--panel-2);
 }
-.ep-invoice-summary-note { margin: 0; color: var(--muted-2); font-size: 8.5px; white-space: nowrap; }
-.ep-invoice-totals { display: flex; gap: 6px; margin-left: auto; }
+.ep-invoice-totals { display: flex; flex-wrap: nowrap; gap: 6px; margin-left: 0; }
 .ep-invoice-total {
   min-width: 114px;
   display: grid;
   gap: 1px;
-  padding: 6px 8px;
+  padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #181b22;
@@ -1293,7 +1288,8 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-invoice-total small { color: var(--muted-2); font-size: 7.5px; }
 .ep-invoice-total--grand { border-color: rgba(45, 212, 207, .3); background: rgba(45, 212, 207, .07); }
 .ep-invoice-total--grand strong { color: #9ff1ed; }
-.ep-invoice-foot { align-items: center; justify-content: space-between; gap: 12px; }
+/* Footer scurt, cu butoane în dreapta și suprafața de apăsare păstrată. */
+.ep-invoice-foot { align-items: center; justify-content: flex-end; gap: 7px; padding: 5px 16px 6px; }
 .ep-invoice-foot-note { color: var(--muted-2); font-size: 8.5px; }
 .ep-invoice-foot-actions { display: flex; flex: none; gap: 7px; }
 .ep-invoice-foot-actions .ep-button { min-height: 36px; }
@@ -1341,7 +1337,7 @@ body.ep-drawer-open { overflow: hidden; }
 @media (max-width: 900px) {
   .ep-invoice-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ep-invoice-lines-wrap { overflow: visible; border: 0; background: transparent; }
-  .ep-invoice-lines { display: block; table-layout: auto; }
+  .ep-invoice-lines { min-width: 0; display: block; table-layout: auto; }
   .ep-invoice-lines thead { display: none; }
   .ep-invoice-lines tbody { display: grid; gap: 7px; }
   .ep-invoice-lines tr {
@@ -1364,8 +1360,8 @@ body.ep-drawer-open { overflow: hidden; }
     letter-spacing: .05em;
     text-transform: uppercase;
   }
-  .ep-invoice-lines td[data-field-cell="name"],
-  .ep-invoice-lines td[data-field-cell="note"] { grid-column: 1 / -1; }
+  /* Denumirea ocupă toată lățimea cardului mobil. */
+  .ep-invoice-lines td[data-field-cell="name"] { grid-column: 1 / -1; }
   .ep-invoice-lines td.ep-line-no {
     grid-column: 1;
     grid-row: 1;
@@ -1380,8 +1376,7 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-invoice-lines td.ep-line-actions { grid-column: 2; grid-row: 1; justify-self: end; padding: 0 !important; }
   .ep-invoice-lines td.ep-line-actions::before { content: none; }
   .ep-invoice-lines input { height: 33px; min-height: 33px; }
-  .ep-invoice-summary { flex-direction: column; align-items: stretch; gap: 7px; }
-  .ep-invoice-summary-note { white-space: normal; }
+  .ep-invoice-summary { flex-direction: column; align-items: stretch; gap: 4px; }
   .ep-invoice-totals { width: 100%; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ep-invoice-total { min-width: 0; }
 }
@@ -1396,14 +1391,14 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-invoice-body { padding: 11px 12px 12px; }
   .ep-invoice-section-head { align-items: center; }
   .ep-invoice-section-head p { display: none; }
-  .ep-invoice-summary { padding: 8px 12px; }
-  .ep-invoice-total { padding: 5px 6px; }
+  .ep-invoice-summary { padding: 4px 12px; }
+  .ep-invoice-total { padding: 4px 6px; }
   .ep-invoice-total span { font-size: 7px; }
   .ep-invoice-total strong { font-size: 9px; }
-  .ep-invoice-foot { flex-direction: column; align-items: stretch; }
+  /* Pe mobil butoanele rămân în dreapta și se împachetează numai la nevoie. */
+  .ep-invoice-foot { flex-direction: row; align-items: center; padding: 5px 12px 6px; }
   .ep-invoice-foot-note { display: none; }
-  .ep-invoice-foot-actions { display: grid; grid-template-columns: 1fr 1fr; }
-  .ep-invoice-foot-actions .ep-button { width: 100%; }
+  .ep-invoice-foot-actions { max-width: 100%; flex-wrap: wrap; justify-content: flex-end; }
   .ep-toast { right: 8px; bottom: 8px; left: 8px; width: auto; }
 }
 
@@ -1723,7 +1718,6 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-return-foot { align-items: center; justify-content: space-between; gap: 10px; }
 .ep-return-foot-note { color: var(--muted-2); font-size: 9px; }
 .ep-return-foot-actions { display: flex; flex: none; gap: 7px; }
-.ep-step small { color: var(--muted); font-size: 8px; }
 
 /* Import DF DEMO: formular și rezumat în același dialog. */
 .ep-df-modal { width: min(980px, calc(100vw - 32px)); }
@@ -1757,14 +1751,6 @@ body.ep-drawer-open { overflow: hidden; }
 #listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-money small { font-size: 10.5px; line-height: 1.4; }
 #listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-badge { font-size: 10px; }
 .ep-invoice-foot, .ep-supplier-foot, .ep-assignment-foot, .ep-return-foot { justify-content: flex-end; }
-
-/* Cronometru factură: text discret, aliniat la stânga, fără culori de status. */
-.ep-invoice-entry-timer {
-  margin-right: auto;
-  color: var(--muted-2);
-  font: 500 9px/1.5 var(--mono);
-  white-space: nowrap;
-}
 
 @media (max-width: 620px) {
   .ep-bulk-bar { flex-wrap: wrap; }
