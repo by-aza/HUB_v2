@@ -392,6 +392,49 @@
         justify-content: center;
       }
 
+      /* Culori discrete pentru iconițele BIROU; textul păstrează stilul existent. */
+      .office-icon {
+        color: var(--office-icon-color);
+        opacity: 0.7;
+        transition: color 120ms ease, opacity 120ms ease;
+      }
+      .group:hover .office-icon,
+      .group:focus-visible .office-icon,
+      .office-icon.office-icon-active {
+        opacity: 1;
+      }
+
+      /* Tooltip în afara zonei derulabile; ascunderea este imediată. */
+      #sidebarTooltip {
+        position: fixed;
+        z-index: 70;
+        pointer-events: none;
+        max-width: calc(100vw - 100px);
+        padding: 6px 10px;
+        border: 1px solid #343b49;
+        border-radius: 6px;
+        background: #1e2430;
+        color: #f1f2f4;
+        font-size: 12px;
+        line-height: 1.4;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(-4px);
+        transition: none;
+      }
+      #sidebarTooltip.is-visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+      @media (max-width: 768px) {
+        #sidebarTooltip { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #sidebarTooltip { transform: none; transition: none; }
+      }
+
       /* Custom scrollbar */
       nav::-webkit-scrollbar,
       .custom-scrollbar::-webkit-scrollbar {
@@ -646,6 +689,9 @@
         </div>
       </aside>
 
+      <!-- Tooltip comun pentru toate meniurile din sidebar-ul restrâns. -->
+      <div id="sidebarTooltip" role="tooltip" aria-hidden="true"></div>
+
       <div id="sidebarOverlay" class="sidebar-overlay hidden md:hidden" aria-hidden="true"></div>
 
       <!-- ============ MAIN COLUMN ============ -->
@@ -895,6 +941,20 @@
       const resolveNavigationUrl = (item) =>
         mobileSidebarMedia.matches && item.mobileUrl ? item.mobileUrl : item.url;
 
+      /* Paleta iconițelor BIROU, comună sidebar-ului și cardurilor existente. */
+      const officeIconColors = {
+        devize: "#22d3ee", // cyan
+        "deviz-final": "#4ade80", // verde
+        cautare: "#a78bfa", // violet
+        avansuri: "#60a5fa", // albastru
+        "cereri-plata": "#fbbf24", // amber
+        contracte: "#facc15", // galben
+        telefoane: "#94a3b8", // slate
+        "comenzi-piese-sh": "#818cf8", // indigo
+        "clienti-notificari": "#22d3ee", // cyan
+      };
+
+      /* Ordinea meniurilor BIROU, cu destinațiile și accesul existente. */
       const navSections = [
         {
           title: "Birou",
@@ -903,9 +963,9 @@
             { id: "avansuri", label: "Evidență Avansuri", icon: "banknote", url: "modules/devize/avans.html", permission: "avansuri" },
             { id: "cereri-plata", label: "Cereri de plată", icon: "wallet", url: "modules/devize/plati.html", permission: "plati" },
             { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
-            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
-            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+            { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+            { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
             /* modul BETA cu accesul existent */
             { id: "clienti-notificari", label: "Clienți & Notificări", icon: "users-round", url: "modules/devize/clienti-notificari.html", isBeta: true },
@@ -967,9 +1027,9 @@
         { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
         { id: "cereri-plata", title: "Cereri de plată", meta: "—", icon: "wallet", tone: "neutral", url: "modules/devize/plati.html", permission: "plati" },
         { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
-        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
-        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
         { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
         { id: "comenzi-piese-sh", title: "Comenzi Piese SH", meta: "—", icon: "shopping-cart", tone: "neutral", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
         { id: "manager-dashboard-card", title: "Manager Dashboard", meta: "—", icon: "layout-dashboard", tone: "neutral", url: MANAGER_DASHBOARD_URL, permission: "manager_dashboard" },
       ];
@@ -1193,6 +1253,7 @@
       let activeId = "panou";
 
       function renderNav() {
+        hideSidebarTooltip();
         const nav = document.getElementById("nav");
         try {
           nav.innerHTML = navSections
@@ -1228,14 +1289,14 @@
                       : item.isBeta ? '<span class="nav-beta-badge">BETA</span>' : '';
                     return `
                     <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
-                      <a href="${resolveNavigationUrl(item)}" data-id="${item.id}" title="${item.label}"
+                      <a href="${resolveNavigationUrl(item)}" data-id="${item.id}" data-tooltip="${item.label}" aria-label="${item.label}"
                         class="nav-btn group relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${stageClass} ${
                           isActive
                             ? "bg-sidebar-accent text-sidebar-foreground"
                             : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                         }">
                         ${isActive ? `<span class="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_10px_#2dd4cf]"></span>` : ""}
-                        <i data-lucide="${item.icon}" class="size-[18px] shrink-0 ${isActive ? "text-primary" : ""}"></i>
+                        <i data-lucide="${item.icon}" ${officeIconColors[item.id] ? `style="--office-icon-color:${officeIconColors[item.id]}"` : ""} class="size-[18px] shrink-0 ${officeIconColors[item.id] ? `office-icon ${isActive ? "office-icon-active" : ""}` : isActive ? "text-primary" : ""}"></i>
                         <span class="sidebar-label truncate">${item.label}</span>${stageBadge}
                       </a>
                     </li>`;
@@ -1266,7 +1327,7 @@
             ${card.statusDot ? `<span class="absolute right-3 top-3 size-2.5 rounded-full ${dotClass}"></span>` : ""}
             <div class="flex items-start justify-between">
               <span class="compact-card-icon grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-105 ${iconTone[card.tone]}">
-                <i data-lucide="${card.icon}" class="size-5"></i>
+                <i data-lucide="${card.icon}" ${officeIconColors[card.id] ? `style="--office-icon-color:${officeIconColors[card.id]}"` : ""} class="size-5 ${officeIconColors[card.id] ? "office-icon" : ""}"></i>
               </span>
               <i data-lucide="arrow-up-right" class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"></i>
             </div>
@@ -1411,6 +1472,57 @@
       const mobileSearchCloseBtn = document.getElementById("mobileSearchCloseBtn");
       const sidebarOverlay = document.getElementById("sidebarOverlay");
       const globalSearchContainer = document.getElementById("global-search-container");
+
+      /* Tooltip delegat: rezistă rerandării meniurilor și înlocuirii iconițelor. */
+      const sidebarTooltip = document.getElementById("sidebarTooltip");
+      let sidebarTooltipTimer = null;
+      let sidebarTooltipTarget = null;
+
+      function hideSidebarTooltip() {
+        clearTimeout(sidebarTooltipTimer);
+        sidebarTooltipTimer = null;
+        sidebarTooltipTarget?.removeAttribute("aria-describedby");
+        sidebarTooltipTarget = null;
+        sidebarTooltip.classList.remove("is-visible");
+        sidebarTooltip.setAttribute("aria-hidden", "true");
+      }
+
+      function queueSidebarTooltip(event) {
+        const target = event.target.closest(".nav-btn");
+        if (!target || target.contains(event.relatedTarget)) return;
+        hideSidebarTooltip();
+        if (mobileSidebarMedia.matches || !sidebar.classList.contains("collapsed")) return;
+        sidebarTooltipTarget = target;
+        sidebarTooltipTimer = setTimeout(() => {
+          if (!target.isConnected || mobileSidebarMedia.matches || !sidebar.classList.contains("collapsed")) {
+            hideSidebarTooltip();
+            return;
+          }
+          const rect = target.getBoundingClientRect();
+          sidebarTooltip.textContent = target.dataset.tooltip;
+          sidebarTooltip.style.left = `${sidebar.getBoundingClientRect().right + 8}px`;
+          sidebarTooltip.style.top = `${Math.max(8, Math.min(rect.top + (rect.height - sidebarTooltip.offsetHeight) / 2, window.innerHeight - sidebarTooltip.offsetHeight - 8))}px`;
+          sidebarTooltip.classList.add("is-visible");
+          sidebarTooltip.setAttribute("aria-hidden", "false");
+          target.setAttribute("aria-describedby", "sidebarTooltip");
+        }, 100);
+      }
+
+      sidebar.addEventListener("mouseover", queueSidebarTooltip);
+      sidebar.addEventListener("focusin", queueSidebarTooltip);
+      sidebar.addEventListener("mouseout", (event) => {
+        const target = event.target.closest(".nav-btn");
+        if (target && !target.contains(event.relatedTarget)) hideSidebarTooltip();
+      });
+      sidebar.addEventListener("mouseleave", hideSidebarTooltip);
+      sidebar.addEventListener("focusout", hideSidebarTooltip);
+      sidebar.addEventListener("click", hideSidebarTooltip);
+      sidebar.addEventListener("scroll", hideSidebarTooltip, true);
+      window.addEventListener("resize", hideSidebarTooltip);
+      window.addEventListener("scroll", hideSidebarTooltip, true);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") hideSidebarTooltip();
+      });
 
       if (localStorage.getItem("sidebarCollapsed") === "true") {
         sidebar.classList.add("collapsed");

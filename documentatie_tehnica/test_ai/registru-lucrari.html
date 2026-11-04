@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="ro" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#14161c">
+    <title>Registru Lucrări Service - HUB Service Auto</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        /* Paleta și fundalul sunt preluate din modules/devize/avans.html */
+        :root {
+            --bg: #14161c;
+            --surface: #181b22;
+            --card: #1b1e26;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f1f2f4;
+            --muted: #98a0ad;
+            --accent: #2dd4cf;
+            --danger: #ef4757;
+            --success: #27c79a;
+            --warning: #f5b32b;
+            --info: #60a5fa;
+            --shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+            --font-sans: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            background: var(--bg);
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background:
+                radial-gradient(circle at top, rgba(45, 212, 207, 0.08), transparent 30%),
+                var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Containerul comun, ca .page-shell din Avansuri */
+        .page-shell {
+            width: 100%;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .panel-card {
+            background: rgba(27, 30, 38, 0.96);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .mono-text {
+            font-family: var(--font-mono);
+        }
+
+        /* ---------- Antet ---------- */
+        .page-header {
+            flex-shrink: 0;
+            z-index: 20;
+            border-radius: 16px;
+        }
+
+        .page-header .header-top {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header .header-intro {
+            min-width: 0;
+            text-align: center;
+        }
+
+        .page-header .header-intro h1 {
+            margin: 0;
+            font-size: 1.15rem;
+            line-height: 1.15;
+            letter-spacing: 0.08em;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .page-header .header-intro p {
+            margin: 6px 0 0;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        /* Butonul Înapoi: aceleași culori, dimensiuni și hover ca în avans.html */
+        .page-header .back-link {
+            justify-self: start;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .page-header .back-link:hover {
+            color: var(--text);
+        }
+
+        .page-header .back-link svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.15s ease;
+        }
+
+        .page-header .back-link:hover svg {
+            transform: translateX(-4px);
+        }
+
+        .page-header .back-link span {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .demo-badge {
+            justify-self: end;
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(245, 179, 43, 0.24);
+            background: rgba(245, 179, 43, 0.12);
+            color: var(--warning);
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* ---------- Conținut ---------- */
+        .page-content {
+            flex: 1;
+            padding: 16px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-card {
+            position: relative;
+            border-radius: 16px;
+            padding: 16px 18px 14px;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 2px;
+            background: var(--kpi-color, var(--accent));
+        }
+
+        .kpi-card--work { --kpi-color: var(--info); }
+        .kpi-card--done { --kpi-color: var(--success); }
+
+        .kpi-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .kpi-value {
+            display: block;
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            font-size: clamp(24px, 1.8vw, 38px);
+            font-weight: 700;
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        .kpi-sub {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* ---------- Căutare și filtre ---------- */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1 1 280px;
+            min-width: 220px;
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        .search-wrap input,
+        .toolbar select {
+            width: 100%;
+            min-height: 42px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #13161f;
+            color: var(--text);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .search-wrap input {
+            padding: 0 14px 0 40px;
+        }
+
+        .search-wrap input::placeholder {
+            color: #7c8594;
+        }
+
+        .toolbar select {
+            flex: 0 1 185px;
+            padding: 0 12px;
+            cursor: pointer;
+        }
+
+        .search-wrap input:focus,
+        .toolbar select:focus {
+            border-color: rgba(45, 212, 207, 0.75);
+            box-shadow: 0 0 0 3px rgba(45, 212, 207, 0.12);
+        }
+
+        .reset-btn {
+            flex: 0 0 auto;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(148, 163, 184, 0.11);
+            color: #e5e7eb;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+
+        .reset-btn:hover {
+            filter: brightness(1.08);
+        }
+
+        /* ---------- Tabel ---------- */
+        .table-shell {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 860px;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background: rgba(20, 22, 28, 0.96);
+            backdrop-filter: blur(12px);
+        }
+
+        th {
+            padding: 12px 16px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+            font-size: 0.85rem;
+        }
+
+        tbody tr {
+            background: transparent;
+            transition: background-color 0.18s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .job-id {
+            display: block;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .cell-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .cell-strong {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .plate {
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--text);
+        }
+
+        .money {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--success);
+            white-space: nowrap;
+        }
+
+        /* Statusuri: text + culoare, nu doar culoare */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status.is-wait {
+            color: #ffd88a;
+            background: rgba(245, 179, 43, 0.12);
+            border-color: rgba(245, 179, 43, 0.28);
+        }
+
+        .status.is-work {
+            color: #a8c8ff;
+            background: rgba(96, 165, 250, 0.12);
+            border-color: rgba(96, 165, 250, 0.28);
+        }
+
+        .status.is-done {
+            color: #8df0d4;
+            background: rgba(39, 199, 154, 0.12);
+            border-color: rgba(39, 199, 154, 0.28);
+        }
+
+        .status.is-blocked {
+            color: #ffb3bc;
+            background: rgba(239, 71, 87, 0.12);
+            border-color: rgba(239, 71, 87, 0.24);
+        }
+
+        .details-btn {
+            min-height: 34px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(45, 212, 207, 0.22);
+            background: rgba(45, 212, 207, 0.14);
+            color: #dffdfb;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+
+        .details-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .table-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: rgba(20, 22, 28, 0.72);
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .table-footer strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .empty-state {
+            padding: 30px 16px !important;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        /* ---------- Modal detalii ---------- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(5, 8, 14, 0.72);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-card {
+            width: min(680px, 100%);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px;
+            background: rgba(27, 30, 38, 0.98);
+            overflow: hidden;
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(20, 22, 28, 0.5);
+        }
+
+        .modal-kicker {
+            margin: 0 0 4px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+        }
+
+        .modal-head h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            flex: 0 0 auto;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            transition: color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .icon-btn:hover {
+            color: var(--text);
+            background: rgba(148, 163, 184, 0.11);
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .detail-item {
+            min-width: 0;
+        }
+
+        .detail-item--wide {
+            grid-column: 1 / -1;
+        }
+
+        .detail-item > span:not(.status) {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .detail-item > .status {
+            margin-top: 4px;
+        }
+
+        .detail-item > strong,
+        .detail-item > p {
+            display: block;
+            margin: 4px 0 0;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
+
+        .detail-item > p {
+            font-weight: 400;
+            line-height: 1.5;
+            color: #c7ced8;
+        }
+
+        .modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            background: rgba(20, 22, 28, 0.5);
+        }
+
+        .btn-secondary {
+            min-height: 38px;
+            padding: 0 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(148, 163, 184, 0.11);
+            color: #e5e7eb;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+
+        .btn-secondary:hover {
+            filter: brightness(1.08);
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition-duration: 0.01ms !important;
+                animation: none !important;
+            }
+        }
+
+        /* ---------- Responsive: același prag ca Avansuri ---------- */
+        @media (min-width: 768px) {
+            .page-shell {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .page-shell {
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            .page-content {
+                padding: 10px;
+            }
+
+            .page-header .header-top {
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 8px;
+                padding: 12px;
+            }
+
+            .page-header .back-link {
+                order: 1;
+            }
+
+            .page-header .header-intro {
+                order: 2;
+                text-align: left;
+            }
+
+            .page-header .header-intro h1 {
+                font-size: 0.96rem;
+                line-height: 1.2;
+            }
+
+            .page-header .header-intro p {
+                margin-top: 4px;
+                font-size: 0.76rem;
+            }
+
+            .demo-badge {
+                grid-column: 1 / -1;
+                order: 3;
+                justify-self: start;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .kpi-card {
+                padding: 12px 14px;
+            }
+
+            .kpi-value {
+                font-size: 24px;
+            }
+
+            .toolbar {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                padding: 12px;
+            }
+
+            .search-wrap {
+                grid-column: 1 / -1;
+                min-width: 0;
+            }
+
+            .toolbar select {
+                width: 100%;
+                min-width: 0;
+                padding: 0 8px;
+            }
+
+            .reset-btn {
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+
+            /* Tabelul devine listă de carduri, ca #avansBody pe mobil */
+            .table-shell {
+                border: 0;
+                background: transparent;
+                box-shadow: none;
+                border-radius: 0;
+                overflow: visible;
+            }
+
+            .table-scroll {
+                overflow: visible;
+            }
+
+            table {
+                min-width: 0;
+            }
+
+            table,
+            tbody,
+            tr,
+            td {
+                display: block;
+                width: 100%;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tbody {
+                display: grid;
+                gap: 8px;
+            }
+
+            tbody tr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-areas:
+                    "job status"
+                    "client client"
+                    "car car"
+                    "tech total"
+                    "actions actions";
+                gap: 6px 10px;
+                padding: 12px;
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                background: rgba(27, 30, 38, 0.98);
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+            }
+
+            td {
+                min-width: 0;
+                padding: 0;
+                border: 0;
+            }
+
+            .col-job { grid-area: job; }
+            .col-client { grid-area: client; }
+            .col-car { grid-area: car; }
+            .col-tech { grid-area: tech; align-self: center; color: var(--muted); }
+            .col-status { grid-area: status; justify-self: end; }
+            .col-total { grid-area: total; justify-self: end; text-align: right; }
+            .col-actions { grid-area: actions; width: 100%; }
+
+            .col-actions .details-btn {
+                width: 100%;
+            }
+
+            .empty-state {
+                grid-column: 1 / -1;
+                border: 1px solid var(--border);
+                border-radius: 14px;
+                background: rgba(27, 30, 38, 0.98);
+            }
+
+            .table-footer {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+                margin-top: 8px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background: rgba(20, 22, 28, 0.72);
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-overlay {
+                padding: 12px;
+            }
+
+            .modal-card {
+                max-height: 92vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Antet construit după modelul .page-header din modules/devize/avans.html -->
+    <header class="page-shell page-header panel-card">
+        <div class="header-top">
+            <a href="../../index.html" class="back-link" aria-label="Înapoi la panoul principal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Înapoi</span>
+            </a>
+            <div class="header-intro">
+                <h1>Registru Lucrări Service</h1>
+                <p>Lucrările fictive ale atelierului, cu filtre rapide și detalii.</p>
+            </div>
+            <span class="demo-badge" title="Date fictive locale, fără Supabase">Date demo</span>
+        </div>
+    </header>
+
+    <main class="page-shell page-content">
+        <!-- KPI calculate din datele locale -->
+        <section class="kpi-grid" aria-label="Indicatori registru">
+            <article class="kpi-card panel-card">
+                <span class="kpi-label">Total lucrări</span>
+                <strong class="kpi-value" id="kpiTotal">0</strong>
+                <span class="kpi-sub">Înregistrări în registru</span>
+            </article>
+            <article class="kpi-card panel-card kpi-card--work">
+                <span class="kpi-label">În lucru</span>
+                <strong class="kpi-value" id="kpiWork">0</strong>
+                <span class="kpi-sub">Intervenții active</span>
+            </article>
+            <article class="kpi-card panel-card kpi-card--done">
+                <span class="kpi-label">Finalizate</span>
+                <strong class="kpi-value" id="kpiDone">0</strong>
+                <span class="kpi-sub">Lucrări închise</span>
+            </article>
+        </section>
+
+        <!-- Căutare și filtre locale -->
+        <section class="toolbar panel-card" aria-label="Căutare și filtre">
+            <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <label for="searchInput" class="sr-only">Caută în registru</label>
+                <input type="search" id="searchInput" placeholder="Caută lucrare, client, model sau nr. înmatriculare..."
+                    autocomplete="off">
+            </div>
+
+            <label for="statusFilter" class="sr-only">Filtru status</label>
+            <select id="statusFilter">
+                <option value="all">Toate statusurile</option>
+                <option value="wait">În așteptare</option>
+                <option value="work">În lucru</option>
+                <option value="done">Finalizată</option>
+                <option value="blocked">Blocată</option>
+            </select>
+
+            <label for="techFilter" class="sr-only">Filtru tehnician</label>
+            <select id="techFilter">
+                <option value="all">Toți tehnicienii</option>
+            </select>
+
+            <button type="button" class="reset-btn" id="resetFilters">Resetează</button>
+        </section>
+
+        <!-- Registru -->
+        <section class="table-shell panel-card" aria-label="Lista lucrărilor">
+            <div class="table-scroll">
+                <table>
+                    <caption class="sr-only">Registru lucrări service cu 8 înregistrări fictive</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Lucrare</th>
+                            <th scope="col">Client</th>
+                            <th scope="col">Auto</th>
+                            <th scope="col">Tehnician</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lucrariBody"></tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <div id="resultCount" aria-live="polite">Afișate 8 din 8 lucrări</div>
+                <div>Date fictive locale · fără Supabase</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal detalii, deschis din butonul fiecărui rând -->
+    <div class="modal-overlay" id="detailModal" hidden>
+        <div class="modal-card panel-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+            <div class="modal-head">
+                <div>
+                    <p class="modal-kicker" id="detailId">LR-000</p>
+                    <h2 id="detailTitle">Detalii lucrare</h2>
+                </div>
+                <button type="button" class="icon-btn" id="closeModalBtn" aria-label="Închide detaliile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span>Client</span>
+                        <strong id="detailClient">—</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Data</span>
+                        <strong id="detailDate">—</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Auto</span>
+                        <strong id="detailCar">—</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Tehnician</span>
+                        <strong id="detailTech">—</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Status</span>
+                        <span class="status" id="detailStatus">—</span>
+                    </div>
+                    <div class="detail-item">
+                        <span>Total</span>
+                        <strong class="money" id="detailTotal">—</strong>
+                    </div>
+                    <div class="detail-item detail-item--wide">
+                        <span>Lucrare</span>
+                        <strong id="detailJob">—</strong>
+                    </div>
+                    <div class="detail-item detail-item--wide">
+                        <span>Observații</span>
+                        <p id="detailNotes">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button" class="btn-secondary" id="modalOkBtn">Închide</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Date fictive locale: nicio conexiune Supabase.
+        const LUCRARI = [
+            {
+                id: 'LR-001',
+                data: '14.10.2026',
+                client: 'Andrei Dumitrescu',
+                model: 'Dacia Logan',
+                plate: 'B 123 ABC',
+                lucrare: 'Schimb ambreiaj',
+                tehnician: 'Mihai Ionescu',
+                status: 'done',
+                total: 2450,
+                observatii: 'Kit ambreiaj înlocuit și pedala reglată. Clientul a fost anunțat la finalizare.'
+            },
+            {
+                id: 'LR-002',
+                data: '16.10.2026',
+                client: 'Ioana Marinescu',
+                model: 'Ford Focus',
+                plate: 'B 456 DEF',
+                lucrare: 'Revizie periodică',
+                tehnician: 'Andrei Pop',
+                status: 'work',
+                total: 480,
+                observatii: 'Ulei, filtru de ulei, filtru de aer și verificarea nivelurilor. În lucru la ora 11:30.'
+            },
+            {
+                id: 'LR-003',
+                data: '17.10.2026',
+                client: 'Radu Constantin',
+                model: 'Volkswagen Golf',
+                plate: 'B 789 GHI',
+                lucrare: 'Diagnoză electronică',
+                tehnician: 'Vlad Georgescu',
+                status: 'wait',
+                total: 250,
+                observatii: 'Martor motor aprins intermitent. Așteaptă confirmarea clientului pentru testul de drum.'
+            },
+            {
+                id: 'LR-004',
+                data: '17.10.2026',
+                client: 'Elena Pavel',
+                model: 'Skoda Octavia',
+                plate: 'B 234 JKL',
+                lucrare: 'Înlocuire distribuție',
+                tehnician: 'Mihai Ionescu',
+                status: 'done',
+                total: 3100,
+                observatii: 'Kit distribuție și pompă de apă schimbate. Verificare finală fără scurgeri.'
+            },
+            {
+                id: 'LR-005',
+                data: '18.10.2026',
+                client: 'Sorin Tudose',
+                model: 'Renault Clio',
+                plate: 'B 567 MNO',
+                lucrare: 'Frâne față și discuri',
+                tehnician: 'Sorin Marin',
+                status: 'work',
+                total: 1250,
+                observatii: 'Discuri și plăcuțe față înlocuite; lichidul de frână urmează să fie verificat.'
+            },
+            {
+                id: 'LR-006',
+                data: '19.10.2026',
+                client: 'Cristina Ilie',
+                model: 'Opel Astra',
+                plate: 'B 890 PQR',
+                lucrare: 'Reparație climatizare',
+                tehnician: 'Vlad Georgescu',
+                status: 'blocked',
+                total: 890,
+                observatii: 'Compresor comandat, livrare întârziată. Lucrarea este blocată până la sosirea piesei.'
+            },
+            {
+                id: 'LR-007',
+                data: '20.10.2026',
+                client: 'George Stan',
+                model: 'Toyota Corolla',
+                plate: 'B 345 STU',
+                lucrare: 'Schimb ulei și filtre',
+                tehnician: 'Andrei Pop',
+                status: 'done',
+                total: 320,
+                observatii: 'Revizie rapidă finalizată. Nivelurile verificate și presiunea în roți ajustată.'
+            },
+            {
+                id: 'LR-008',
+                data: '21.10.2026',
+                client: 'Mihaela Dobre',
+                model: 'BMW 320d',
+                plate: 'B 678 VWX',
+                lucrare: 'Geometrie roți',
+                tehnician: 'Sorin Marin',
+                status: 'work',
+                total: 180,
+                observatii: 'Reglaj unghiuri față și spate. Verificarea finală este în curs.'
+            }
+        ];
+
+        const STATUSURI = {
+            wait: { label: 'În așteptare', cls: 'is-wait' },
+            work: { label: 'În lucru', cls: 'is-work' },
+            done: { label: 'Finalizată', cls: 'is-done' },
+            blocked: { label: 'Blocată', cls: 'is-blocked' }
+        };
+
+        const body = document.getElementById('lucrariBody');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const techFilter = document.getElementById('techFilter');
+        const resetFilters = document.getElementById('resetFilters');
+        const resultCount = document.getElementById('resultCount');
+        const modal = document.getElementById('detailModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalOkBtn = document.getElementById('modalOkBtn');
+
+        let lastFocused = null;
+
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const normalize = (value) => String(value)
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+
+        const formatMoney = (value) => new Intl.NumberFormat('ro-RO', {
+            style: 'currency',
+            currency: 'RON',
+            maximumFractionDigits: 0
+        }).format(value);
+
+        function renderKpi() {
+            document.getElementById('kpiTotal').textContent = LUCRARI.length;
+            document.getElementById('kpiWork').textContent = LUCRARI.filter((item) => item.status === 'work').length;
+            document.getElementById('kpiDone').textContent = LUCRARI.filter((item) => item.status === 'done').length;
+        }
+
+        function populateTechnicians() {
+            const tehnicieni = [...new Set(LUCRARI.map((item) => item.tehnician))].sort((a, b) => a.localeCompare(b, 'ro'));
+            tehnicieni.forEach((nume) => {
+                const option = document.createElement('option');
+                option.value = nume;
+                option.textContent = nume;
+                techFilter.appendChild(option);
+            });
+        }
+
+        function rowTemplate(item) {
+            const status = STATUSURI[item.status];
+            return `
+                <tr>
+                    <td class="col-job">
+                        <span class="job-id mono-text">${escapeHtml(item.id)}</span>
+                        <span class="cell-sub">${escapeHtml(item.data)}</span>
+                    </td>
+                    <td class="col-client"><span class="cell-strong">${escapeHtml(item.client)}</span></td>
+                    <td class="col-car">
+                        <span class="plate mono-text">${escapeHtml(item.plate)}</span>
+                        <span class="cell-sub">${escapeHtml(item.model)}</span>
+                    </td>
+                    <td class="col-tech">${escapeHtml(item.tehnician)}</td>
+                    <td class="col-status"><span class="status ${status.cls}">${status.label}</span></td>
+                    <td class="col-total"><span class="money">${formatMoney(item.total)}</span></td>
+                    <td class="col-actions">
+                        <button type="button" class="details-btn" data-details="${escapeHtml(item.id)}"
+                            aria-label="Vezi detaliile lucrării ${escapeHtml(item.id)}">Detalii</button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function applyFilters() {
+            const query = normalize(searchInput.value.trim());
+            const status = statusFilter.value;
+            const tehnician = techFilter.value;
+
+            const filtered = LUCRARI.filter((item) => {
+                const haystack = normalize([
+                    item.id,
+                    item.client,
+                    item.model,
+                    item.plate,
+                    item.lucrare,
+                    item.tehnician
+                ].join(' '));
+
+                const matchesQuery = !query || haystack.includes(query);
+                const matchesStatus = status === 'all' || item.status === status;
+                const matchesTech = tehnician === 'all' || item.tehnician === tehnician;
+
+                return matchesQuery && matchesStatus && matchesTech;
+            });
+
+            body.innerHTML = filtered.length
+                ? filtered.map(rowTemplate).join('')
+                : '<tr><td class="empty-state" colspan="7">Nicio lucrare nu corespunde filtrelor selectate.</td></tr>';
+
+            resultCount.textContent = `Afișate ${filtered.length} din ${LUCRARI.length} lucrări`;
+        }
+
+        function resetAll() {
+            searchInput.value = '';
+            statusFilter.value = 'all';
+            techFilter.value = 'all';
+            applyFilters();
+            searchInput.focus();
+        }
+
+        function openDetails(id, trigger) {
+            const item = LUCRARI.find((entry) => entry.id === id);
+            if (!item) return;
+
+            const status = STATUSURI[item.status];
+
+            document.getElementById('detailId').textContent = item.id;
+            document.getElementById('detailClient').textContent = item.client;
+            document.getElementById('detailDate').textContent = item.data;
+            document.getElementById('detailCar').textContent = `${item.model} · ${item.plate}`;
+            document.getElementById('detailTech').textContent = item.tehnician;
+            document.getElementById('detailJob').textContent = item.lucrare;
+            document.getElementById('detailNotes').textContent = item.observatii;
+            document.getElementById('detailTotal').textContent = formatMoney(item.total);
+
+            const detailStatus = document.getElementById('detailStatus');
+            detailStatus.className = `status ${status.cls}`;
+            detailStatus.textContent = status.label;
+
+            lastFocused = trigger || document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            closeModalBtn.focus();
+        }
+
+        function closeDetails() {
+            if (modal.hidden) return;
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            if (lastFocused && typeof lastFocused.focus === 'function') {
+                lastFocused.focus();
+            }
+        }
+
+        function trapFocus(event) {
+            if (event.key !== 'Tab' || modal.hidden) return;
+
+            const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (!focusable.length) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+
+        // Evenimente: căutare, filtre, resetare, detalii și închidere modal.
+        searchInput.addEventListener('input', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+        techFilter.addEventListener('change', applyFilters);
+        resetFilters.addEventListener('click', resetAll);
+
+        body.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-details]');
+            if (button) openDetails(button.dataset.details, button);
+        });
+
+        closeModalBtn.addEventListener('click', closeDetails);
+        modalOkBtn.addEventListener('click', closeDetails);
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeDetails();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeDetails();
+            trapFocus(event);
+        });
+
+        // Inițializare pagină demo.
+        renderKpi();
+        populateTechnicians();
+        applyFilters();
+    </script>
+</body>
+</html>
