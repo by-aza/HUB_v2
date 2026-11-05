@@ -28,6 +28,12 @@ inventar sunt relative la rădăcina repository-ului; linkurile sunt relative la
 acest fișier. Artefactele istorice absente sunt indicate prin căi în cod inline,
 fără linkuri locale spre fișiere inexistente.
 
+**EP — 05.11.2026:** cele nouă runtime sunt integrate în `feature-responsive`;
+backendul este instalat și verificat read-only. Frontendul nu este publicat.
+[Handoff și manifest](../HANDOFF_CODEX.md),
+[stadiu](evidenta_piese/PLAN_EVIDENTA_PIESE.md),
+[verificare finală DB/API și limite](03_SUPABASE.md#ep-productie-verificat-20261105).
+
 ## Interpretarea statutului
 
 | Statut | Sens |
@@ -54,12 +60,12 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 | Sarcină | Lectură selectivă | Verificare necesară înainte de implementare |
 |---|---|---|
 | UI sau responsive | [Design](DESIGN_SYSTEM_HUB.md), [resurse](01_ARHITECTURA.md), [catalog vizual](referinte_vizuale/INDEX.md) | Pagina încărcată, cascada CSS, stări și breakpoint-uri; capturile sunt exemple |
-| Un modul anume | [Module](02_MODULE.md), [fluxuri](05_FLUXURI_PRINCIPALE.md), [integrări](06_DEPENDENTE_SI_INTEGRARI.md), documentul tematic | Handler, resurse, consumatori actuali; 02 include acum delimitarea statică Evidență Piese DEMO |
+| Un modul anume | [Module](02_MODULE.md), [fluxuri](05_FLUXURI_PRINCIPALE.md), [integrări](06_DEPENDENTE_SI_INTEGRARI.md), documentul tematic | Handler, resurse, consumatori actuali; 02 include frontendul EP local și backendul instalat |
 | Query-uri sau schemă Supabase | [03](03_SUPABASE.md), [09](09_MATRICE_ACCES.md), [22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md), [06](06_DEPENDENTE_SI_INTEGRARI.md) | Catalog, politici, granturi și consumatori actuali; schema cere aprobare explicită |
 | Autentificare, roluri sau RLS | [22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md), [04](04_ROLURI_SI_ACCES.md), [09](09_MATRICE_ACCES.md), [12](12_TESTE_ACCES.md); [10](10_PLAN_RLS.md)/[11](11_PLAN_ROLLBACK.md) pentru pachete | Aprobare explicită; nu reactiva planurile AUTH suspendate sau seriile vechi |
 | Deviz Final sau Avansuri | [17](17_MODIFICARI_AVANSURI_2026-10-14_15.md), [05](05_FLUXURI_PRINCIPALE.md), [03](03_SUPABASE.md); [20 ciorne](20_DEVIZ_FINAL_CIORNE_LOCALE_2026-10-17.md) dacă e relevant | RPC, import, totaluri și print; ciornele locale sunt distincte de datele salvate |
 | Manager Dashboard | [18 redesign](18_MANAGER_DASHBOARD_REDESIGN.md), [19](19_MANAGER_V2_FISIERE_DEPLOY.md), [09](09_MATRICE_ACCES.md); [15](15_OPTIMIZARI_IMPLEMENTATE.md) pentru performanță | Sursele active din modules/manager/ și integrarea HUB; nu prototipul obsolete |
-| Evidență Piese | [Plan și stadiu DEMO](evidenta_piese/PLAN_EVIDENTA_PIESE.md), [02](02_MODULE.md) pentru dependențe HUB | Sursele DEMO actuale; integrarea reală DF și modelul DB sunt propuneri |
+| Evidență Facturi & Piese | [Plan/stadiu candidat](evidenta_piese/PLAN_EVIDENTA_PIESE.md), [handoff](../HANDOFF_CODEX.md), [02](02_MODULE.md), [03](03_SUPABASE.md) | Transfer local efectuat; backend EP instalat/verificat read-only, acceptanță browser restantă |
 | Deploy sau transfer în producție | [23](23_INVENTAR_TRANSFER_PRODUCTIE.md), [19](19_MANAGER_V2_FISIERE_DEPLOY.md), documentul funcției | 23 este comparație istorică LAB; generează un inventar nou și compară ținta înainte de transfer; aprobare explicită obligatorie |
 | Investigație de performanță | [15](15_OPTIMIZARI_IMPLEMENTATE.md), apoi [13](13_AUDIT_PERFORMANTA.md)/[14](14_PLAN_OPTIMIZARE.md) pentru context | Măsoară versiunea actuală; nu reaplica remedieri istorice |
 | Curățenie distructivă sau plan de rollback | [16](16_CURATENIE_PROIECT.md), [07](07_RISCURI_SI_ZONE_SENSIBILE.md), [06](06_DEPENDENTE_SI_INTEGRARI.md), [11](11_PLAN_ROLLBACK.md); [10](10_PLAN_RLS.md)/[22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md) pentru DB | Analiza nu modifică fișiere; execuția cere inventar actual, backup verificat, rollback, ținte exacte și aprobare explicită |
@@ -71,6 +77,7 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 | Cale exactă | Statut | Conținut și limite |
 |---|---|---|
 | [documentatie_tehnica/INDEX.md](INDEX.md) | CURRENT | Harta canonică și rutarea după sarcină; inventar documentar verificat la 03.11.2026. |
+| [HANDOFF_CODEX.md](../HANDOFF_CODEX.md) | CURRENT | Transfer EP din 05.11: 9 runtime, 3 SQL instalate, hash-uri și limite înainte de publicare. |
 | [documentatie_tehnica/AI_START_HERE.md](AI_START_HERE.md) | REFERENCE | Ghid reconciliat pentru repository-ul principal la 03.11; păstrează istoricul LAB din 21–22.10 și separă starea statică de live. |
 | [documentatie_tehnica/00_OVERVIEW.md](00_OVERVIEW.md) | REFERENCE | Scopul aplicației și delimitarea checkout-ului principal la 03.11; sinteza din 21.10 și actualizările LAB/producție rămân istorice. |
 
@@ -79,7 +86,7 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 | Cale exactă | Statut | Conținut și limite |
 |---|---|---|
 | [documentatie_tehnica/01_ARHITECTURA.md](01_ARHITECTURA.md) | REFERENCE | Arhitectură statică locală reconciliată; arborele LAB și stările DB din corp sunt istorice, fără inventar live nou. |
-| [documentatie_tehnica/02_MODULE.md](02_MODULE.md) | NEEDS_REVIEW | Inventar static reconciliat: Manager/căutare/ciorne, acces frontend Admin și Evidență Piese DEMO. Browserul și autorizarea DB rămân neverificate. |
+| [documentatie_tehnica/02_MODULE.md](02_MODULE.md) | NEEDS_REVIEW | Inventar static reconciliat: Manager/căutare/ciorne, acces frontend Admin și frontendul EP transferat/backendul instalat. Browserul rămâne neverificat; probele DB EP sunt în 03. |
 
 ### UI și sistem vizual
 
@@ -91,8 +98,8 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 
 | Cale exactă | Statut | Conținut și limite |
 |---|---|---|
-| [documentatie_tehnica/22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md) | NEEDS_REVIEW | Sinteza catalogului producție verificat live la 03.11 din auditul furnizat; comparația LAB din 21.10 este istorică. Autorizarea efectivă și frontendul publicat rămân NEEDS_REVIEW. |
-| [documentatie_tehnica/03_SUPABASE.md](03_SUPABASE.md) | NEEDS_REVIEW | Inventarul producție verificat live la 03.11: catalog, privilegii verificate, VIEW, Storage, Edge, cron și Realtime; fără probe funcționale. Detaliile LAB/ACL/RPC din 21.10 rămân istorice; autorizarea și compatibilitatea frontendului sunt NEEDS_REVIEW. |
+| [documentatie_tehnica/22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md) | NEEDS_REVIEW | Actualizare RLS EP verificată read-only la 05.11; catalogul general la 03.11 din auditul furnizat; comparația LAB din 21.10 este istorică. Autorizarea efectivă și frontendul publicat rămân NEEDS_REVIEW. |
+| [documentatie_tehnica/03_SUPABASE.md](03_SUPABASE.md) | NEEDS_REVIEW | EP instalat/verificat live read-only la 05.11: RPC, RLS/ACL, Data API și DF; acceptanța browser/scrieri rămâne NEEDS_REVIEW. Auditul general 03.11 și detaliile LAB 21.10 rămân datate. |
 | [documentatie_tehnica/04_ROLURI_SI_ACCES.md](04_ROLURI_SI_ACCES.md) | NEEDS_REVIEW | Roluri, bife, login, rutare și diferențe UI–DB; amestecă stadiul 21.10 cu arhivă. Accesul efectiv actual nu a fost retestat aici. |
 | [documentatie_tehnica/09_MATRICE_ACCES.md](09_MATRICE_ACCES.md) | NEEDS_REVIEW | Matrice S/I/U/D extrasă din politici la 21.10, citiri contextuale și limite; vechile propuneri sunt arhivate. Necesită catalog actual înainte de schimbări. |
 | [documentatie_tehnica/10_PLAN_RLS.md](10_PLAN_RLS.md) | HISTORICAL | Registru istoric RLS; cele zece directoare de pachete SQL/rollback lipsesc din acest checkout. Căile se păstrează ca referințe indisponibile, fără reexecuție. |
@@ -155,7 +162,7 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 | [documentatie_tehnica/08_RECOMANDARI.md](08_RECOMANDARI.md) | PLAN | Recomandări cu restanțe punctuale și propuneri istorice inclusiv React; secțiunea 21.10 păstrează direcția de simplitate, fără aprobare implicită de extindere. |
 | [documentatie_tehnica/16_CURATENIE_PROIECT.md](16_CURATENIE_PROIECT.md) | HISTORICAL | Audit read-only din 13.10: copii, placeholder-e și candidați de arhivare. Lista este veche și nu dovedește că țintele sunt nefolosite acum. |
 | [documentatie_tehnica/18_MANAGER_DASHBOARD_V2_PROTOTIP.md](18_MANAGER_DASHBOARD_V2_PROTOTIP.md) | HISTORICAL | Arhiva prototipului Manager declarat OBSOLETE; descrie rute eliminate și probe ale acelei etape, nu implementarea activă. |
-| [documentatie_tehnica/evidenta_piese/PLAN_EVIDENTA_PIESE.md](evidenta_piese/PLAN_EVIDENTA_PIESE.md) | PLAN | Specificație LAB v1.5 din 25.10 cu delimitare locală la 03.11: Înapoi și funcții DEMO în sursă; referințe externe absente marcate. Importul DF este simulat, modelul DB viitor. |
+| [documentatie_tehnica/evidenta_piese/PLAN_EVIDENTA_PIESE.md](evidenta_piese/PLAN_EVIDENTA_PIESE.md) | REFERENCE / NEEDS_REVIEW | Frontend EP transferat local, backend instalat/verificat read-only la 05.11; teste locale și acceptanță browser restantă. Corpul anterior păstrează istoricul DEMO/LAB. |
 
 ## Subfoldere și materiale care nu sunt Markdown
 
@@ -204,7 +211,8 @@ importul sau execuția SQL. [10](10_PLAN_RLS.md) păstrează cele 38 de nume SQL
 
 Documentele **NEEDS_REVIEW** sunt 02, 03, 04, 07, 09, 22 și 23, cu motivele din inventar.
 Acoperirea statică Evidență Piese și diferențele frontend au fost reconciliate documentar.
-Catalogul de producție este consemnat din auditul read-only furnizat la 03.11.2026;
+Catalogul general este consemnat din auditul read-only furnizat la 03.11.2026,
+completat de verificarea EP live read-only la 05.11 în 03;
 autorizarea funcțională, riscurile din afara faptelor auditate, starea LAB, comportamentul
 în browser și inventarul viitor de transfer cer verificări separate, autorizate potrivit sarcinii. 23 este istoric și rămâne NEEDS_REVIEW
 pentru orice folosire ca bază a unui transfer.

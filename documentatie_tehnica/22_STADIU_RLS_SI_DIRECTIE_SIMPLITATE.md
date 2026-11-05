@@ -1,6 +1,15 @@
 # Stadiu final RLS și direcție definitivă — SIMPLITATE
 
-## Producție verificată live — 03.11.2026
+## Actualizare EP — producție verificată read-only la 05.11.2026
+
+Backend EP instalat: șapte tabele RLS ON, șapte politici SELECT stricte și două
+VIEW-uri security_invoker; total public 127 politici. Cele 37 de politici
+preexistente comparate sunt neschimbate. Admin citește RPC-urile; profilurile fără
+EP și cererile HTTP anonime sunt refuzate. `ep_private` nu este expusă în Data API.
+[Dovezi, contracte și limite](03_SUPABASE.md#ep-productie-verificat-20261105). Nu s-au testat scrieri în producție sau sesiuni
+reale în browser; celelalte constatări de mai jos rămân datate la auditul lor.
+
+## Producție verificată live — 03.11.2026 (audit istoric)
 
 **Proveniență:** audit read-only furnizat de utilizator, realizat prin integrarea
 Supabase conectată asupra `HUB_Service_Auto` / `xyovkxmtbvgcwavuyxxu`,

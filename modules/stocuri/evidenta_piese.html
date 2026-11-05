@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="HUB AUTO — Evidență Piese, prototip DEMO cu date fictive în memorie.">
-  <title>HUB AUTO — Evidență Piese (DEMO)</title>
+  <meta name="description" content="HUB AUTO — Evidență Facturi & Piese, registre persistente în Supabase HUB.">
+  <title>HUB AUTO — Evidență Facturi &amp; Piese</title>
   <style>
     /* Flatpickr adds a positioning rule at runtime; keep a same-origin sheet available on file://. */
   </style>
@@ -12,11 +12,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261105-totals-alignment">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261105-ep-transfer">
 </head>
 <body>
-  <div class="ep-app">
-    <!-- Antetul modulului: identitate, badge DEMO și acțiunea principală -->
+  <!-- Starea conexiunii și recuperarea unei cereri incerte, fără afișarea datelor înainte de autorizare. -->
+  <div class="ep-connection" role="status" aria-live="polite">
+    <span id="epConnectionMessage">Se verifică accesul și se încarcă registrul HUB…</span>
+    <button type="button" class="ep-button ep-button-ghost" id="epRefresh" hidden>Actualizează</button>
+    <button type="button" class="ep-button ep-button-ghost" id="epRecover" hidden>Reverifică salvarea</button>
+    <a class="ep-button ep-button-ghost" id="epLogin" href="../admin/login.html" hidden>Autentificare HUB</a>
+  </div>
+  <div class="ep-app" hidden inert>
+    <!-- Antetul modulului: identitate, marcaj NEW și acțiunea principală -->
     <header class="ep-header">
       <!-- Întoarcere normală la HUB, în stânga identității, după modelul din avans.html. -->
       <a class="ep-back-hub" href="../../index.html">
@@ -33,10 +40,10 @@
         <div class="ep-brand-copy">
           <span class="ep-brand-eyebrow">HUB AUTO <i>v2</i></span>
           <div class="ep-title-line">
-            <h1>Evidență Piese</h1>
-            <span class="ep-demo-badge" title="Prototip cu date fictive, fără persistență">DEMO</span>
+            <h1>Evidență Facturi &amp; Piese</h1>
+            <span class="ep-demo-badge" title="Date persistente în Supabase HUB">NEW</span>
           </div>
-          <p class="ep-demo-note">date fictive · resetare la refresh</p>
+          <p class="ep-demo-note">facturi și piese · Supabase HUB</p>
         </div>
       </div>
 
@@ -49,8 +56,18 @@
       </div>
     </header>
 
+    <!-- Implicitul global este modificabil numai de Admin; liniile existente nu sunt rescrise. -->
+    <details id="epDefaultPanel" class="ep-default-panel" hidden>
+      <summary>Setări Admin</summary>
+      <form id="epDefaultForm" class="ep-default-form">
+        <label for="epDefaultMarkup">Coeficient DF implicit</label>
+        <input id="epDefaultMarkup" type="number" min="0.000001" step="any" inputmode="decimal" required>
+        <button class="ep-button ep-button-ghost" type="submit">Salvează implicitul</button>
+        <small>Se aplică numai liniilor noi.</small>
+      </form>
+    </details>
     <!-- Navigarea principală între cele cinci registre -->
-    <nav class="ep-tabbar" aria-label="Secțiunile modulului Evidență Piese">
+    <nav class="ep-tabbar" aria-label="Secțiunile modulului Evidență Facturi &amp; Piese">
       <div class="ep-tabs" role="tablist" aria-label="Registre">
         <button type="button" class="ep-tab is-active" id="tab-parts" role="tab" aria-selected="true" aria-controls="listPanel" data-tab="parts">
           Piese <span class="ep-tab-count" data-count="parts" title="Poziții de factură">0</span>
@@ -72,7 +89,7 @@
     </nav>
 
     <main class="ep-main">
-      <!-- Indicatori generali, calculați din datele DEMO -->
+      <!-- Indicatori generali, calculați din datele HUB -->
       <!-- Cinci KPI: poziții, atribuire, valoare, retururi și bucăți spre magazie. -->
       <section class="ep-kpi-grid" id="kpiGrid" aria-label="Indicatori generali"></section>
 
@@ -173,7 +190,7 @@
     <div class="ep-modal ep-invoice-modal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" aria-describedby="invoiceFormHelp">
       <header class="ep-modal-head ep-invoice-head">
         <div>
-          <span class="ep-eyebrow">Factură nouă · DEMO</span>
+          <span class="ep-eyebrow">Factură nouă · HUB</span>
           <h2 id="invoiceModalTitle">Adaugă factură furnizor</h2>
         </div>
         <button type="button" class="ep-icon-button" id="invoiceModalClose" aria-label="Închide formularul de factură">
@@ -297,7 +314,7 @@
     <div class="ep-modal ep-supplier-modal" role="dialog" aria-modal="true" aria-labelledby="supplierModalTitle" aria-describedby="supplierModalNote">
       <header class="ep-modal-head ep-supplier-head">
         <div>
-          <span class="ep-eyebrow" id="supplierModalEyebrow">Furnizor nou · DEMO</span>
+          <span class="ep-eyebrow" id="supplierModalEyebrow">Furnizor nou · HUB</span>
           <h2 id="supplierModalTitle">Adaugă furnizor</h2>
           <p class="ep-supplier-head-note" id="supplierModalNote">Completează datele firmei.</p>
         </div>
@@ -383,7 +400,7 @@
     <div class="ep-modal ep-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle" aria-describedby="assignmentModalNote">
       <header class="ep-modal-head ep-assignment-head">
         <div>
-          <span class="ep-eyebrow" id="assignmentModalEyebrow">Atribuire · DEMO</span>
+          <span class="ep-eyebrow" id="assignmentModalEyebrow">Atribuire · HUB</span>
           <h2 id="assignmentModalTitle">Atribuie mașină</h2>
           <p class="ep-assignment-head-note" id="assignmentModalNote">Asociază pozițiile selectate cu un număr de înmatriculare.</p>
         </div>
@@ -438,16 +455,16 @@
     </div>
   </div>
 
-  <!-- Import DF strict simulat, la prețurile originale de achiziție -->
+  <!-- Dialog istoric păstrat inactiv; importul real pornește numai din Deviz Final. -->
   <div class="ep-modal-overlay" id="dfModal" hidden>
     <div class="ep-modal ep-df-modal" role="dialog" aria-modal="true" aria-labelledby="dfModalTitle" aria-describedby="dfModalNote">
       <header class="ep-modal-head">
         <div>
-          <span class="ep-eyebrow">Deviz Final · simulare DEMO</span>
-          <h2 id="dfModalTitle">Importă în DF · DEMO</h2>
+          <span class="ep-eyebrow">Deviz Final · integrare viitoare</span>
+          <h2 id="dfModalTitle">Importă în DF · HUB</h2>
           <p class="ep-df-head-note" id="dfModalNote">Prețuri de achiziție cu TVA, fără adaos.</p>
         </div>
-        <button type="button" class="ep-icon-button" id="dfModalClose" aria-label="Închide importul DEMO">✕</button>
+        <button type="button" class="ep-icon-button" id="dfModalClose" aria-label="Închide importul DF">✕</button>
       </header>
       <form class="ep-df-form" id="dfForm" novalidate>
         <div class="ep-modal-body ep-df-body" id="dfBody">
@@ -464,14 +481,14 @@
                 <tbody id="dfRows"></tbody>
               </table>
             </div>
-            <p class="ep-detail-note" id="dfEmpty" hidden>Mașina nu are alocări în memoria DEMO.</p>
+            <p class="ep-detail-note" id="dfEmpty" hidden>Importul real este disponibil în pagina Deviz Final.</p>
             <div class="ep-df-totals">
               <span id="dfSelectionCount" aria-live="polite">0 alocări · 0 buc.</span>
               <strong>Total achiziție cu TVA: <span id="dfTotal">0,00 lei</span></strong>
             </div>
             <p class="ep-detail-note" id="dfPreviewNote" role="status" aria-live="polite"></p>
           </div>
-          <section id="dfSummary" aria-label="Rezumat import DEMO" hidden>
+          <section id="dfSummary" aria-label="Rezumat import DF" hidden>
             <div id="dfSummaryBody"></div>
           </section>
         </div>
@@ -479,19 +496,19 @@
           <button type="button" class="ep-button ep-button-ghost" id="dfCancel">Anulează</button>
           <div class="ep-df-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="dfNewImport" hidden>Import nou</button>
-            <button type="submit" class="ep-button ep-button-primary" id="dfSave">Confirmă importul DEMO</button>
+            <button type="submit" class="ep-button ep-button-primary" id="dfSave">Confirmă importul DF</button>
           </div>
         </footer>
       </form>
     </div>
   </div>
 
-  <!-- Retur imediat și istoric pe cantitate, exclusiv în memoria DEMO. -->
+  <!-- Retur imediat și istoric pe cantitate, păstrat în HUB. -->
   <div class="ep-modal-overlay" id="returnModal" hidden>
     <div class="ep-modal ep-return-modal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle" aria-describedby="returnModalNote">
       <header class="ep-modal-head">
         <div>
-          <span class="ep-eyebrow">Retur furnizor · DEMO</span>
+          <span class="ep-eyebrow">Retur furnizor · HUB</span>
           <h2 id="returnModalTitle">Înregistrează retur</h2>
           <p class="ep-return-head-note" id="returnModalNote">Cantitatea returnată se scade imediat din disponibil.</p>
         </div>
@@ -539,14 +556,14 @@
     </div>
   </div>
 
-  <!-- Trimitere în magazie: rezervare cantitativă DEMO, fără recepție sau stoc real. -->
+  <!-- Trimitere în magazie: rezervare cantitativă HUB, fără recepție sau stoc real. -->
   <div class="ep-modal-overlay" id="warehouseModal" hidden>
     <div class="ep-modal ep-warehouse-modal" role="dialog" aria-modal="true" aria-labelledby="warehouseModalTitle" aria-describedby="warehouseModalNote">
       <header class="ep-modal-head">
         <div>
-          <span class="ep-eyebrow ep-warehouse-text">Magazie · DEMO</span>
+          <span class="ep-eyebrow ep-warehouse-text">Magazie · HUB</span>
           <h2 id="warehouseModalTitle">Trimite în magazie</h2>
-          <p class="ep-detail-note" id="warehouseModalNote">Cantitatea se rezervă la confirmare. Datele se resetează la refresh.</p>
+          <p class="ep-detail-note" id="warehouseModalNote">Cantitatea se rezervă la confirmare. Datele sunt păstrate în HUB.</p>
         </div>
         <button type="button" class="ep-icon-button" id="warehouseModalClose" aria-label="Închide trimiterea în magazie">✕</button>
       </header>
@@ -573,7 +590,7 @@
         </div>
         <footer class="ep-modal-foot">
           <button type="button" class="ep-button ep-button-ghost" id="warehouseCancel">Anulează</button>
-          <button type="submit" class="ep-button ep-warehouse-button" id="warehouseSave">Trimite în magazie · DEMO</button>
+          <button type="submit" class="ep-button ep-warehouse-button" id="warehouseSave">Trimite în magazie · HUB</button>
         </footer>
       </form>
     </div>
@@ -600,7 +617,7 @@
             <circle cx="12" cy="12" r="9"></circle>
             <path d="M12 11v5M12 8h.01"></path>
           </svg>
-          <span>Această acțiune nu modifică datele DEMO. La refresh, pagina revine la datele fictive inițiale.</span>
+          <span>Această acțiune nu modifică datele HUB. Datele salvate rămân păstrate în HUB.</span>
         </div>
       </div>
       <footer class="ep-modal-foot">
@@ -624,6 +641,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ro.js"></script>
-  <script src="../../js/evidenta_piese.js?v=20261105-returns"></script>
+  <!-- Clientul comun HUB și adaptorul HUB preced inițializarea interfeței. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../js/config.js"></script>
+  <script src="../../js/evidenta_piese_api.js?v=20261105-ep-transfer"></script>
+  <script src="../../js/evidenta_piese.js?v=20261105-ep-transfer"></script>
+  <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
+  <script src="../../js/session-timeout.js?v=2"></script>
 </body>
 </html>

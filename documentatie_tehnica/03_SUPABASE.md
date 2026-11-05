@@ -1,5 +1,126 @@
 # Integrarea Supabase
 
+<a id="ep-productie-verificat-20261105"></a>
+## EP instalat în producție — 05.11.2026, verificare finală read-only
+
+**Confirmat live:** `HUB_Service_Auto` / `xyovkxmtbvgcwavuyxxu`, ACTIVE_HEALTHY,
+PostgreSQL 17.6. Catalog citit la 19:32 UTC; probe SQL/HTTP ulterioare în aceeași
+sesiune. Utilizatorul confirmă aplicarea celor trei consolidări. Verificarea nu a
+rerulat migrări, nu a modificat date de business, roluri sau permisiuni.
+
+### Contractul RPC instalat
+
+Toate cele opt RPC-uri EP întorc `jsonb`; `authenticated` are EXECUTE, `anon` nu.
+Wrapper-ele publice sunt invoker, cu `search_path` gol fixat și verificări server-side.
+
+| RPC | Argumente instalate, identice cu apelurile frontendului transferat |
+|---|---|
+| `ep_save_supplier` | `p_request uuid, p jsonb` |
+| `ep_save_invoice` | `p_request uuid, p jsonb` |
+| `ep_save_allocations` | `p_request uuid, p jsonb` |
+| `ep_register_movement` | `p_request uuid, p jsonb` |
+| `ep_set_default` | `p_request uuid, p jsonb` |
+| `ep_get_defaults` | fără argumente, STABLE |
+| `ep_load_registry` | fără argumente, STABLE |
+| `ep_list_df_parts` | `p_plate text, p_vin text DEFAULT '', p_vehicle bigint DEFAULT NULL, p_df bigint DEFAULT NULL`, STABLE |
+
+Cele **36 de corpuri finale de funcții** din cele trei SQL-uri revizuite corespund
+catalogului, după normalizarea comentariilor/whitespace. Cele 9 hash-uri runtime
+și 3 hash-uri SQL sunt identice cu [manifestul transferului](evidenta_piese/TRANSFER_FEATURE_RESPONSIVE_20261105.json).
+Adaptori: `js/evidenta_piese_api.js` și `js/ep_df_import.js`, cu proiectul destinației
+și configurația existentă; fără copiere de configurație LAB. Suita statică: **64 PASS**.
+
+### RLS, ACL și Data API
+
+- Șapte tabele: `ep_furnizori`, `ep_furnizor_conturi`, `ep_facturi`,
+  `ep_factura_linii`, `ep_alocari`, `ep_retururi`, `ep_transferuri_magazie`.
+  Toate au RLS ON și câte o politică SELECT `ep_read`: Admin/1 sau JSON boolean
+  `permissions.evidenta_piese=true`, fără acces implicit Manager/fallback.
+- `authenticated` are numai SELECT direct pe aceste tabele; fără INSERT, UPDATE,
+  DELETE sau TRUNCATE, inclusiv fără granturi de scriere pe coloane. `anon` nu are
+  aceste drepturi. Scrierile EP trec prin RPC-urile controlate, neapelate în acest audit.
+- `ep_linii_valori` și `ep_facturi_totaluri`: `security_invoker=true`.
+  Cele 37 de politici preexistente comparate sunt neschimbate; total public **127 politici**.
+- HTTP GET cu configurația publică existentă: tabel EP, cele trei RPC-uri de citire
+  și antet DF refuză anon cu **401 / 42501**. `Accept-Profile: ep_private` pe ruta
+  tabelului întoarce **406 / PGRST106**: schema privată nu este expusă prin Data API.
+- În tranzacții READ ONLY, cu rol `authenticated` și `auth.uid()` setat pe profiluri
+  existente: Admin citește defaults/registry/picker; profilul fără EP primește
+  42501 la defaults/registry; profilul cu DF și fără EP primește 42501 la picker.
+  Registry întoarce cheile/array-urile așteptate de adaptor. Acestea sunt probe SQL
+  de autorizare, **nu autentificare HTTP cu sesiune reală sau teste de browser**.
+
+### Deviz Final și Avansuri
+
+`save_deviz_final(p_deviz_id bigint,p_header jsonb,p_lines jsonb) RETURNS jsonb`
+păstrează contractul public; corpul instalat este wrapper-ul EP revizuit, cu traseul
+legacy/manual păstrat. Coloanele `ep_alocare_id`, `ep_import_id`, `ep_snapshot`,
+indexurile/constraint-urile și triggerele `ep_df_protect`, `ep_df_serialize`,
+`ep_df_release` sunt prezente; constraint-urile verificate sunt validate, triggerele
+sunt activate. Coloanele de sursă EP nu permit scriere directă authenticated.
+Guard-ul `config_alerte.ep_guard_default_key` este activ.
+
+`private.resolve_deviz_final_vehicle(text,text)` și
+`list_deviz_final_importable_avansuri(bigint,text,text)` păstrează amprentele
+pre-migrare (`8973b688c51212646e960cb6e8c7727f`, respectiv
+`f9aa521b4979ce03691cfac688597ca6`). Citirea Avansurilor prin RPC reușește pentru
+Admin pe un vehicul existent; SELECT-urile private `avans_id`/`status` sunt păstrate.
+
+Numărări live: **225 antete DF, 2691 linii DF, 59 avansuri, 65 plăți, 8 profiluri**,
+identice cu backupul pre-EP. Fără avansuri legate duplicat, fără surse EP incomplete
+și fără referințe nenule către antete inexistente. Patru linii au antet NULL,
+preexistente și în backup; nu sunt introduse de EP. Registrele EP și importurile
+sunt goale. Niciun profil non-Admin nu are încă bifa EP; numai Admin are acces
+implicit. Nu au fost acordate permisiuni în această verificare.
+
+### Stare înainte de publicare și limite
+
+**Nu s-a identificat blocaj de schemă, semnătură sau ACL pentru frontendul transferat.**
+Istoricul remote are în continuare **8 înregistrări, fără EP**, deși catalogul
+confirmă instalarea; nu deducem metoda aplicării și nu reparăm/rerulăm migrarea.
+Sursele consolidate sunt dovada comparată, nu o comandă de reaplicare.
+
+**NEEDS_REVIEW înainte de lansare:** browser cu autentificare reală pe candidatul
+transferat, Admin/operator autorizat/refuz acces, reload și expirare sesiune,
+creare/editare factură, alocări/retur/magazie, import/editare/resalvare DF,
+linii manuale, avans/discount/totaluri, print și desktop/mobil. Scrierile,
+concurența independentă și fluxul HTTP autentificat nu au fost testate în producție.
+Orice test cu date reale necesită autorizare separată; auditul prezent nu o implică.
+
+Backupul pre-EP existent este verificat ca arhivă, dar **restaurarea reală rămâne
+NEDEMONSTRATĂ**, conform `RESTORE_VALIDATION_20261105.json` din directorul extern
+`BACKUP_HUB_SUPABASE/xyovkxmtbvgcwavuyxxu/20261105T184644Z`; mediul PostgreSQL 17 /
+Supabase izolat nu a fost disponibil. Această limită de recuperare rămâne deschisă.
+Nu s-au executat commit, push, deploy sau modificări de cod în această verificare.
+
+## Preflight EP producție — 05.11.2026, read-only
+
+**ISTORIC, înainte de aplicarea EP. Starea instalată de mai sus are prioritate.**
+
+Inspecție nouă prin integrarea Supabase: `HUB_Service_Auto` / `xyovkxmtbvgcwavuyxxu`,
+`ACTIVE_HEALTHY`, PostgreSQL 17.6. Numai SELECT-uri de catalog, ACL și precondiții;
+nu s-au modificat schema, politicile, istoricul migrărilor sau datele.
+
+- Nu există obiecte `ep_*` în `public` ori obiecte în `ep_private`; backendul EP lipsește.
+- `save_deviz_final(bigint,jsonb,jsonb)` are MD5 al `pg_get_functiondef`
+  `eca2da13bc75babb0a49d6706c4331dd`, exact baseline-ul cerut de sursa SQL DF LAB.
+  Resolverul `private.resolve_deviz_final_vehicle(text,text)` are MD5
+  `8973b688c51212646e960cb6e8c7727f`; ambele verificări sunt în candidatul SQL.
+- Admin/1 există; `authenticated` nu poate insera `audit_logs.id`. Sunt păstrate
+  ACL/RLS/trigger-ele existente și granturile de coloană ale Avansurilor.
+- Cheia `evidenta_piese.coeficient_df_default` lipsește: fallback 1,53 după migrare,
+  fără copierea setării sau datelor LAB. Istoricul citit are 8 migrări, niciuna EP.
+- Cele trei surse din [handoff](../HANDOFF_CODEX.md) sunt **PREGĂTITE, NEAPLICATE**:
+  șapte tabele EP, două VIEW-uri invoker, RPC/guard/audit/revizii și extensiile DF.
+  Nu sunt obiecte deja prezente în producție.
+
+Replay local al pachetului și 37 regresii SQL: PASS în PGlite/PostgreSQL 18.6,
+cu catalogul de producție reconstruit și Auth sintetic. Nu înlocuiește validarea
+în PostgreSQL 17/Supabase izolat ori probele HTTP/concurență independentă.
+Schemele Data API expuse nu sunt confirmate de setarea SQL (`pgrst.db_schemas`
+este NULL); verifică explicit că `ep_private` rămâne neexpusă înainte de aplicare.
+[Rezultate exacte](evidenta_piese/TRANSFER_FEATURE_RESPONSIVE_20261105.json).
+
 ## Producție verificată live — 03.11.2026
 
 **Proveniență:** auditul de producție furnizat de utilizator, realizat read-only prin

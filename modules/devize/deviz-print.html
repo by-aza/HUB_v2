@@ -292,6 +292,8 @@
             const data = JSON.parse(rawData);
 
             const formatMoney = (v) => Number(v || 0).toFixed(2);
+            /* Denumirile provenite din facturi se tipăresc ca text, fără interpretarea marcajelor HTML. */
+            const epPrintText = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             const formatDate = (dateStr) => {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
@@ -366,10 +368,11 @@
                     pieseBody.innerHTML += `
                         <tr style="height: 22px;">
                             <td>${idx + 1}</td>
-                            <td>${p.denumire || ''}</td>
-                            <td>${p.um || 'buc'}</td>
+                            <td>${p.epImport ? epPrintText(p.denumire) : (p.denumire || '')}</td>
+                            <td>${p.epImport ? epPrintText(p.um || 'buc') : (p.um || 'buc')}</td>
                             <td>${p.cantitate || ''}</td>
-                            <td>${p.pretUnitar || ''}</td>
+                            <!-- Prețul EP se afișează la doi zecimali; totalul folosește snapshot-ul deja calculat. -->
+                            <td>${p.epImport ? formatMoney(p.pretUnitar) : (p.pretUnitar || '')}</td>
                             <td>${discLabel}</td>
                             <td style="text-align: right;">${formatMoney(p.valoare)}</td>
                         </tr>`;

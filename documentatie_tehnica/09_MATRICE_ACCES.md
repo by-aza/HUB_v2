@@ -1,6 +1,16 @@
 # Matricea de acces — HUB AUTO v2
 
-## Matrice IMPLEMENTATĂ — 21.10.2026
+## EP — acces verificat în producție la 05.11.2026
+
+Admin/1 sau JSON boolean `evidenta_piese=true`: SELECT pe cele șapte tabele EP și
+RPC-urile modulului; fără scriere directă. Setarea implicitului rămâne numai Admin.
+Importul în DF cere și `deviz_final=true`
+pentru non-Admin. Manager nu primește acces implicit. Niciun profil non-Admin nu
+are încă bifa EP. Probe SQL read-only: Admin permis, fără EP refuzat, inclusiv
+profil cu DF; HTTP anonim refuzat. Nu s-au schimbat bife. Autentificarea reală și
+scrierile în browser rămân NEEDS_REVIEW. [Catalog, ACL și probe](03_SUPABASE.md#ep-productie-verificat-20261105).
+
+## Matrice IMPLEMENTATĂ — 21.10.2026 (istoric)
 
 Această matrice este extrasă din politicile live, identice în LAB și producție. **36 tabele RLS ON / 120 politici.** S=SELECT, I=INSERT, U=UPDATE, D=DELETE. Nu se confundă politica de rând cu GRANT-urile sau cu verificările UI.
 

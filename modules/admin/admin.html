@@ -2172,6 +2172,8 @@
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_baza_vin" class="rounded border-slate-600 bg-slate-900"> Bază VIN</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_awb" class="rounded border-slate-600 bg-slate-900"> AWB</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_piese_stoc" class="rounded border-slate-600 bg-slate-900"> Piese Stoc</label>
+                                                <!-- Accesul registrului de facturi/piese folosește aceeași listă de bife HUB. -->
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_evidenta_piese" class="rounded border-slate-600 bg-slate-900"> Evidență Facturi &amp; Piese</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_consumabile" class="rounded border-slate-600 bg-slate-900"> Consumabile</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_generator" class="rounded border-slate-600 bg-slate-900"> Generator</label>
                                                 <!-- Permisiunile rapide pentru modulul Dezmembrări -->
@@ -2955,6 +2957,8 @@
             ['perm_baza_vin', 'baza_vin'],
             ['perm_awb', 'awb'],
             ['perm_piese_stoc', 'piese_stoc'],
+            // Bifa registrului persistent este citită/salvată prin mecanismul existent.
+            ['perm_evidenta_piese', 'evidenta_piese'],
             ['perm_consumabile', 'consumabile'],
             ['perm_generator', 'generator'],
             // Permisiunile Dezmembrări folosesc același obiect JSON din auth_profiles
@@ -2986,6 +2990,7 @@
             baza_vin: 'Bază VIN',
             awb: 'Evidență AWB',
             piese_stoc: 'Piese Stoc',
+            evidenta_piese: 'Evidență Facturi & Piese',
             consumabile: 'Consumabile',
             generator: 'Generator',
             dezmembrari_capture: 'Captură Dezmembrări',
@@ -4128,7 +4133,9 @@
             if (user.rol_id) document.getElementById('rol').value = user.rol_id;
             userPermissionFields.forEach(([id, key]) => {
                 const box = document.getElementById(id);
-                if (box) box.checked = Boolean(selectedUserPermissions?.[key]);
+                // EP acceptă numai JSON boolean true, la fel ca RLS-ul modulului.
+                if (box) box.checked = key === 'evidenta_piese'
+                    ? selectedUserPermissions?.[key] === true : Boolean(selectedUserPermissions?.[key]);
             });
         }
 

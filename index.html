@@ -297,6 +297,8 @@
       .nav-demo-item i { color: #f5b32b; }
       /* badge-ul galben identifică prototipul fără persistență */
       .nav-demo-badge { margin-left: auto; border: 1px solid rgba(245, 179, 43, 0.45); border-radius: 999px; padding: 1px 5px; color: #f5b32b; background: rgba(245, 179, 43, 0.14); font-size: 9px; font-weight: 800; letter-spacing: .06em; }
+      /* Marcajul NEW turcoaz pentru noul registru din BIROU. */
+      .nav-new-badge { margin-left: auto; flex-shrink: 0; border: 1px solid rgba(45, 212, 207, 0.45); border-radius: 999px; padding: 1px 5px; color: #2dd4cf; background: rgba(45, 212, 207, 0.14); font-size: 9px; font-weight: 800; letter-spacing: .06em; }
       /* marcajul albastru BETA pentru Clienți & Notificări */
       .nav-beta-item { color: #7dd3fc !important; }
       .nav-beta-item i { color: #38bdf8; }
@@ -385,6 +387,7 @@
       #sidebar.collapsed .sidebar-brand-text,
       #sidebar.collapsed .collapse-label,
       #sidebar.collapsed .nav-demo-badge,
+      #sidebar.collapsed .nav-new-badge,
       #sidebar.collapsed .nav-beta-badge {
         display: none;
       }
@@ -488,6 +491,7 @@
         }
         /* badge-urile rămân vizibile în meniul mobil chiar dacă bara desktop era restrânsă */
         #sidebar.collapsed .nav-demo-badge,
+        #sidebar.collapsed .nav-new-badge,
         #sidebar.collapsed .nav-beta-badge {
           display: inline-flex;
         }
@@ -946,6 +950,7 @@
         devize: "#22d3ee", // cyan
         "deviz-final": "#4ade80", // verde
         cautare: "#a78bfa", // violet
+        "evidenta-piese": "#2dd4cf", // turcoaz, comun sidebar-ului și cardului
         avansuri: "#60a5fa", // albastru
         "cereri-plata": "#fbbf24", // amber
         contracte: "#facc15", // galben
@@ -965,6 +970,8 @@
             { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+            /* Registru nou în BIROU, imediat sub Căutare Deviz; accesul rămâne identic. */
+            { id: "evidenta-piese", label: "Evidență Facturi & Piese", icon: "package-search", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese", isNew: true },
             { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
             /* modul BETA cu accesul existent */
@@ -980,8 +987,6 @@
             { id: "vin", label: "Baza VIN", icon: "hash", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
             { id: "awb", label: "Evidență AWB", icon: "truck", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
             { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
-            /* prototip local: datele se resetează la reîncărcare */
-            { id: "evidenta-piese", label: "Evidență Piese", icon: "package-search", url: "modules/stocuri/evidenta_piese.html", isDemo: true },
             { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
             { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "generator" },
           ],
@@ -1029,6 +1034,8 @@
         { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
         { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
         { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+        /* Card BIROU în aceeași poziție, cu accent turcoaz și marcaj NEW. */
+        { id: "evidenta-piese", title: "Evidență Facturi & Piese", meta: "Facturi, alocări, retururi și magazie", icon: "package-search", tone: "neutral", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese", badge: { label: "NEW", tone: "primary" } },
         { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
         { id: "comenzi-piese-sh", title: "Comenzi Piese SH", meta: "—", icon: "shopping-cart", tone: "neutral", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
         { id: "manager-dashboard-card", title: "Manager Dashboard", meta: "—", icon: "layout-dashboard", tone: "neutral", url: MANAGER_DASHBOARD_URL, permission: "manager_dashboard" },
@@ -1041,8 +1048,6 @@
         { id: "vin", title: "Baza VIN", meta: "Identificare vehicule", icon: "hash", tone: "neutral", url: "modules/flota/baza-vin.html", permission: "baza_vin" },
         { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
         { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
-        /* cardul DEMO folosește badge-ul galben existent */
-        { id: "evidenta-piese", title: "Evidență Piese", meta: "Date fictive · resetare la refresh", icon: "package-search", tone: "warning", url: "modules/stocuri/evidenta_piese.html", badge: { label: "DEMO", tone: "warning" } },
         { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
         { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
       ];
@@ -1286,7 +1291,8 @@
                     const stageClass = item.isDemo ? 'nav-demo-item' : item.isBeta ? 'nav-beta-item' : '';
                     const stageBadge = item.isDemo
                       ? '<span class="nav-demo-badge">DEMO</span>'
-                      : item.isBeta ? '<span class="nav-beta-badge">BETA</span>' : '';
+                      : item.isBeta ? '<span class="nav-beta-badge">BETA</span>'
+                      : item.isNew ? '<span class="nav-new-badge">NEW</span>' : '';
                     return `
                     <li ${permissionAttr} ${permissionFallbackAttr} ${permissionClass}>
                       <a href="${resolveNavigationUrl(item)}" data-id="${item.id}" data-tooltip="${item.label}" aria-label="${item.label}"

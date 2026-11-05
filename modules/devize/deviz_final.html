@@ -15,6 +15,8 @@
     <!-- Recuperare locală DF, comună cu HUB și login. -->
     <link rel="stylesheet" href="/css/local-deviz-drafts.css?v=20261017">
     <script src="/js/local-deviz-drafts.js?v=20261017-ux"></script>
+    <!-- Importul facturilor folosește snapshot-uri și intenții de salvare separate pe utilizator/proiect. -->
+    <script src="/js/ep_df_import.js?v=20261105-ep-transfer"></script>
     <style>
         input[type='number']::-webkit-inner-spin-button,
         input[type='number']::-webkit-outer-spin-button {
@@ -397,6 +399,8 @@
                             >
                                 Importă Piese SH
                             </button>
+                            <!-- Selecția facturilor este contextuală mașinii; cantitățile se confirmă numai cu DF-ul. -->
+                            <button id="btn-importa-facturi" type="button" hidden class="rounded-xl border border-violet-500/50 bg-violet-900/40 px-4 py-2.5 text-sm font-bold text-violet-100 transition-colors hover:bg-violet-800/60">Importă piese din facturi</button>
                             <!-- Butonul de import devine vizibil numai la includerea avansului. -->
                             <button id="btn-importa-avans" type="button" class="hidden rounded-xl border border-violet-500/50 bg-violet-900/40 px-4 py-2.5 text-sm font-bold text-violet-100 transition-colors hover:bg-violet-800/60">Importă Avans</button>
                         </div>
@@ -475,6 +479,17 @@
         </div>
     </div>
 
+    <!-- Dialog facturi: listă responsive cu surse, prețuri și cantități parțiale. -->
+    <div id="ep-df-modal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/80 p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="ep-df-title" style="align-content:center">
+        <div class="mx-auto flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-slate-950 shadow-2xl">
+            <div class="flex items-start justify-between gap-3 border-b border-slate-800 p-4">
+                <div><h2 id="ep-df-title" class="text-lg font-extrabold text-violet-200">Importă piese din facturi</h2><p id="ep-df-message" class="mt-2 text-sm text-slate-400" role="status" aria-live="polite"></p></div>
+                <button id="ep-df-close" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm">Închide</button>
+            </div>
+            <div id="ep-df-list" class="flex-1 space-y-3 overflow-y-auto p-4"></div>
+            <div class="border-t border-slate-800 p-4 text-right"><button id="ep-df-confirm" type="button" class="rounded-xl bg-violet-600 px-4 py-2 font-bold text-white disabled:opacity-50">Adaugă în deviz</button></div>
+        </div>
+    </div>
     <!-- Modal avans: arata numai datele de plata si starea legaturii. -->
     <div id="avans-import-modal" class="fixed inset-0 z-[75] hidden items-center justify-center bg-slate-950/80 p-4">
         <div class="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-violet-500/40 bg-slate-900 shadow-2xl">
@@ -555,6 +570,8 @@
             includeAvans: false,
             avansuri: [],
             vehicleId: null,
+            /* Revizia protejează consumul surselor la editarea/resalvarea DF. */
+            epRevision: 0,
             totalAvans: 0,
             totalDeviz: 0,
             totalPiese: {
@@ -1190,7 +1207,8 @@
                 const price = toNumber(row.querySelector('.piesa-pret')?.value);
                 const applyDiscount = Boolean(row.querySelector('.piesa-apply-discount')?.checked);
                 const valueInput = row.querySelector('.piesa-valoare');
-                const base = qty * price;
+                /* Piesele din facturi păstrează regula de cent EP; liniile manuale rămân neschimbate. */
+                const base = row.epImport ? HubEpDf.amount(row.epImport.snapshot,qty) : qty * price;
                 const discountValue = applyDiscount ? base * (discountGlobal / 100) : 0;
                 const finalValue = base - discountValue;
 
@@ -1217,7 +1235,8 @@
                 denumire: row.querySelector('.piesa-denumire')?.value ?? '',
                 um: row.querySelector('.piesa-um')?.value ?? 'buc',
                 cantitate: row.querySelector('.piesa-cantitate')?.value ?? '',
-                pretUnitar: row.querySelector('.piesa-pret')?.value ?? '',
+                pretUnitar: row.epImport?.snapshot.unit_price ?? row.querySelector('.piesa-pret')?.value ?? '',
+                epImport: row.epImport ? JSON.parse(JSON.stringify(row.epImport)) : null,
                 aplicaDiscount: Boolean(row.querySelector('.piesa-apply-discount')?.checked),
                 valoare: row.querySelector('.piesa-valoare')?.value ?? '',
                 comandaPiesaShId: row.dataset.comandaPiesaShId || null
@@ -1303,6 +1322,8 @@
             cantitateInput.value = item.cantitate ?? '';
             pretInput.value = item.pretUnitar ?? '';
             applyDiscountInput.checked = Boolean(item.aplicaDiscount);
+            /* Prețul sursei importate este protejat; cantitatea și discountul rămân editabile. */
+            HubEpDf.decorate(tr,item);
 
             denumireInput.addEventListener('input', syncPieseState);
             umInput.addEventListener('input', syncPieseState);
@@ -2041,6 +2062,8 @@
             includeAvans: false,
             avansuri: [],
             vehicleId: null,
+            /* Revizia protejează consumul surselor la editarea/resalvarea DF. */
+            epRevision: 0,
             totalAvans: 0,
             totalDeviz: 0,
             totalPiese: {
@@ -2146,6 +2169,7 @@
             total_manopera: toNumber(devizData.totalManopera),
             total_piese: toNumber(devizData.totalPiese?.final),
             total_general: toNumber(devizData.totalDePlata),
+            ep_revision: Number(devizData.epRevision || 0),
             ...(devizData.vehicleId ? { vehicle_id: devizData.vehicleId } : {})
         });
 
@@ -2188,7 +2212,8 @@
                     denumire: String(item?.nume ?? item?.denumire ?? ''),
                     um: String(item?.um ?? 'buc'),
                     cantitate: toNumber(item?.cantitate),
-                    pret_unitar: toNumber(item?.pret ?? item?.pretUnitar),
+                    pret_unitar: item.epImport ? item.epImport.snapshot.unit_price : toNumber(item?.pret ?? item?.pretUnitar),
+                    ...(item.epImport ? {ep_import_id:item.epImport.id,ep_alocare_id:item.epImport.allocationId,ep_source_revision:item.epImport.sourceRevision} : {}),
                     discount: item?.aplicaDiscount ? 1 : 0,
                     total: toNumber(item?.valoare),
                     comanda_piesa_sh_id: item?.comandaPiesaShId || null
@@ -2211,7 +2236,7 @@
                 base.push(toNumber(line.cantitate), toNumber(line.pret_unitar));
             }
             if (section === 'piese') {
-                base.push(String(line.um || 'buc'), Number(line.discount || 0), String(line.comanda_piesa_sh_id || ''));
+                base.push(String(line.um || 'buc'), Number(line.discount || 0), String(line.comanda_piesa_sh_id || ''), String(line.ep_import_id || ''), String(line.ep_alocare_id || ''));
             }
             if (section === 'avans') base.push(Number(line.avans_id));
             return JSON.stringify(base);
@@ -2226,6 +2251,7 @@
             if (!id) throw new Error('Răspunsul salvării nu conține ID-ul devizului.');
             currentDevizId = id;
             uncertainCreate = null;
+            HubEpDf.applySaved(result,devizData);
             devizData.devizNr = formatWithPrefix('DF-', id, 3);
             devizData.vehicleId = result.vehicle_id ?? null;
             devizData.totalManopera = toNumber(result.total_manopera);
@@ -2302,6 +2328,16 @@
             setSaveStatus('Se salvează...', 'info');
             let localSaveTicket = null;
             try {
+                /* Un răspuns incert repetă exact UUID-ul/payload-ul inițial, înainte de orice editare nouă. */
+                if (HubEpDf.pending) {
+                    const recovered = await HubEpDf.recover();
+                    if (recovered?.error) throw recovered.error;
+                    if (recovered?.data) {
+                        if (!(await loadDeviz(recovered.data.id_deviz_final,{recoveringSave:true}))) throw new Error('Salvarea este confirmată; încarcă devizul pentru a vedea datele.');
+                        setSaveStatus('Salvarea a fost reverificată fără dublarea importului.','success');
+                    }
+                    return;
+                }
                 /* O ciornă recuperată este reverificată și înainte de salvarea manuală. */
                 if (draftRecovered && currentDevizId) {
                     const {data: latestHeader,error: headerError} = await sb.from('deviz_final_header').select('*').eq('id_deviz_final',currentDevizId).maybeSingle();
@@ -2317,6 +2353,7 @@
                             details:{salvat:{header:latestHeader,lines:latestLines || []},local:captureDraft().data},
                             actions:[{label:'Revin la formular',value:false},{label:'Salvează versiunea locală',value:true,primary:true}]});
                         if (!approved) return;
+                        devizData.epRevision = Number(latestHeader.ep_revision || 0);
                     }
                 }
                 if (uncertainCreate && !(await reconcileUncertainCreate())) return;
@@ -2336,23 +2373,10 @@
                 const lines = buildLinesPayload();
                 const isUpdate = Boolean(currentDevizId);
                 localSaveTicket = localDraft?.beforeSave();
-                if (!isUpdate) {
-                    const { data: { session } = {}, error: sessionError } = await sb.auth.getSession();
-                    if (sessionError) throw sessionError;
-                    if (!session?.user?.id) throw new Error('Autentificarea este obligatorie.');
-                    const { data: latest, error: latestError } = await sb.from('deviz_final_header')
-                        .select('id_deviz_final').order('id_deviz_final', { ascending: false }).limit(1);
-                    if (latestError) throw latestError;
-                    uncertainCreate = {
-                        userId: session.user.id,
-                        beforeId: Number(latest?.[0]?.id_deviz_final || 0),
-                        header,
-                        signatures: lines.map(lineSaveSignature).sort()
-                    };
-                }
+                /* Crearea nouă folosește acum receipt-ul atomic, fără căutarea euristică după ultimul ID. */
                 localDraft?.flush();
                 const savingUser = draftUser;
-                const { data, error } = await sb.rpc('save_deviz_final', {
+                const { data, error } = await HubEpDf.save({
                     p_deviz_id: currentDevizId || null,
                     p_header: header,
                     p_lines: lines
@@ -2376,6 +2400,7 @@
                     currentDevizId = returnedId;
                     devizData.devizNr = formatWithPrefix('DF-',returnedId,3);
                     devizData.vehicleId = data.vehicle_id ?? devizData.vehicleId;
+                    HubEpDf.applySaved(data,devizData);
                     uncertainCreate = null; savedAdvanceSignature = advanceSignature;
                     syncFieldsFromState();
                 }
@@ -2391,9 +2416,9 @@
             } catch (error) {
                 console.error(error);
                 const message = error?.code === '23505'
-                    ? 'Avansul este deja legat de alt deviz. Reîncarcă lista și alege alt avans.'
+                    ? (error?.message || 'Sursa este deja folosită sau cererea are alt payload. Reîncarcă înainte de a continua.')
                     : error?.code === '42501'
-                        ? 'Nu aveți permisiunea deviz_final pentru această operație.'
+                        ? (error?.message || 'Nu aveți permisiunea necesară pentru această operație.')
                         : error?.code === '40P01'
                             ? 'Salvarea a fost anulată din cauza unei concurențe. Reîncearcă; nu s-a salvat parțial.'
                             : (error?.message || 'Eroare la salvare.');
@@ -2415,14 +2440,15 @@
             return '';
         };
 
-        async function loadDeviz(id) {
+        async function loadDeviz(id,{recoveringSave=false}={}) {
             const dbId = cleanDbId(id);
             if (!dbId) {
                 setSaveStatus('Deviz Nr. invalid. Exemplu: DF-001', 'error');
                 return;
             }
 
-            if (!preserveDraft()) return false;
+            if (!recoveringSave && !preserveDraft()) return false;
+            if(recoveringSave){localDraft?.flush();draftGeneration++;HubEpDf.close();}
             draftLoadFailure = null;
             draftLoading = true; document.querySelector('main').inert = true;
             const loadingUser = draftUser;
@@ -2448,6 +2474,7 @@
                 resetDevizDataInPlace();
 
                 currentDevizId = header.id_deviz_final ?? dbId;
+                devizData.epRevision = Number(header.ep_revision || 0);
                 devizData.devizNr = formatWithPrefix('DF-', currentDevizId, 3);
                 devizData.idDevizEstimativ = pickHeaderValue(header, 'id_deviz_estimativ') || devizData.idDevizEstimativ || '';
                 devizData.data = pickHeaderValue(header, 'data_deviz') || devizData.data;
@@ -2516,7 +2543,8 @@
                             pretUnitar: row.pret_unitar ?? '',
                             aplicaDiscount: Number(row.discount) === 1,
                             valoare: row.total ?? '',
-                            comandaPiesaShId: row.comanda_piesa_sh_id ?? null
+                            comandaPiesaShId: row.comanda_piesa_sh_id ?? null,
+                            epImport: HubEpDf.fromDb(row)
                         });
                     } else if (sectiune === 'avans' && row.avans_id != null) {
                         /* Suma incarcata este instantaneul salvat, fara citirea platilor noi. */
@@ -2551,7 +2579,7 @@
                 draftLoadFailure = {kind:denied ? 'access' : network ? 'network' : 'read'};
                 setSaveStatus(error?.message || 'Eroare la încărcare.', 'error');
                 return false;
-            } finally { draftSuspended = draftIdentityChanged; draftLoading = false; document.querySelector('main').inert = draftIdentityChanged; }
+            } finally { draftSuspended = draftIdentityChanged; draftLoading = false; document.querySelector('main').inert = draftIdentityChanged || HubEpDf.pending; }
         }
 
         async function loadDevizFinalByNr(devizNrRaw) {
@@ -2579,9 +2607,11 @@
                 draftLoaded();
             }
             document.querySelector('main').inert = true;
+            /* Cererea incertă are prioritate față de dialogul automat de ciorne după reload. */
+            await HubEpDf.ready;
             await initializeLocalDrafts();
             [btnDevizNou,btnIncarcaDeviz,btnUltimulDeviz,btnSalveazaDeviz].forEach(button => button.disabled = draftIdentityChanged);
-            document.querySelector('main').inert = draftIdentityChanged;
+            document.querySelector('main').inert = draftIdentityChanged || HubEpDf.pending;
         }
 
         async function loadLastDevizFinal() {
@@ -2675,7 +2705,7 @@
         const draftDocumentBase = (header, lines) => {
             const fields = {};
             ['id_deviz_estimativ','data_deviz','client','auto','nr_inmatriculare','serie_vin','serie_motor','km','termen_executie','vehicle_id'].forEach(key => { fields[key] = String(header[key] ?? '').trim(); });
-            ['discount_global_piese','total_manopera','total_piese','total_avans','total_general'].forEach(key => { fields[key] = toNumber(header[key]); });
+            ['discount_global_piese','total_manopera','total_piese','total_avans','total_general','ep_revision'].forEach(key => { fields[key] = toNumber(header[key]); });
             const signatures = lines.map(row => {
                     return lineSaveSignature(row) + (['avans','manopera','piese'].includes(row.sectiune) ? ':' + toNumber(row.total) : '');
                 }).sort();
@@ -2700,12 +2730,13 @@
         };
         /* Tranziția golește timerele înainte de schimbarea identității documentului. */
         const preserveDraft = () => {
+            if (HubEpDf.pending) { setSaveStatus('Reverifică salvarea anterioară înainte de schimbarea documentului.','error'); return false; }
             if (saveInProgress || draftLoading || draftIdentityChanged) { setSaveStatus('Așteaptă finalizarea salvării înainte de a schimba devizul.', 'error'); return false; }
             const dirty = localDraft?.dirty();
             const copy = localDraft?.flush();
             if (dirty && !copy && !window.confirm('Ciorna locală nu a putut fi păstrată. Continui și renunți la modificările curente?')) return false;
             draftSuspended = true; draftGeneration++;
-            closeAvansImportModal(); closePieseShImportModal(); closeDevizEstimativImportModal();
+            closeAvansImportModal(); closePieseShImportModal(); closeDevizEstimativImportModal(); HubEpDf.close();
             return true;
         };
         const draftLoaded = (base = null) => {
@@ -2722,6 +2753,7 @@
         };
         const selectedDraftAvailable = record => draftStore?.list().some(row => row.key === record.key);
         async function restoreLocalDraft(record) {
+            if (HubEpDf.pending) {setSaveStatus('Reverifică salvarea anterioară înainte de recuperarea altei ciorne.','error');return;}
             if (draftSuspended || draftRecovering || !draftUser || record.userId !== draftUser) return;
             if (!selectedDraftAvailable(record)) { setDraftStatus('Ciorna selectată nu mai este disponibilă. Redeschide lista de ciorne.',true); consumeDraftSelection(); return; }
             draftRecovering = true;
@@ -2825,7 +2857,7 @@
                     if (selected) await restoreLocalDraft(selected);
                     else { setDraftStatus('Ciorna cerută nu este disponibilă pentru utilizatorul curent.',true); consumeDraftSelection(); }
                 }
-                draftMenu = await HubLocalDrafts.mount({project:draftProject,userId:draftUser,allowed:true,automatic:!requested,client:sb,
+                draftMenu = await HubLocalDrafts.mount({project:draftProject,userId:draftUser,allowed:true,automatic:!requested&&!HubEpDf.pending,client:sb,
                     warn:text => setDraftStatus(text,true),onChoose:restoreLocalDraft,
                     filter:row => { const relevant = currentDevizId || cleanDbId(new URLSearchParams(location.search).get('id')); return !relevant || Number(row.documentId) === Number(relevant); }});
             } catch (error) { setDraftStatus(error.message || 'Ciorne locale indisponibile. Salvează manual devizul.',true); }
@@ -3043,6 +3075,16 @@
 
         btnAddPiesaRow.addEventListener('click', () => addPiesaRow());
 
+        /* Adaptorul adaugă numai importul EP; celelalte surse și ciorne folosesc fluxurile existente. */
+        HubEpDf.configure({client:sb,url:supabaseUrl,
+            context:() => ({plate:normalizePlate(inputNrInmatriculareDevizFinal.value),vin:inputSerieVinDevizFinal.value,vehicleId:devizData.vehicleId,dfId:currentDevizId}),
+            parts:() => devizData.piese,append:item => appendImportedPieseRows([item]),changed:draftChanged,status:setSaveStatus,
+            onPending:pending => {
+                document.querySelector('main').inert = pending || draftIdentityChanged || draftLoading;
+                if(pending){HubEpDf.close();closeAvansImportModal();closePieseShImportModal();closeDevizEstimativImportModal();}
+                [btnDevizNou,btnIncarcaDeviz,btnUltimulDeviz,btnPrinteazaDeviz].forEach(button => {button.disabled=pending;});
+            }});
+
         btnDevizNou.addEventListener('click', async () => {
             if (uncertainCreate) {
                 setSaveStatus('Verifică mai întâi rezultatul creării incerte prin încărcarea devizului.', 'error');
@@ -3064,7 +3106,7 @@
             switchTab('tab-antet');
             draftLoading = true; document.querySelector('main').inert = true;
             try { await generateNextFinalId(); draftLoaded(); }
-            finally { draftLoading = false; document.querySelector('main').inert = draftIdentityChanged; }
+            finally { draftLoading = false; document.querySelector('main').inert = draftIdentityChanged || HubEpDf.pending; }
         });
 
         btnIncarcaDeviz.addEventListener('click', async () => {
