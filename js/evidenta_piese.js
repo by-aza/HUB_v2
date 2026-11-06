@@ -559,6 +559,10 @@
   const partStatusMarkup = (part) => !warehouseQty(part) ? statusBadge(partRegistryStatus(part))
     : `<span class="ep-badge ep-warehouse-badge">${warehouseQty(part) < part.qty ? "Cantități mixte" : "Trimis în magazie"}</span>`;
 
+  /* Acțiunile trimiterilor sunt sus în dosar; fiecare buton indică exact înregistrarea sa. */
+  const warehouseCancelActions = (records) => records.filter(entry => !entry.cancelledAt).map(entry =>
+    `<button type="button" class="ep-button ep-button-ghost" data-action="cancel-warehouse" data-id="${escapeHTML(entry.id)}"${partById(entry.partId)?.df ? " disabled" : ""}>Anulează trimiterea${records.length > 1 ? `<small>${escapeHTML(entry.reference)} · ${entry.qty} buc.</small>` : ""}</button>`).join("");
+
   /* Istoricul expedierilor afișează sursa și data reale ale acțiunii din HUB. */
   const warehouseHistory = (records) => records.length ? `<section class="ep-detail-section ep-warehouse-history">
     <h4>Trimis în magazie · ${records.filter(entry => !entry.cancelledAt).reduce((sum, entry) => sum + entry.qty, 0)} buc. active</h4>
@@ -567,8 +571,7 @@
       <small>${escapeHTML(partById(entry.partId)?.name || "")} · ${escapeHTML(returnSourceLabel(entry))}</small>
       <time datetime="${escapeHTML(entry.createdAt)}">${escapeHTML(new Date(entry.createdAt).toLocaleString("ro-RO"))}</time>
       ${entry.notes ? `<p>${escapeHTML(entry.notes)}</p>` : ""}
-      ${entry.cancelledAt ? `<small>Anulată la ${escapeHTML(new Date(entry.cancelledAt).toLocaleString("ro-RO"))} · ${entry.qty} buc. eliberate în De atribuit</small>`
-        : `<button type="button" class="ep-button ep-button-ghost" data-action="cancel-warehouse" data-id="${escapeHTML(entry.id)}"${partById(entry.partId)?.df ? " disabled" : ""}>Anulează trimiterea</button>`}
+      ${entry.cancelledAt ? `<small>Anulată la ${escapeHTML(new Date(entry.cancelledAt).toLocaleString("ro-RO"))} · ${entry.qty} buc. eliberate în De atribuit</small>` : ""}
     </div>`).join("")}</div></section>` : "";
 
   const partHaystack = (part) => {
@@ -1000,11 +1003,11 @@
       events.push({ date: addDays(invoice.date, 2), title: `Importată în ${part.df}`, by: "Mihai Ionescu · deviz final" });
     }
     importsForPart(part.id).forEach((entry) => {
-      events.push({ date: entry.createdAt.slice(0, 10), title: `${entry.reference} · ${entry.qty} buc. · ${entry.plate}`, by: "Import DF · preț de vânzare salvat", actualDate: true });
+      events.push({ date: entry.createdAt.slice(0, 10), sortAt: entry.createdAt, title: `${entry.reference} · ${entry.qty} buc. · ${entry.plate}`, by: "Import DF · preț de vânzare salvat", actualDate: true });
     });
     warehouseForPart(part.id).forEach((entry) => {
-      events.push({ date: entry.localDate, title: `Trimis în magazie · ${entry.qty} buc. · ${entry.reference}`, by: returnSourceLabel(entry), actualDate: true });
-      if (entry.cancelledAt) events.push({ date: entry.cancelledAt.slice(0,10), title:`Trimitere anulată · ${entry.qty} buc. · ${entry.reference}`, by:"Cantitate eliberată în De atribuit", actualDate:true });
+      events.push({ date: entry.localDate, sortAt: entry.createdAt, title: `Trimis în magazie · ${entry.qty} buc. · ${entry.reference}`, by: returnSourceLabel(entry), actualDate: true });
+      if (entry.cancelledAt) events.push({ date: entry.cancelledAt.slice(0,10), sortAt: entry.cancelledAt, title:`Trimitere anulată · ${entry.qty} buc. · ${entry.reference}`, by:"Cantitate eliberată în De atribuit", actualDate:true });
     });
     if (part.status === "Montată") {
       events.push({ date: addDays(invoice.date, 3), title: "Marcată ca montată", by: "Mihai Ionescu · service" });
@@ -1020,7 +1023,8 @@
 
     const times = ["09:15", "10:05", "11:20", "13:40", "15:10", "16:25"];
     return events
-      .sort((a, b) => a.date.localeCompare(b.date))
+      /* Cele mai recente evenimente sunt primele, inclusiv ordinea reală din aceeași zi. */
+      .sort((a, b) => new Date(b.sortAt || b.date) - new Date(a.sortAt || a.date))
       .map((event, index) => `<div class="ep-timeline-item">
         <strong>${escapeHTML(event.title)}</strong>
         <time>${formatDate(event.date)}${event.actualDate ? "" : ` · ${times[index % times.length]}`}</time>
@@ -1050,12 +1054,21 @@
               <span>${part.qty} ${part.qty === 1 ? "bucată" : "bucăți"}</span>
             </p>
           </div>
+          <!-- Corectarea compactă stă deasupra statusului; fiecare buton păstrează alocarea explicită. -->
           <div class="ep-part-status-actions">
+            ${allocationsForPart(part).map((allocation, index) => `<button type="button" class="ep-button ep-button-ghost ep-part-edit" data-action="reassign-part" data-id="${escapeHTML(part.id)}" data-allocation-index="${index}"${assignmentLocked || allocationReturnQty(part, index) > 0 || allocationImportedQty(part, index) > 0 || allocationWarehouseQty(part, index) > 0 ? ' disabled aria-disabled="true" title="Asociere protejată de DF, retur sau magazie; se păstrează trasabilitatea"' : ""}>Corectează alocarea${allocationsForPart(part).length > 1 ? `<small>${escapeHTML(allocation.plate)} · ${allocation.qty} buc.</small>` : ""}</button>`).join("")}
             ${partStatusMarkup(part)}
-            <!-- Editare compactă lângă status; păstrează acțiunea existentă. -->
-            <button type="button" class="ep-button ep-button-ghost ep-part-edit" data-action="edit-part" data-id="${escapeHTML(part.id)}">${ICONS.edit} Editează</button>
           </div>
         </div>
+        <!-- Acțiunile principale rămân imediat sub titlu, cu lățimi dictate de conținut. -->
+        <div class="ep-detail-actions ep-detail-actions-top">
+          ${remainingQty(part) > 0 ? `<button type="button" class="ep-button ep-button-primary" data-action="assign-part" data-id="${escapeHTML(part.id)}"${assignmentLocked ? ' disabled aria-disabled="true"' : ""}>${ICONS.car} Atribuie<small>${remainingQty(part)} buc. disponibile</small></button>` : ""}
+          <button type="button" class="ep-button ep-button-primary" data-action="view-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.file} Vezi factura</button>
+          <button type="button" class="ep-button ep-warehouse-button" data-action="warehouse-part" data-id="${escapeHTML(part.id)}"${warehouseEligibleQty(part) <= 0 ? ' disabled title="Nu există cantități eligibile pentru magazie"' : ""}>${ICONS.box} Magazie</button>
+          <button type="button" class="ep-button ep-button-danger" data-action="return-part" data-id="${escapeHTML(part.id)}" aria-label="Înregistrează retur"${returnLocked ? ' disabled title="Retur blocat: referință DF sau lipsă de cantitate disponibilă"' : ' title="Înregistrează retur"'}>${ICONS.rotate} Retur</button>
+          ${warehouseCancelActions(warehouseForPart(part.id))}
+        </div>
+        ${allocationsForPart(part).length > 1 ? '<p class="ep-detail-note">Alege alocarea de corectat folosind butonul cu mașina și cantitatea dorite.</p>' : ""}
       </div>
 
       <div class="ep-detail-stats">
@@ -1094,17 +1107,10 @@
           ${allocationsForPart(part).map((allocation, index) => `
             <div class="ep-allocation-detail">
               <div class="ep-plate-cell"><span class="ep-plate">${escapeHTML(allocation.plate)}</span><small>Asociere inițială: ${allocation.qty + (allocation.releasedQty || 0)} buc.</small><small>${escapeHTML(allocationDisplayText(part, index))}</small></div>
-              <button type="button" class="ep-button ep-button-ghost" data-action="reassign-part" data-id="${escapeHTML(part.id)}" data-allocation-index="${index}"${assignmentLocked || allocationReturnQty(part, index) > 0 || allocationImportedQty(part, index) > 0 || allocationWarehouseQty(part, index) > 0 ? ' disabled aria-disabled="true" title="Asociere protejată de DF, retur sau magazie; se păstrează trasabilitatea"' : ""}>Corectează alocarea</button>
-              ${allocationsForPart(part).length > 1 && dfEligibleQty(part, index) > 0 ? `<button type="button" class="ep-button ep-button-ghost" data-action="import-demo-df" data-id="${escapeHTML(part.id)}" data-plate="${escapeHTML(allocation.plate)}" disabled title="Deschide Deviz Final și folosește Importă piese din facturi">Importă din Deviz Final</button>` : ""}
             </div>`).join("")}
         </details>` : ""}
         <!-- Istoricul eliberărilor nu este o alocare activă și nu consumă disponibilul. -->
         ${(part.releasedAllocations || []).length ? `<details class="ep-quantity-history"><summary>Atribuiri eliberate · istoric</summary>${part.releasedAllocations.map(a => `<p>${escapeHTML(a.plate)} · ${a.qty} buc. eliberate în De atribuit</p>`).join("")}</details>` : ""}
-        <div class="ep-assignment-cta">
-          ${remainingQty(part) > 0 ? `<button type="button" class="ep-button ep-button-primary ep-wide" data-action="assign-part" data-id="${escapeHTML(part.id)}"${assignmentLocked ? ' disabled aria-disabled="true"' : ""}>
-            ${ICONS.car} Atribuie mașină · ${remainingQty(part)} buc. disponibile
-          </button>` : ""}
-        </div>
         ${assignmentLocked ? `<p class="ep-assignment-lock">${ICONS.info}<span>Asocierea este blocată: piesa are deja referința <b>${escapeHTML(part.df)}</b>. Referințele DF nu pot fi modificate sau șterse în această etapă.</span></p>` : ""}
       </section>
 
@@ -1115,7 +1121,6 @@
           ${demoImportedQty(part) > 0 ? `<div class="ep-allocation-list">${dfReferences(importsForPart(part.id))}</div>` : ""}
           ${!part.df && !demoImportedQty(part) ? '<p class="ep-detail-note">Importul folosește piesele atribuite mașinii.</p>' : ""}
         </div>
-        <div class="ep-assignment-cta"><button type="button" class="ep-button ep-button-primary ep-wide" data-action="import-demo-df" data-id="${escapeHTML(part.id)}"${partDfEligibleQty(part) <= 0 ? " disabled" : ""} disabled title="Deschide Deviz Final și folosește Importă piese din facturi">Importă din Deviz Final</button></div>
       </section>` : ""}
 
       ${returns.length ? `<section class="ep-detail-section">
@@ -1129,19 +1134,6 @@
         <h4>Observații</h4>
         <div class="ep-detail-card">${renderRecordedNote(part.note, demoPartNoteSnapshots.get(part.id), recordedNoteState(part))}</div>
       </section>` : ""}
-
-      <div class="ep-detail-actions">
-        <button type="button" class="ep-button ep-button-primary ep-wide" data-action="view-invoice" data-id="${escapeHTML(invoice.id)}">
-          ${ICONS.file} Vezi factura
-        </button>
-        <button type="button" class="ep-button ep-warehouse-button" data-action="warehouse-part" data-id="${escapeHTML(part.id)}"${warehouseEligibleQty(part) <= 0 ? ' disabled title="Nu există cantități eligibile pentru magazie"' : ""}>
-          ${ICONS.box} Magazie
-        </button>
-        <button type="button" class="ep-button ep-button-danger" data-action="return-part" data-id="${escapeHTML(part.id)}"
-          ${returnLocked ? 'disabled title="Retur blocat: referință DF sau lipsă de cantitate disponibilă"' : ""}>
-          ${ICONS.rotate} Înregistrează retur
-        </button>
-      </div>
 
       ${warehouseHistory(warehouseForPart(part.id))}
 
@@ -1182,6 +1174,15 @@
         </div>
       </div>
 
+      <!-- Acțiunile facturii folosesc aceeași grilă compactă de sus ca piesele. -->
+      <div class="ep-detail-actions ep-detail-actions-top">
+        <button type="button" class="ep-button" data-action="edit-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.edit} Editează factura</button>
+        <button type="button" class="ep-button ep-button-danger" data-action="delete-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.trash} Șterge factura</button>
+        <button type="button" class="ep-button ep-button-primary" data-action="open-invoice-parts" data-id="${escapeHTML(invoice.id)}">${ICONS.box} Vezi piesele</button>
+        ${warehouseCancelActions(DATA.warehouseTransfers.filter(entry => entry.invoiceId === invoice.id))}
+      </div>
+      <p class="ep-detail-note" id="invoiceDeleteError" role="alert" hidden></p>
+
       <div class="ep-detail-stats">
         <div><span>Poziții</span><strong>${totals.count}</strong></div>
         <div><span>Bucăți fizice</span><strong>${totals.units}</strong></div>
@@ -1217,12 +1218,6 @@
           <p class="ep-detail-note">Statusul documentului este ales manual, separat de situația pieselor.</p>
           ${notice ? `<p class="ep-invoice-document-notice" role="note">${ICONS.info}<span>${escapeHTML(notice)}</span></p>` : ""}
         </div>
-        <div class="ep-assignment-cta">
-          <button type="button" class="ep-button ep-wide" data-action="edit-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.edit} Editează factura</button>
-          <!-- Ștergerea cere confirmare și nu resetează atribuiri sau trimiteri. -->
-          <button type="button" class="ep-button ep-button-danger ep-wide" data-action="delete-invoice" data-id="${escapeHTML(invoice.id)}">${ICONS.trash} Șterge factura</button>
-          <p class="ep-detail-note" id="invoiceDeleteError" role="alert" hidden></p>
-        </div>
       </section>
 
       ${totals.demoImportedUnits > 0 || totals.legacyDfPositions > 0 ? `<section class="ep-detail-section">
@@ -1238,14 +1233,7 @@
         <div class="ep-compact-list">${parts.map(compactPartRow).join("")}</div>
       </section>
 
-      ${warehouseHistory(DATA.warehouseTransfers.filter((entry) => entry.invoiceId === invoice.id))}
-
-      <div class="ep-detail-actions">
-        <button type="button" class="ep-button ep-button-primary ep-wide" data-action="import-invoice-demo-df" data-id="${escapeHTML(invoice.id)}"${totals.dfEligibleUnits <= 0 ? " disabled" : ""} disabled title="Deschide Deviz Final și folosește Importă piese din facturi">Importă din Deviz Final</button>
-        <button type="button" class="ep-button ep-button-primary ep-wide" data-action="open-invoice-parts" data-id="${escapeHTML(invoice.id)}">
-          ${ICONS.box} Vezi piesele
-        </button>
-      </div>`;
+      ${warehouseHistory(DATA.warehouseTransfers.filter((entry) => entry.invoiceId === invoice.id))}`;
   };
 
   const buildSupplierDetail = (supplier) => {
@@ -1545,10 +1533,6 @@
       title: "Factură nouă — disponibil în etapa 2",
       message: "Formularul de adăugare a unei facturi (furnizor, număr, dată, status document și rânduri de piese) va fi implementat în etapa următoare. Folosește butonul Factură nouă din antet."
     },
-    editPart: {
-      title: "Editarea piesei — etapa 2",
-      message: "Folosește Editează factura pentru a modifica poziția."
-    },
     fallback: {
       title: "Funcționalitate în pregătire",
       message: "Această acțiune va fi disponibilă într-o etapă următoare a modulului."
@@ -1582,7 +1566,7 @@
   const openInfoModal = (key) => {
     const copy = MODAL_COPY[key] || MODAL_COPY.fallback;
     state.lastFocused = document.activeElement;
-    els.infoModalEyebrow.textContent = "Etapa 2";
+    els.infoModalEyebrow.textContent = "Informații";
     els.infoModalTitle.textContent = copy.title;
     els.infoModalMessage.textContent = copy.message;
     els.infoModal.hidden = false;
@@ -3116,9 +3100,6 @@
         if (supplierById(id)) setTab("invoices", { supplier: id });
         break;
       }
-      case "edit-part":
-        openInfoModal("editPart");
-        break;
       case "import-demo-df":
         openDfModal({ partId: id, plate: trigger?.dataset.plate || "", trigger });
         break;
@@ -3612,13 +3593,18 @@
     cacheElements(); initInvoiceDatePicker(); bindEvents();
     const app = document.querySelector(".ep-app");
     const message = document.getElementById("epConnectionMessage");
+    const notice = document.getElementById("epConnectionNotice");
     const refresh = document.getElementById("epRefresh");
     const recover = document.getElementById("epRecover");
     const login = document.getElementById("epLogin");
     const defaultsPanel = document.getElementById("epDefaultPanel");
     const defaultsInput = document.getElementById("epDefaultMarkup");
     let currentDefault = null;
-    const showError = (error) => { message.textContent = error.message; refresh.hidden = false; };
+    /* Nu păstrăm o bară goală la lucru; la acces pierdut rămâne disponibil același refresh. */
+    const showError = (error) => {
+      message.textContent = error.message; notice.hidden = false; refresh.hidden = false;
+      if (app.hidden) message.after(refresh);
+    };
     /* Recuperarea unei cereri incerte rămâne accesibilă și în dialogul care acoperă antetul. */
     const modalForms = [els.invoiceForm, els.supplierForm, els.assignmentForm, els.returnForm, els.warehouseForm];
     modalForms.forEach((form) => {
@@ -3668,7 +3654,10 @@
             [closeInvoiceModal,closeSupplierModal,closeAssignmentModal,closeWarehouseModal,closeReturnModal].forEach((close) => close({ restoreFocus: false }));
           }
           message.textContent = status.message;
-          refresh.hidden = status.busy; refresh.disabled = status.busy;
+          notice.hidden = Boolean(status.profile) && !status.stale && !status.pending;
+          if (status.profile) { if (refresh.parentElement !== els.tabs.parentElement) els.tabs.after(refresh); }
+          else message.after(refresh);
+          refresh.hidden = false; refresh.disabled = status.busy;
           recover.hidden = !status.pending || status.busy; recover.disabled = status.busy;
           login.hidden = Boolean(status.profile);
           defaultsPanel.hidden = Number(status.profile?.rol_id) !== 1;

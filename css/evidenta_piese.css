@@ -1,6 +1,7 @@
 /* =========================================================================
    HUB AUTO — Evidență Facturi & Piese · HUB
    Temă dark compactă, construită pe tokenii modulului Clienți & Notificări.
+   Tabele compacte; ajustările de lizibilitate rămân locale fiecărei componente.
    ========================================================================= */
 
 :root {
@@ -121,7 +122,7 @@ tr:focus-visible {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -131,7 +132,7 @@ tr:focus-visible {
   border-radius: 4px;
   color: #8ce9e4;
   background: rgba(45, 212, 207, .1);
-  font-size: 8px;
+  font-size: 12px;
   font-style: normal;
   letter-spacing: .04em;
 }
@@ -150,15 +151,15 @@ tr:focus-visible {
   border-radius: 999px;
   color: var(--amber);
   background: rgba(245, 179, 43, .12);
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .06em;
   line-height: 1.35;
 }
-.ep-demo-note { margin: 2px 0 0; color: var(--muted-2); font-size: 9.5px; }
+.ep-demo-note { margin: 2px 0 0; color: var(--muted-2); font-size: 12px; }
 
 .ep-header-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.ep-header-hint { color: var(--muted-2); font-size: 9.5px; letter-spacing: .02em; white-space: nowrap; }
+.ep-header-hint { color: var(--muted-2); font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
 .ep-header-hint b { padding: 0 2px; color: rgba(45, 212, 207, .7); font-weight: 700; }
 
 /* -------------------------------------------------------------------------
@@ -175,7 +176,7 @@ tr:focus-visible {
   border-radius: 9px;
   color: var(--text);
   background: var(--panel-3);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -202,7 +203,7 @@ tr:focus-visible {
 }
 .ep-button-danger:hover { border-color: rgba(239, 71, 87, .48); background: rgba(239, 71, 87, .13); }
 .ep-button:disabled { opacity: .48; cursor: not-allowed; filter: none; }
-.ep-new-invoice { min-height: 36px; padding: 0 14px; font-size: 11.5px; }
+.ep-new-invoice { min-height: 36px; padding: 0 14px; font-size: 12px; }
 .ep-plus { margin-top: -1px; font-size: 16px; font-weight: 500; line-height: 1; }
 
 .ep-icon-button {
@@ -248,7 +249,7 @@ tr:focus-visible {
   border-bottom: 2px solid transparent;
   color: var(--muted);
   background: transparent;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   transition: color .15s, background .15s, border-color .15s;
@@ -265,7 +266,7 @@ tr:focus-visible {
   border-radius: 999px;
   color: var(--muted);
   background: rgba(255, 255, 255, .06);
-  font: 700 9px/1 var(--mono);
+  font: 700 12px/1 var(--mono);
 }
 .ep-tab.is-active .ep-tab-count { color: #9ff1ed; background: rgba(45, 212, 207, .14); }
 .ep-tabbar-note {
@@ -274,10 +275,10 @@ tr:focus-visible {
   gap: 5px;
   margin: 0;
   color: var(--muted-2);
-  font-size: 9.5px;
+  font-size: 12px;
   white-space: nowrap;
 }
-.ep-tabbar-note span { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+.ep-tabbar-note span { color: var(--muted); font-family: var(--mono); font-size: 12px; }
 
 /* -------------------------------------------------------------------------
    Zona de lucru și indicatorii
@@ -327,7 +328,7 @@ tr:focus-visible {
 .ep-kpi--warehouse .ep-kpi-icon { color: #c9b6ff; background: rgba(167, 139, 250, .11); }
 .ep-kpi--warehouse .ep-kpi-copy > span, .ep-kpi--warehouse .ep-kpi-copy > small { white-space: normal; overflow-wrap: anywhere; }
 .ep-kpi-copy { min-width: 0; display: grid; gap: 0; }
-.ep-kpi-copy > span { color: var(--muted); font-size: 9.5px; }
+.ep-kpi-copy > span { color: var(--muted); font-size: 12px; }
 .ep-kpi-copy strong {
   color: var(--text);
   font: 700 17px/1.25 var(--mono);
@@ -339,7 +340,7 @@ tr:focus-visible {
 .ep-kpi-copy strong.ep-kpi-money { font-size: 14.5px; }
 .ep-kpi-copy small {
   color: var(--muted-2);
-  font-size: 8.5px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -373,7 +374,7 @@ tr:focus-visible {
   border-bottom: 1px solid var(--line);
 }
 .ep-list-head h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
-.ep-list-head p { margin: 2px 0 0; color: var(--muted); font-size: 9.5px; }
+.ep-list-head p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
 .ep-result-count {
   flex: none;
   padding: 4px 8px;
@@ -381,7 +382,7 @@ tr:focus-visible {
   border-radius: 999px;
   color: var(--muted);
   background: #181b22;
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -422,7 +423,7 @@ tr:focus-visible {
   border: 0;
   color: var(--text);
   background: transparent;
-  font-size: 11px;
+  font-size: 13px;
 }
 .ep-search input::placeholder { color: var(--muted-2); }
 .ep-search input::-webkit-search-cancel-button { filter: invert(.65); }
@@ -436,13 +437,13 @@ tr:focus-visible {
   border-radius: 8px;
   color: var(--muted);
   background: #151820;
-  font-size: 10.5px;
+  font-size: 13px;
   cursor: pointer;
   transition: border-color .15s, color .15s;
 }
 .ep-toolbar select:hover { border-color: var(--line-strong); color: var(--text); }
 .ep-toolbar select:focus-visible { border-color: rgba(45, 212, 207, .55); }
-.ep-reset { flex: 0 0 auto; min-height: 34px; padding: 0 10px; color: var(--muted); font-size: 10.5px; }
+.ep-reset { flex: 0 0 auto; min-height: 34px; padding: 0 10px; color: var(--muted); font-size: 12px; }
 .ep-reset svg { width: 13px; height: 13px; }
 
 /* -------------------------------------------------------------------------
@@ -463,7 +464,7 @@ tr:focus-visible {
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   background: #20242d;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 800;
   text-align: left;
   text-transform: uppercase;
@@ -475,7 +476,7 @@ tr:focus-visible {
   padding: 8px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, .055);
   color: #d8dde5;
-  font-size: 11px;
+  font-size: 13px;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -543,12 +544,12 @@ tr.is-selected .ep-row-select { border-color: var(--cyan); color: #082522; backg
 tr.is-selected .ep-row-select svg { opacity: 1; }
 
 .ep-cell-stack { display: grid; gap: 1px; }
-.ep-cell-stack strong { color: var(--text); font-size: 11.5px; font-weight: 700; }
-.ep-code { color: var(--muted); font: 500 9.5px/1.3 var(--mono); }
+.ep-cell-stack strong { color: var(--text); font-size: 15px; font-weight: 700; }
+.ep-code { color: var(--muted); font: 500 12px/1.3 var(--mono); }
 .ep-invoice-cell { display: grid; gap: 1px; }
-.ep-invoice-cell strong { color: #cfe4ff; font: 700 10.5px/1.3 var(--mono); }
-.ep-invoice-cell small { color: var(--muted); font-size: 9px; }
-.ep-supplier-cell { color: #d5dae2; font-size: 10.5px; }
+.ep-invoice-cell strong { color: #cfe4ff; font: 700 15px/1.3 var(--mono); }
+.ep-invoice-cell small { color: var(--muted); font-size: 12px; }
+.ep-supplier-cell { color: #d5dae2; font-size: 15px; }
 .ep-plate-cell { display: grid; gap: 1px; }
 .ep-plate {
   width: max-content;
@@ -557,14 +558,14 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   border-radius: 5px;
   color: #8ce9e4;
   background: rgba(45, 212, 207, .09);
-  font: 700 10px/1.4 var(--mono);
+  font: 700 13px/1.4 var(--mono);
   letter-spacing: .02em;
 }
-.ep-plate-cell small { color: var(--muted); font-size: 9px; }
+.ep-plate-cell small { color: var(--muted); font-size: 12px; }
 .ep-muted { color: var(--muted-2); }
-.ep-money { display: grid; gap: 1px; color: #e8ecf2; font: 700 10.5px/1.3 var(--mono); }
-.ep-money small { color: var(--muted-2); font: 500 8.5px/1.3 var(--mono); }
-.ep-date { color: #c4cad3; font: 500 10px/1.3 var(--mono); }
+.ep-money { display: grid; gap: 1px; color: #e8ecf2; font: 700 13px/1.3 var(--mono); }
+.ep-money small { color: var(--muted-2); font: 500 13px/1.3 var(--mono); }
+.ep-date { color: #c4cad3; font: 500 12px/1.3 var(--mono); }
 
 /* Badge-uri de status și referințe de deviz */
 .ep-badge {
@@ -574,7 +575,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   width: max-content;
   padding: 3px 7px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
@@ -601,10 +602,10 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   border-radius: 5px;
   color: #a9cdff;
   background: rgba(90, 167, 255, .08);
-  font: 700 9px/1.4 var(--mono);
+  font: 700 12px/1.4 var(--mono);
 }
 .ep-progress-mini { min-width: 80px; display: grid; gap: 3px; }
-.ep-progress-mini > span { color: var(--muted); font-size: 9px; }
+.ep-progress-mini > span { color: var(--muted); font-size: 12px; }
 .ep-progress-track { height: 4px; overflow: hidden; border-radius: 999px; background: #12151b; }
 .ep-progress-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2dd4cf, #27c79a); }
 
@@ -618,7 +619,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   border-top: 1px solid var(--line);
   color: var(--muted);
   background: rgba(0, 0, 0, .06);
-  font-size: 9.5px;
+  font-size: 12px;
 }
 .ep-footer-hint { color: var(--muted-2); }
 
@@ -636,7 +637,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 }
 .ep-empty-table svg { width: 27px; height: 27px; color: var(--muted-2); }
 .ep-empty-table strong { color: var(--text); font-size: 12.5px; }
-.ep-empty-table span { font-size: 10.5px; }
+.ep-empty-table span { font-size: 12px; }
 .ep-empty-table .ep-button { margin-top: 5px; }
 
 /* -------------------------------------------------------------------------
@@ -659,7 +660,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-details-head h2 { margin: 2px 0 0; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
 .ep-eyebrow {
   color: var(--cyan);
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -689,16 +690,16 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   gap: 6px;
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 9.5px;
+  font-size: 12px;
 }
-.ep-detail-sub .ep-code { font-size: 9px; }
-.ep-detail-sub .ep-badge { padding: 2px 6px; font-size: 8px; }
+.ep-detail-sub .ep-code { font-size: 12px; }
+.ep-detail-sub .ep-badge { padding: 2px 6px; font-size: 12px; }
 
 .ep-detail-section { margin-top: 12px; }
 .ep-detail-section h4 {
   margin: 0 0 6px;
   color: var(--muted);
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -711,7 +712,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   gap: 12px;
   padding: 7px 0;
   border-bottom: 1px solid rgba(255, 255, 255, .055);
-  font-size: 10px;
+  font-size: 13px;
 }
 .ep-detail-row:last-child { border-bottom: 0; }
 .ep-detail-row > span { flex: none; color: var(--muted); }
@@ -722,10 +723,10 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   text-align: right;
   overflow-wrap: anywhere;
 }
-.ep-detail-row .ep-badge { font-size: 8.5px; }
-.ep-detail-row .ep-df { font-size: 8.5px; }
-.ep-detail-note { margin: 0; padding: 8px 0; color: #cbd0d8; font-size: 10px; line-height: 1.5; }
-.ep-detail-note strong { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.ep-detail-row .ep-badge { font-size: 13px; }
+.ep-detail-row .ep-df { font-size: 13px; }
+.ep-detail-note { margin: 0; padding: 8px 0; color: #cbd0d8; font-size: 12px; line-height: 1.5; }
+.ep-detail-note strong { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
 
 /* Facturi: statusul hârtiei și informarea discretă sunt separate de cantitățile pieselor. */
 .ep-invoice-document { padding-top: 12px; border-top: 1px solid var(--line); }
@@ -733,10 +734,10 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-invoice-notice-mark { display: inline-flex; color: var(--amber); cursor: help; }
 .ep-invoice-notice-mark svg { width: 13px; height: 13px; }
 .ep-invoice-notice-mark:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 3px; }
-.ep-invoice-document-notice { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 8px; padding: 7px; border: 1px solid rgba(245, 179, 43, .20); border-radius: 6px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.ep-invoice-document-notice { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 8px; padding: 7px; border: 1px solid rgba(245, 179, 43, .20); border-radius: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .ep-invoice-document-notice svg { flex: none; width: 13px; height: 13px; margin-top: 1px; color: var(--amber); }
 .ep-preserved-note { white-space: pre-wrap; }
-.ep-note-history { margin-top: 8px; font-size: 10px; }
+.ep-note-history { margin-top: 8px; font-size: 12px; }
 .ep-note-history summary { color: var(--muted); cursor: pointer; }
 .ep-note-history summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
 
@@ -755,28 +756,28 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-plate-icon svg { width: 16px; height: 16px; }
 .ep-plate-block > div { min-width: 0; display: grid; gap: 1px; }
 .ep-plate-block strong { color: #8ce9e4; font: 700 13px/1.3 var(--mono); }
-.ep-plate-block small { color: var(--muted); font-size: 9.5px; }
+.ep-plate-block small { color: var(--muted); font-size: 12px; }
 .ep-unassigned {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 9px 0;
   color: #d6b36d;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .ep-unassigned svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
 
 /* Acțiunile contextuale din panoul de detalii */
 .ep-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
-.ep-detail-actions .ep-button { min-height: 34px; font-size: 10.5px; }
+.ep-detail-actions .ep-button { min-height: 34px; font-size: 13px; }
 .ep-detail-actions .ep-wide { grid-column: 1 / -1; }
 /* Eticheta returului se poate împacheta în panoul îngust de detalii. */
 .ep-detail-actions [data-action="return-part"] { white-space: normal; }
 
 /* Status și editare piesă: buton compact, lângă starea cantitativă curentă. */
 .ep-part-status-actions { flex: 0 1 48%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.ep-part-edit { min-height: 26px; padding: 0 7px; font-size: 9px; }
+.ep-part-edit { min-height: 26px; padding: 0 7px; font-size: 12px; }
 .ep-part-edit svg { width: 12px; height: 12px; }
 
 /* Magazie: nuanță violet dedicată, fără modificarea tokenilor de status HUB. */
@@ -785,14 +786,14 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-warehouse-button { color: #d7c9ff; border-color: rgba(167, 139, 250, .38); background: rgba(167, 139, 250, .10); }
 .ep-warehouse-button:hover:not(:disabled) { border-color: #a78bfa; background: rgba(167, 139, 250, .20); }
 .ep-warehouse-status { display: grid; gap: 4px; min-width: 0; }
-.ep-warehouse-status > small { color: var(--muted); font-size: 9px; line-height: 1.5; white-space: normal; }
+.ep-warehouse-status > small { color: var(--muted); font-size: 12px; line-height: 1.5; white-space: normal; }
 
 /* Historicul trimiterilor: sursă, cantitate, moment și notițe cu încadrare în panou. */
 .ep-warehouse-record { display: grid; gap: 3px; padding: 8px 0; overflow-wrap: anywhere; }
 .ep-warehouse-record + .ep-warehouse-record { border-top: 1px solid var(--line); }
-.ep-warehouse-record > strong { color: #d7c9ff; font-size: 10px; }
-.ep-warehouse-record > small, .ep-warehouse-record > time { color: var(--muted); font-size: 9px; }
-.ep-warehouse-record > p { margin: 3px 0 0; font-size: 10px; white-space: pre-wrap; }
+.ep-warehouse-record > strong { color: #d7c9ff; font-size: 12px; }
+.ep-warehouse-record > small, .ep-warehouse-record > time { color: var(--muted); font-size: 12px; }
+.ep-warehouse-record > p { margin: 3px 0 0; font-size: 12px; white-space: pre-wrap; }
 
 /* Formular compact de trimitere; corpul derulează pe ecranele mici. */
 .ep-warehouse-modal { width: min(580px, calc(100vw - 24px)); }
@@ -818,12 +819,12 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 }
 .ep-detail-stats span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.ep-detail-stats strong { color: var(--text); font: 700 11.5px/1.3 var(--mono); }
-.ep-detail-stats strong.ep-detail-stat-money { font-size: 9.5px; }
+.ep-detail-stats strong { color: var(--text); font: 700 12px/1.3 var(--mono); }
+.ep-detail-stats strong.ep-detail-stat-money { font-size: 12px; }
 
 .ep-compact-list { display: grid; gap: 4px; }
 .ep-compact-row {
@@ -844,13 +845,13 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-compact-row-main strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 10.5px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ep-compact-row-main small { color: var(--muted); font-size: 8.5px; }
-.ep-compact-row .ep-money { flex: none; font-size: 9px; text-align: right; }
-.ep-compact-row .ep-badge { flex: none; padding: 2px 6px; font-size: 8px; }
+.ep-compact-row-main small { color: var(--muted); font-size: 12px; }
+.ep-compact-row .ep-money { flex: none; font-size: 13px; text-align: right; }
+.ep-compact-row .ep-badge { flex: none; padding: 2px 6px; font-size: 12px; }
 
 /* Cronologia de status */
 .ep-timeline { position: relative; display: grid; gap: 10px; margin-top: 2px; padding-left: 14px; }
@@ -875,9 +876,9 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   background: var(--cyan);
   box-shadow: 0 0 0 3px rgba(45, 212, 207, .12);
 }
-.ep-timeline-item strong { color: var(--text); font-size: 10.5px; }
-.ep-timeline-item time { color: var(--muted); font: 500 8.5px/1.35 var(--mono); }
-.ep-timeline-item small { color: var(--muted-2); font-size: 8.5px; }
+.ep-timeline-item strong { color: var(--text); font-size: 12px; }
+.ep-timeline-item time { color: var(--muted); font: 500 12px/1.35 var(--mono); }
+.ep-timeline-item small { color: var(--muted-2); font-size: 12px; }
 
 /* Starea fără selecție */
 .ep-empty-details {
@@ -904,7 +905,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 }
 .ep-empty-icon svg { width: 21px; height: 21px; }
 .ep-empty-details h3 { margin: 0; color: var(--text); font-size: 13px; }
-.ep-empty-details p { max-width: 235px; margin: 0; font-size: 10px; line-height: 1.5; }
+.ep-empty-details p { max-width: 235px; margin: 0; font-size: 12px; line-height: 1.5; }
 
 /* -------------------------------------------------------------------------
    Drawer-ul de detalii pe ecrane mici
@@ -951,7 +952,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 }
 .ep-modal-head h2 { margin: 3px 0 0; font-size: 16px; line-height: 1.3; }
 .ep-modal-body { padding: 14px 16px; overflow: auto; }
-.ep-modal-body p { margin: 0; color: #cbd0d8; font-size: 11.5px; line-height: 1.55; }
+.ep-modal-body p { margin: 0; color: #cbd0d8; font-size: 12px; line-height: 1.55; }
 .ep-info-note {
   display: flex;
   align-items: flex-start;
@@ -962,7 +963,7 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
   border-radius: 8px;
   color: #cfb875;
   background: rgba(245, 179, 43, .06);
-  font-size: 9.5px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .ep-info-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--amber); }
@@ -1024,7 +1025,7 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-new-invoice { width: auto; min-height: 38px; }
   .ep-tabbar { min-height: 46px; padding: 0 8px; }
   .ep-tabs { flex: 1; gap: 0; }
-  .ep-tab { height: 46px; flex: 1; justify-content: center; padding: 0 6px; gap: 4px; font-size: 10.5px; }
+  .ep-tab { height: 46px; flex: 1; justify-content: center; padding: 0 6px; gap: 4px; font-size: 13px; }
   /* Pe mobil păstrăm toate cele cinci taburi vizibile; contorul rămâne doar pe fila activă. */
   .ep-tab:not(.is-active) .ep-tab-count { display: none; }
   .ep-tab-count { min-width: 16px; padding: 0 4px; }
@@ -1033,10 +1034,10 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-kpi { min-height: 57px; gap: 7px; padding: 7px 8px; }
   .ep-kpi-icon { width: 29px; height: 29px; border-radius: 7px; }
   .ep-kpi-icon svg { width: 15px; height: 15px; }
-  .ep-kpi-copy > span { font-size: 8.5px; }
+  .ep-kpi-copy > span { font-size: 12px; }
   .ep-kpi-copy strong { font-size: 14.5px; }
   .ep-kpi-copy strong.ep-kpi-money { font-size: 12px; }
-  .ep-kpi-copy small { font-size: 8px; }
+  .ep-kpi-copy small { font-size: 12px; }
   .ep-list-panel { height: 70dvh; min-height: 420px; }
   .ep-list-head { padding: 9px 10px; }
   .ep-toolbar { gap: 5px; padding: 7px 8px; }
@@ -1064,10 +1065,10 @@ body.ep-drawer-open { overflow: hidden; }
 }
 
 @media (max-width: 420px) {
-  .ep-brand-eyebrow { font-size: 8.5px; }
+  .ep-brand-eyebrow { font-size: 12px; }
   .ep-title-line { gap: 6px; }
   .ep-title-line h1 { font-size: 16px; }
-  .ep-demo-badge { font-size: 8px; }
+  .ep-demo-badge { font-size: 12px; }
   .ep-kpi { min-height: 54px; }
 }
 
@@ -1076,7 +1077,7 @@ body.ep-drawer-open { overflow: hidden; }
    ------------------------------------------------------------------------- */
 .ep-invoice-modal { width: min(1120px, calc(100vw - 32px)); }
 .ep-invoice-head { align-items: flex-start; }
-.ep-invoice-head-note { margin: 4px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
+.ep-invoice-head-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .ep-invoice-form { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .ep-invoice-body { min-height: 0; flex: 1; padding: 14px 16px 16px; overflow-y: auto; }
 
@@ -1090,11 +1091,11 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 8px;
   color: #ffc1c8;
   background: rgba(239, 71, 87, .09);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 .ep-form-alert svg { width: 16px; height: 16px; flex: none; margin-top: 1px; color: #ff8e99; }
-.ep-form-alert strong { display: block; color: #ffd3d8; font-size: 10.5px; }
+.ep-form-alert strong { display: block; color: #ffd3d8; font-size: 12px; }
 .ep-form-alert ul { margin: 4px 0 0 15px; padding: 0; }
 .ep-form-alert li { margin-top: 2px; }
 
@@ -1109,10 +1110,10 @@ body.ep-drawer-open { overflow: hidden; }
   align-items: baseline;
   gap: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
-.ep-field > span small { color: var(--muted-2); font-size: 8.5px; font-weight: 500; }
+.ep-field > span small { color: var(--muted-2); font-size: 12px; font-weight: 500; }
 .ep-required { color: #ff8e99; font-weight: 800; }
 .ep-field--wide { grid-column: 1 / -1; }
 .ep-field input,
@@ -1125,7 +1126,7 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 8px;
   color: var(--text);
   background: #151820;
-  font-size: 11px;
+  font-size: 13px;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .ep-field textarea { min-height: 52px; padding: 7px 9px; line-height: 1.45; resize: vertical; }
@@ -1147,14 +1148,14 @@ body.ep-drawer-open { overflow: hidden; }
 }
 .ep-field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.72); opacity: .82; }
 
-.ep-invoice-help { margin: 11px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.5; }
+.ep-invoice-help { margin: 11px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .ep-invoice-help b { color: #d3d9e2; font-weight: 700; }
 .ep-invoice-section { margin-top: 14px; }
 .ep-invoice-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
-.ep-invoice-section-head h3 { margin: 0; color: var(--text); font-size: 11.5px; font-weight: 800; }
-.ep-invoice-section-head p { margin: 2px 0 0; color: var(--muted-2); font-size: 9px; }
+.ep-invoice-section-head h3 { margin: 0; color: var(--text); font-size: 12px; font-weight: 800; }
+.ep-invoice-section-head p { margin: 2px 0 0; color: var(--muted-2); font-size: 12px; }
 /* Buton compact în rândul de sub tabel, aliniat la stânga. */
-.ep-add-line { flex: none; margin: 0; min-height: 30px; padding: 0 9px; font-size: 10px; }
+.ep-add-line { flex: none; margin: 0; min-height: 30px; padding: 0 9px; font-size: 12px; }
 .ep-add-line .ep-plus { font-size: 14px; }
 
 .ep-invoice-lines-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: #171a21; }
@@ -1165,7 +1166,7 @@ body.ep-drawer-open { overflow: hidden; }
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   background: var(--panel-2);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .04em;
   text-align: left;
@@ -1184,7 +1185,7 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-invoice-lines th:nth-child(9) { width: 10%; }
 .ep-invoice-lines th:nth-child(10) { width: 11%; }
 .ep-invoice-lines th:nth-child(11) { width: 36px; }
-.ep-line-vat { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.ep-line-vat { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .ep-th-nowrap { white-space: nowrap; }
 .ep-invoice-lines td { padding: 5px; border-bottom: 1px solid rgba(255, 255, 255, .055); vertical-align: top; }
 .ep-invoice-lines tbody tr:last-child td { border-bottom: 0; }
@@ -1197,10 +1198,10 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 6px;
   color: var(--text);
   background: #12151b;
-  font-size: 10.5px;
+  font-size: 13px;
   transition: border-color .15s, box-shadow .15s;
 }
-.ep-invoice-lines input::placeholder { color: var(--muted-2); font-size: 9.5px; }
+.ep-invoice-lines input::placeholder { color: var(--muted-2); font-size: 13px; }
 .ep-invoice-lines input[data-field="price"]::-webkit-outer-spin-button,
 .ep-invoice-lines input[data-field="price"]::-webkit-inner-spin-button,
 .ep-invoice-lines input[data-field="vat"]::-webkit-outer-spin-button,
@@ -1219,19 +1220,19 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-invoice-lines td[data-field="price"] input,
 .ep-invoice-lines td[data-field="vat"] input {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 13px;
   text-align: right;
 }
 .ep-line-no {
   padding-top: 11px !important;
   color: var(--muted-2);
-  font: 700 9px/1.3 var(--mono);
+  font: 700 12px/1.3 var(--mono);
   text-align: center;
 }
 .ep-line-total { padding-top: 11px !important; text-align: right; white-space: nowrap; }
 /* Valoarea DF se distinge discret, fără schimbarea lățimii coloanei. */
-.ep-line-total strong { display: block; color: var(--text); font: 800 11px/1.35 var(--mono); }
-.ep-line-total small { color: var(--muted-2); font-size: 7.5px; }
+.ep-line-total strong { display: block; color: var(--text); font: 800 12px/1.35 var(--mono); }
+.ep-line-total small { color: var(--muted-2); font-size: 12px; }
 .ep-line-actions { padding-top: 6px !important; text-align: right; }
 .ep-line-remove {
   width: 29px;
@@ -1257,7 +1258,7 @@ body.ep-drawer-open { overflow: hidden; }
   gap: 4px 12px;
   padding-top: 4px;
   color: var(--muted-2);
-  font-size: 8.5px;
+  font-size: 12px;
 }
 .ep-invoice-lines-foot > span { min-width: 0; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
 
@@ -1283,14 +1284,14 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 8px;
   background: #181b22;
 }
-.ep-invoice-total span { color: var(--muted); font-size: 8px; letter-spacing: .04em; text-transform: uppercase; }
-.ep-invoice-total strong { color: var(--text); font: 700 10.5px/1.3 var(--mono); white-space: nowrap; }
-.ep-invoice-total small { color: var(--muted-2); font-size: 7.5px; }
+.ep-invoice-total span { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.ep-invoice-total strong { color: var(--text); font: 700 12px/1.3 var(--mono); white-space: nowrap; }
+.ep-invoice-total small { color: var(--muted-2); font-size: 12px; }
 .ep-invoice-total--grand { border-color: rgba(45, 212, 207, .3); background: rgba(45, 212, 207, .07); }
 .ep-invoice-total--grand strong { color: #9ff1ed; }
 /* Footer scurt, cu butoane în dreapta și suprafața de apăsare păstrată. */
 .ep-invoice-foot { align-items: center; justify-content: flex-end; gap: 7px; padding: 5px 16px 6px; }
-.ep-invoice-foot-note { color: var(--muted-2); font-size: 8.5px; }
+.ep-invoice-foot-note { color: var(--muted-2); font-size: 12px; }
 .ep-invoice-foot-actions { display: flex; flex: none; gap: 7px; }
 .ep-invoice-foot-actions .ep-button { min-height: 36px; }
 
@@ -1323,8 +1324,8 @@ body.ep-drawer-open { overflow: hidden; }
 }
 .ep-toast-icon svg { width: 15px; height: 15px; }
 .ep-toast-copy { min-width: 0; display: grid; gap: 2px; }
-.ep-toast-copy strong { color: #dffaf1; font-size: 11px; }
-.ep-toast-copy span { color: #b7c0cc; font-size: 9.5px; line-height: 1.45; }
+.ep-toast-copy strong { color: #dffaf1; font-size: 12px; }
+.ep-toast-copy span { color: #b7c0cc; font-size: 12px; line-height: 1.45; }
 @keyframes ep-toast-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
@@ -1355,7 +1356,7 @@ body.ep-drawer-open { overflow: hidden; }
     display: block;
     margin-bottom: 3px;
     color: var(--muted);
-    font-size: 7.5px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .05em;
     text-transform: uppercase;
@@ -1367,10 +1368,10 @@ body.ep-drawer-open { overflow: hidden; }
     grid-row: 1;
     padding: 0 !important;
     color: var(--cyan);
-    font: 800 9px/1.3 var(--mono);
+    font: 800 12px/1.3 var(--mono);
     text-align: left;
   }
-  .ep-invoice-lines td.ep-line-no::before { content: "Poziția "; display: inline; margin: 0 3px 0 0; color: var(--muted); font: 800 7.5px/1.3 Inter, system-ui, sans-serif; letter-spacing: .05em; }
+  .ep-invoice-lines td.ep-line-no::before { content: "Poziția "; display: inline; margin: 0 3px 0 0; color: var(--muted); font: 800 12px/1.3 Inter, system-ui, sans-serif; letter-spacing: .05em; }
   .ep-invoice-lines td.ep-line-total { grid-column: 1; padding: 0 !important; text-align: left; }
   .ep-invoice-lines td.ep-line-total small { display: inline; margin-left: 3px; }
   .ep-invoice-lines td.ep-line-actions { grid-column: 2; grid-row: 1; justify-self: end; padding: 0 !important; }
@@ -1393,8 +1394,8 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-invoice-section-head p { display: none; }
   .ep-invoice-summary { padding: 4px 12px; }
   .ep-invoice-total { padding: 4px 6px; }
-  .ep-invoice-total span { font-size: 7px; }
-  .ep-invoice-total strong { font-size: 9px; }
+  .ep-invoice-total span { font-size: 12px; }
+  .ep-invoice-total strong { font-size: 12px; }
   /* Pe mobil butoanele rămân în dreapta și se împachetează numai la nevoie. */
   .ep-invoice-foot { flex-direction: row; align-items: center; padding: 5px 12px 6px; }
   .ep-invoice-foot-note { display: none; }
@@ -1481,7 +1482,7 @@ body.ep-drawer-open { overflow: hidden; }
 }
 .ep-flatpickr span.flatpickr-weekday {
   color: var(--muted-2);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .04em;
 }
@@ -1490,7 +1491,7 @@ body.ep-drawer-open { overflow: hidden; }
   margin: 1px 0;
   border-radius: 7px;
   color: #dfe4eb;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 32px;
 }
@@ -1543,13 +1544,13 @@ body.ep-drawer-open { overflow: hidden; }
 .ep-add-supplier {
   min-height: 30px;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .ep-add-supplier .ep-plus { font-size: 14px; }
 
 .ep-supplier-modal { width: min(720px, calc(100vw - 32px)); }
 .ep-supplier-head { align-items: flex-start; }
-.ep-supplier-head-note { margin: 4px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
+.ep-supplier-head-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .ep-supplier-form { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .ep-supplier-body { min-height: 0; flex: 1; padding: 14px 16px 16px; overflow-y: auto; }
 .ep-supplier-grid {
@@ -1566,8 +1567,8 @@ body.ep-drawer-open { overflow: hidden; }
   gap: 12px;
   margin-bottom: 7px;
 }
-.ep-supplier-section-head h3 { margin: 0; color: var(--text); font-size: 11.5px; font-weight: 800; }
-.ep-supplier-section-head p { margin: 2px 0 0; color: var(--muted-2); font-size: 9px; }
+.ep-supplier-section-head h3 { margin: 0; color: var(--text); font-size: 12px; font-weight: 800; }
+.ep-supplier-section-head p { margin: 2px 0 0; color: var(--muted-2); font-size: 12px; }
 .ep-bank-list { display: grid; gap: 7px; }
 .ep-bank-row {
   display: grid;
@@ -1579,7 +1580,7 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 9px;
   background: #181b22;
 }
-.ep-bank-row .ep-field > span { font-size: 8px; }
+.ep-bank-row .ep-field > span { font-size: 12px; }
 .ep-bank-row input { min-height: 32px; height: 32px; }
 .ep-bank-remove { margin-bottom: 1px; }
 .ep-bank-empty {
@@ -1588,7 +1589,7 @@ body.ep-drawer-open { overflow: hidden; }
   border: 1px dashed var(--line);
   border-radius: 9px;
   color: var(--muted-2);
-  font-size: 9.5px;
+  font-size: 12px;
   text-align: center;
 }
 .ep-supplier-notes-field { margin-top: 14px; }
@@ -1598,7 +1599,7 @@ body.ep-drawer-open { overflow: hidden; }
   justify-content: space-between;
   gap: 12px;
 }
-.ep-supplier-foot-note { color: var(--muted-2); font-size: 8.5px; }
+.ep-supplier-foot-note { color: var(--muted-2); font-size: 12px; }
 .ep-supplier-foot-actions { display: flex; flex: none; gap: 7px; }
 .ep-supplier-foot-actions .ep-button { min-height: 36px; }
 
@@ -1607,7 +1608,7 @@ body.ep-drawer-open { overflow: hidden; }
   display: block;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 500;
 }
 .ep-detail-note.ep-supplier-notes { white-space: pre-line; }
@@ -1650,39 +1651,39 @@ body.ep-drawer-open { overflow: hidden; }
   border-bottom: 1px solid var(--line);
   background: rgba(45, 212, 207, .05);
 }
-.ep-bulk-count { color: var(--cyan); font-size: 10px; font-weight: 700; }
+.ep-bulk-count { color: var(--cyan); font-size: 12px; font-weight: 700; }
 .ep-bulk-actions, .ep-assignment-foot-actions { display: flex; gap: 7px; }
-.ep-bulk-actions .ep-button { min-height: 30px; font-size: 10px; }
+.ep-bulk-actions .ep-button { min-height: 30px; font-size: 13px; }
 .ep-assignment-cta { margin-top: 8px; }
 .ep-assignment-cta .ep-wide { width: 100%; }
 .ep-allocation-list { display: grid; gap: 5px; }
-.ep-allocation-summary { color: var(--muted); font-size: 9px; white-space: normal; }
+.ep-allocation-summary { color: var(--muted); font-size: 12px; white-space: normal; }
 /* Destinații scurte în tabel; istoricul pe mașini se deschide în panoul de detalii. */
-.ep-quantity-summary { color: var(--muted); font-size: 9px; line-height: 1.6; white-space: normal; }
+.ep-quantity-summary { color: var(--muted); font-size: 12px; line-height: 1.6; white-space: normal; }
 .ep-quantity-history { margin-top: 9px; }
-.ep-quantity-history > summary { color: var(--muted); font-size: 10px; cursor: pointer; }
+.ep-quantity-history > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
 .ep-allocation-detail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.ep-allocation-detail .ep-button { min-height: 28px; font-size: 9px; }
+.ep-allocation-detail .ep-button { min-height: 28px; font-size: 13px; }
 .ep-compact-row-main .ep-allocation-list { margin-top: 5px; }
-.ep-progress-mini > small { color: var(--muted); font-size: 8px; }
+.ep-progress-mini > small { color: var(--muted); font-size: 12px; }
 .ep-assignment-lock, .ep-assignment-note {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .ep-assignment-lock svg, .ep-assignment-note svg { flex: none; width: 15px; height: 15px; }
 .ep-assignment-lock, .ep-assignment-note.is-warning { color: var(--amber); }
 .ep-assignment-modal { width: min(640px, calc(100vw - 32px)); }
-.ep-assignment-head-note { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.ep-assignment-head-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .ep-assignment-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .ep-assignment-body { flex: 1; min-height: 0; }
 .ep-assignment-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
-.ep-assignment-label { display: block; color: var(--muted); font-size: 9px; }
+.ep-assignment-label { display: block; color: var(--muted); font-size: 12px; }
 .ep-assignment-summary strong { font-size: 12px; }
-.ep-assignment-summary-note, .ep-assignment-foot-note { color: var(--muted-2); font-size: 9px; }
+.ep-assignment-summary-note, .ep-assignment-foot-note { color: var(--muted-2); font-size: 12px; }
 .ep-assignment-list { display: grid; gap: 6px; margin-bottom: 14px; }
 .ep-assignment-row {
   display: grid;
@@ -1694,62 +1695,66 @@ body.ep-drawer-open { overflow: hidden; }
   border-radius: 8px;
   background: var(--panel-2);
 }
-.ep-assignment-row-index { color: var(--cyan); font: 500 10px var(--mono); }
-.ep-assignment-row strong { display: block; font-size: 10.5px; overflow-wrap: anywhere; }
-.ep-assignment-row small { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
+.ep-assignment-row-index { color: var(--cyan); font: 500 12px var(--mono); }
+.ep-assignment-row strong { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.ep-assignment-row small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .ep-assignment-row-meta { text-align: right; }
 .ep-assignment-row-meta strong + small { display: block; }
 .ep-assignment-fields { display: grid; grid-template-columns: minmax(110px, .75fr) minmax(0, 1.1fr) minmax(0, 1.25fr); gap: 10px; }
 .ep-assignment-fields:has(> [hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .ep-assignment-note { margin-top: 12px; }
-.ep-assignment-body #assignmentModelWarning { margin: 12px 0 0; color: var(--amber); font-size: 10px; }
-.ep-assignment-body #assignmentQuantityPreview { margin: 10px 0 0; color: var(--muted); font-size: 10px; }
+.ep-assignment-body #assignmentModelWarning { margin: 12px 0 0; color: var(--amber); font-size: 12px; }
+.ep-assignment-body #assignmentQuantityPreview { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
 .ep-assignment-foot { align-items: center; justify-content: space-between; gap: 10px; }
 .ep-assignment-foot-actions { flex: none; }
 
 /* Retururi: aceeași structură compactă de dialog și aceiași tokeni dark. */
 .ep-return-modal { width: min(640px, calc(100vw - 32px)); }
-.ep-return-head-note { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.ep-return-head-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .ep-return-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .ep-return-body { flex: 1; min-height: 0; }
 .ep-return-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
 .ep-return-grid .ep-field--wide { grid-column: 1 / -1; }
 .ep-return-date { margin: 12px 0; }
 .ep-return-foot { align-items: center; justify-content: space-between; gap: 10px; }
-.ep-return-foot-note { color: var(--muted-2); font-size: 9px; }
+.ep-return-foot-note { color: var(--muted-2); font-size: 12px; }
 .ep-return-foot-actions { display: flex; flex: none; gap: 7px; }
 
 /* Import DF DEMO: formular și rezumat în același dialog. */
 .ep-df-modal { width: min(980px, calc(100vw - 32px)); }
-.ep-df-head-note { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.ep-df-head-note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .ep-df-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .ep-df-body { min-height: 0; flex: 1; }
 .ep-df-vehicle { max-width: 380px; margin-bottom: 10px; }
 .ep-df-table-wrap { overflow-x: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; }
-.ep-df-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; font-size: 10px; }
-.ep-df-table th { padding: 9px 8px; color: var(--muted); background: var(--panel-2); font-size: 9px; }
+.ep-df-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; font-size: 12px; }
+.ep-df-table th { padding: 9px 8px; color: var(--muted); background: var(--panel-2); font-size: 12px; }
 .ep-df-table td { padding: 9px 8px; border-top: 1px solid var(--line); vertical-align: top; }
 .ep-df-table td strong, .ep-df-table td small { display: block; }
-.ep-df-table td small { color: var(--muted); font-size: 9px; }
+.ep-df-table td small { color: var(--muted); font-size: 12px; }
 .ep-df-qty { width: 80px; }
-.ep-df-totals { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 8px; color: var(--muted); font-size: 10px; }
+.ep-df-totals { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 8px; color: var(--muted); font-size: 12px; }
 .ep-df-totals strong { color: var(--cyan); font-size: 12px; }
 .ep-df-foot { justify-content: space-between; gap: 8px; }
 .ep-df-foot-actions { display: flex; gap: 7px; }
-.ep-df-link { display: inline-block; width: fit-content; padding: 1px 0; border: 0; color: var(--cyan); background: transparent; font: 500 9px/1.5 var(--mono); text-align: left; }
+.ep-df-link { display: inline-block; width: fit-content; padding: 1px 0; border: 0; color: var(--cyan); background: transparent; font: 500 12px/1.5 var(--mono); text-align: left; }
 .ep-df-link:hover { text-decoration: underline; }
 
-/* Lizibilitate +1–2px numai în Piese, De atribuit și Facturi; păstrăm paddingul rândurilor. */
+/* Tipografia compactă anterioară, cu textul foarte mic mărit doar cu 1–2px. */
 /* Ierarhia rămâne: denumiri, valori principale, apoi coduri/date/descrieri. */
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table th { font-size: 10px; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table td { font-size: 12px; line-height: 1.45; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-cell-stack strong { font-size: 12.5px; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table :is(.ep-invoice-cell strong, .ep-supplier-cell, .ep-money) { font-size: 11.5px; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-code { font-size: 10.5px; line-height: 1.4; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table :is(.ep-invoice-cell small, .ep-plate-cell small, .ep-cell-stack > small, .ep-allocation-summary, .ep-quantity-summary, .ep-df, .ep-df-link) { font-size: 11px; line-height: 1.45; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-plate { font-size: 11px; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-money small { font-size: 10.5px; line-height: 1.4; }
-#listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-badge { font-size: 10px; }
+.ep-table th { font-size: 10px; }
+.ep-table td { font-size: 12px; line-height: 1.45; }
+.ep-table .ep-cell-stack strong { font-size: 12.5px; }
+.ep-table :is(.ep-invoice-cell strong, .ep-supplier-cell, .ep-money) { font-size: 11.5px; }
+.ep-table .ep-code { font-size: 10.5px; line-height: 1.4; }
+.ep-table :is(.ep-invoice-cell small, .ep-plate-cell small, .ep-cell-stack > small, .ep-allocation-summary, .ep-quantity-summary, .ep-df, .ep-df-link) { font-size: 11px; line-height: 1.45; }
+.ep-table .ep-plate { font-size: 11px; }
+.ep-table .ep-money small { font-size: 10.5px; line-height: 1.4; }
+.ep-table .ep-badge { font-size: 10px; }
+/* Denumirile și codurile lungi se împachetează în celula proprie; coloanele și scrollul rămân compacte. */
+.ep-table :is(.ep-cell-stack, .ep-invoice-cell, .ep-quantity-summary) { min-width: 0; max-width: 34ch; white-space: normal; overflow-wrap: anywhere; }
+.ep-table .ep-supplier-cell { display: block; max-width: 24ch; white-space: normal; overflow-wrap: anywhere; }
+.ep-table .ep-date, .ep-table .ep-progress-mini > span, .ep-table td small { font-size: 11px; }
 .ep-invoice-foot, .ep-supplier-foot, .ep-assignment-foot, .ep-return-foot { justify-content: flex-end; }
 /* Resetarea stă în stânga; Anulează/Salvează păstrează poziția din dreapta. */
 #assignmentReset { margin-right: auto; }
@@ -1780,18 +1785,18 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-df-table tbody { display: grid; gap: 8px; }
   .ep-df-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px; background: var(--panel-2); }
   .ep-df-table td { padding: 0; border: 0; min-width: 0; overflow-wrap: anywhere; }
-  .ep-df-table td::before { content: attr(data-label); display: block; margin-bottom: 3px; color: var(--muted); font-size: 8px; }
+  .ep-df-table td::before { content: attr(data-label); display: block; margin-bottom: 3px; color: var(--muted); font-size: 12px; }
   .ep-df-table .ep-df-part { grid-column: 1 / -1; }
   .ep-df-table .ep-df-select-cell { grid-column: 1 / -1; }
-  .ep-df-foot .ep-button { padding: 0 8px; font-size: 10px; }
+  .ep-df-foot .ep-button { padding: 0 8px; font-size: 13px; }
 }
 
 
 /* Starea HUB, butoanele de reîncărcare și setarea Admin păstrează tema compactă existentă. */
 .ep-app[hidden], .ep-default-panel[hidden], .ep-connection [hidden] { display: none !important; }
-.ep-connection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 18px; color: var(--muted); font-size: 11px; }
-.ep-connection .ep-button { min-height: 28px; font-size: 10px; }
-.ep-default-panel { margin: 0 18px 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 11px; }
+.ep-connection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 18px; color: var(--muted); font-size: 12px; }
+.ep-connection .ep-button { min-height: 28px; font-size: 13px; }
+.ep-default-panel { margin: 0 18px 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 12px; }
 .ep-default-panel summary { cursor: pointer; }
 .ep-default-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 8px; }
 .ep-default-form input { width: 100px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px; }
@@ -1807,3 +1812,65 @@ body.ep-drawer-open { overflow: hidden; }
 /* În starea incertă, acțiunea de recuperare rămâne în dialog și se împachetează pe mobil. */
 .ep-modal-foot:has(.ep-recover-inline:not([hidden])) { flex-wrap: wrap; gap: 7px; }
 .ep-recover-inline { max-width: 100%; white-space: normal; }
+
+/* Actualizarea stă după Retururi; taburile se derulează în interior pe ecrane înguste. */
+.ep-button { font-size: 13px; }
+.ep-app small, .ep-modal small { font-size: 12px; }
+.ep-default-form input { font-size: 13px; }
+.ep-tabs { min-width: 0; }
+.ep-refresh { flex: none; align-self: center; margin-left: 2px; min-height: 32px; padding-inline: 10px; }
+.ep-tabbar-note { margin-left: auto; }
+.ep-tabbar-note span { font-size: 12px; }
+
+/* Acțiunile folosesc lățimea conținutului și se împachetează fără coloane egale. */
+.ep-detail-actions-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 9px 0 0;
+}
+.ep-detail-actions-top > .ep-button {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  width: auto;
+  min-height: 30px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ep-detail-actions-top > .ep-button small { display: block; font-size: 11px; font-weight: 500; }
+/* Cantitatea are propriul rând numai la atribuire sau la transferurile individuale. */
+.ep-detail-actions-top > .ep-button:has(small) { display: inline-grid; grid-template-columns: auto auto; justify-content: start; gap: 3px 6px; }
+.ep-detail-actions-top > .ep-button small { grid-column: 1 / -1; }
+/* Corectarea rămâne mică, în dreapta sus, direct deasupra badge-ului de status. */
+.ep-part-status-actions { flex: 0 0 auto; max-width: 52%; }
+.ep-part-status-actions .ep-part-edit { min-height: 26px; max-width: 100%; padding: 4px 7px; font-size: 11px; line-height: 1.25; white-space: normal; flex-direction: column; gap: 2px; }
+.ep-part-status-actions .ep-part-edit small { font-size: 10.5px; }
+
+/* Istoricul alocărilor indică vizibil că poate fi deschis și navigat din tastatură. */
+.ep-quantity-history > summary {
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--panel-3);
+  font-size: 13px;
+  font-weight: 600;
+  list-style-position: inside;
+}
+.ep-quantity-history > summary::marker { color: var(--cyan); }
+.ep-quantity-history > summary:hover { border-color: var(--cyan); }
+.ep-quantity-history > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.ep-quantity-history[open] > summary { margin-bottom: 7px; border-color: rgba(45, 212, 207, .4); }
+
+@media (max-width: 620px) {
+  /* Navigarea și actualizarea rămân accesibile fără overflow de pagină. */
+  .ep-tabbar { gap: 10px; }
+  .ep-tab { flex: none; padding-inline: 8px; font-size: 13px; }
+  .ep-refresh { padding-inline: 7px; }
+}
