@@ -1,17 +1,59 @@
-# HUB AUTO v2 — Evidență Piese
+# HUB AUTO v2 — Evidență Facturi & Piese
 ## Plan de dezvoltare și specificație funcțională DEMO — istoric LAB și stare locală
 
-**Versiune document:** 1.5
+**Versiune document:** 2.5 — backend producție verificat read-only
 
 **Specificație LAB:** 25.10.2026; **reconciliere statică în repository-ul principal:** 03.11.2026
 
 **Statut:** document de lucru, actualizabil pe măsură ce apar cerințe și feedback  
-**Modul:** `Evidență Piese` — DEMO prezent în sursele locale; publicarea era raportată istoric
+**Modul:** `Evidență Facturi & Piese` — frontend persistent local; backendul EP este instalat în producție
 **Responsabilitatea documentului:** descrie ce există, ce trebuie păstrat, ce este propus și ce necesită validare; **nu** autorizează automat schimbarea codului sau a bazei de date.
 
 > **Regula principală:** la fiecare sarcină se verifică directorul, branch-ul activ, mediul și fișierele autorizate. Repository-ul principal este `/media/aza/Depozit_Mint/HUB_v2`; mirror-ul `/home/aza/HUB AUTO/HUB_v2-LAB` este separat. Folosirea obligatorie a LAB din etapele vechi descrie acele intervenții și nu autorizează transferuri sau modificări în alt mediu.
 
-### Stare locală inspectată static — 03.11.2026
+### Stare curentă — verificare finală 05.11.2026
+
+Backendul EP este instalat, confirmat read-only prin catalog, probe SQL cu roluri
+și HTTP anonim. [Dovezi, contracte și limite](../03_SUPABASE.md#ep-productie-verificat-20261105).
+Frontendul transferat este compatibil static; nu s-a publicat. Browserul cu sesiune
+reală, salvările/importurile/concurența și restore-ul real al backupului rămân
+NEEDS_REVIEW. Nu se reaplică SQL-urile. Niciun cod sau date de business modificate.
+
+### Istoric: transfer local în feature-responsive — 05.11.2026
+
+Această secțiune înlocuiește descrierea DEMO ca stare a surselor locale. Corpul
+vechi și probele LAB de mai jos sunt păstrate ca istoric. Sursa transferului:
+LAB v2.3, §0.14 și navigarea finală din handoff-ul LAB, cu hash-uri verificate.
+
+**Stare la transfer, înaintea migrării: candidat local, backend neaplicat, fără deploy.**
+Cele nouă runtime sunt transferate punctual; configurația destinației și codul
+Admin/autentificare fără legătură cu EP sunt păstrate. Guard-urile din ambii
+adaptori acceptă exclusiv proiectul destinației. Modulul este în BIROU după
+Căutare Deviz, turcoaz/NEW, în sidebar și carduri.
+
+Candidatul păstrează facturi editabile, alocări fără fișă auto obligatorie,
+retururi și rezervare pentru magazie, status fizic manual și coeficient Admin.
+Importul real se face din Deviz Final: parțial/multiplu, snapshot istoric,
+UUID/revizii, cerere idempotentă și protecție cantitativă comună cu retur/magazie.
+Liniile manuale, discountul, avansul și tipărirea își păstrează regulile existente.
+Recepția în stoc, montajul și anulările retururilor/transferurilor rămân în afara etapei.
+
+Probe efectuate în această lucrare: **64 verificări statice,
+37 regresii SQL, 34 verificări Chrome EP/DF/print,
+118 verificări navigație/responsive**. SQL-ul și browserul financiar
+folosesc exclusiv PostgreSQL izolat local, Auth/SDK simulate; navigarea folosește
+fixture locală. Nicio probă nu scrie în backendul de producție. Capturile au fost
+inspectate; rezultatele LAB mai vechi nu sunt atribuite destinației sau producției.
+
+Preflight-ul read-only al producției este în [03](../03_SUPABASE.md#preflight-ep-producție--05112026-read-only).
+Ordinea SQL, inventarul/hash-urile, backupul, comenzile de reluare și pașii rămași
+sunt în [HANDOFF_CODEX.md](../../HANDOFF_CODEX.md), iar probele exacte în
+[manifestul transferului](TRANSFER_FEATURE_RESPONSIVE_20261105.json).
+**Restanțe consemnate la transfer (starea curentă este mai sus):** validare PostgreSQL 17/Supabase izolat, tranzacții concurente
+independente/HTTP, scheme Data API, backup și aprobare de migrare/publicare,
+acceptanță autentificată pe țintă, Firefox/imprimantă/dispozitive și volum.
+
+### Istoric: stare locală inspectată static — 03.11.2026
 
 Sursele conțin meniul/cardul DEMO din HUB, linkul `.ep-back-hub` cu
 `href="../../index.html"`, facturi/furnizori, alocări/retururi cantitative,

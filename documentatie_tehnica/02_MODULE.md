@@ -31,9 +31,9 @@ Dashboardul nu este un backend intermediar: el interoghează direct Supabase. C�
 
 ## 3. Birou și devize
 
-**Navigare BIROU — actualizare locală 04.11.2026.** În meniul din
+**Navigare BIROU — actualizare locală 05.11.2026.** În meniul din
 [index.html](../index.html), ordinea este: Deviz Estimativ → Evidență Avansuri →
-Cereri de plată → Registru Telefoane → Deviz Final → Căutare Deviz → Contracte →
+Cereri de plată → Registru Telefoane → Deviz Final → Căutare Deviz → Evidență Facturi & Piese → Contracte →
 Comenzi Piese SH → Clienți & Notificări. Vizibilitatea păstrează regulile de acces existente.
 Culorile iconițelor și tooltip-ul sidebar-ului sunt descrise în
 [regulile vizuale de navigare](DESIGN_SYSTEM_HUB.md#sidebar-hub--actualizare-locală-04112026).
@@ -205,13 +205,23 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 - nu folosește Supabase;
 - funcții: căutare/listare și inițiere conversație WhatsApp.
 
-### 6.3 Evidență Piese — DEMO local
+### 6.3 Evidență Facturi & Piese — frontend transferat, backend instalat
 
-- fișiere: `modules/stocuri/evidenta_piese.html`, `css/evidenta_piese.css`, `js/evidenta_piese.js`;
-- `index.html` are meniu și card cu marcaj DEMO; linkul `.ep-back-hub` revine la `../../index.html`;
-- sursele conțin facturi/furnizori, alocări și retururi cantitative, import DF simulat, trimitere în magazie în `DATA.warehouseTransfers`, KPI și prezentarea separată a situației pieselor/documentului;
-- date fictive în memorie, resetate la refresh; fără persistență Supabase sau import în Deviz Final real;
-- constatări statice, fără test de browser sau confirmare de publicare. Istoric LAB, reguli și propuneri în [plan](evidenta_piese/PLAN_EVIDENTA_PIESE.md).
+- Sursele LAB v2.3 au fost integrate local pe `feature-responsive` la 05.11.2026;
+  **backendul EP este instalat și verificat read-only; frontendul nu este publicat**.
+- Runtime: pagina/CSS/JS EP, `js/evidenta_piese_api.js`, `js/ep_df_import.js` și
+  deltele punctuale HUB/Admin/DF/print; destinația folosește configurația sa existentă.
+- În sidebar și carduri: **BIROU, imediat după Căutare Deviz**, accent turcoaz și NEW,
+  fără intrare în SERVICE sau duplicare; linkul `.ep-back-hub` este păstrat.
+- Admin are acces automat; ceilalți necesită JSON boolean `evidenta_piese: true`.
+  Bifa este adăugată prin mecanismul existent Admin; autentificarea nu este schimbată.
+- Candidatul include registre persistente, alocări parțiale, retururi/trimitere în
+  magazie, implicit Admin și import real în DF cu snapshot istoric/idempotency;
+  contractele instalate corespund adaptorilor, conform [verificării DB](03_SUPABASE.md#ep-productie-verificat-20261105).
+- Probe locale statice/Chrome cu transport simulat și PostgreSQL izolat, distincte
+  de verificarea read-only a producției la 05.11; acceptanța
+  live rămâne **NEEDS_REVIEW**. [Stadiu și limite](evidenta_piese/PLAN_EVIDENTA_PIESE.md),
+  [manifestul exact de transfer](../HANDOFF_CODEX.md).
 
 ### 6.4 Comenzi piese — placeholder
 

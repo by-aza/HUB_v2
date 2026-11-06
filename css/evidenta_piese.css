@@ -1,5 +1,5 @@
 /* =========================================================================
-   HUB AUTO — Evidență Piese (DEMO)
+   HUB AUTO — Evidență Facturi & Piese · HUB
    Temă dark compactă, construită pe tokenii modulului Clienți & Notificări.
    ========================================================================= */
 
@@ -1783,3 +1783,25 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-df-table .ep-df-select-cell { grid-column: 1 / -1; }
   .ep-df-foot .ep-button { padding: 0 8px; font-size: 10px; }
 }
+
+
+/* Starea HUB, butoanele de reîncărcare și setarea Admin păstrează tema compactă existentă. */
+.ep-app[hidden], .ep-default-panel[hidden], .ep-connection [hidden] { display: none !important; }
+.ep-connection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 18px; color: var(--muted); font-size: 11px; }
+.ep-connection .ep-button { min-height: 28px; font-size: 10px; }
+.ep-default-panel { margin: 0 18px 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 11px; }
+.ep-default-panel summary { cursor: pointer; }
+.ep-default-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 8px; }
+.ep-default-form input { width: 100px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px; }
+.ep-default-form small { color: var(--muted-2); }
+@media (max-width: 620px) {
+  /* Antetul cu noul nume se împachetează fără a lărgi pagina. */
+  .ep-title-line { flex-wrap: wrap; }
+  .ep-title-line h1 { font-size: 15px; overflow-wrap: anywhere; }
+  .ep-default-panel { margin-inline: 12px; }
+  .ep-connection { padding-inline: 12px; }
+}
+
+/* În starea incertă, acțiunea de recuperare rămâne în dialog și se împachetează pe mobil. */
+.ep-modal-foot:has(.ep-recover-inline:not([hidden])) { flex-wrap: wrap; gap: 7px; }
+.ep-recover-inline { max-width: 100%; white-space: normal; }
