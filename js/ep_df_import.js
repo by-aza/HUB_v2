@@ -115,24 +115,35 @@
       const used = already.has(source.allocation_id);
       card.innerHTML = `<label class="flex items-start gap-3"><input type="checkbox" class="ep-df-select mt-1 h-4 w-4 accent-violet-500" ${used?'disabled':''}>
        <span class="min-w-0 flex-1"><strong class="block break-words text-slate-100">${esc(source.name)}</strong><small class="block break-words text-slate-400">${esc(source.supplier)} · ${esc(source.invoice_number)} · ${esc(source.invoice_date)} · ${esc(source.code)}</small></span></label>
-       <div class="mt-3 flex flex-wrap items-end gap-3 text-sm"><label>Cantitate <input class="ep-df-qty ml-2 w-20 rounded border border-slate-600 bg-slate-800 p-1" type="number" min="1" step="1" max="${source.available}" value="1" ${used?'disabled':''}></label>
+       <div class="mt-3 flex flex-wrap items-end gap-3 text-sm"><label>Cantitate <input class="ep-df-qty ml-2 w-20 rounded border border-slate-600 bg-slate-800 p-1" type="number" min="1" step="1" max="${source.available}" value="${source.available}" ${used?'disabled':''}></label>
        <span class="text-slate-400">Disponibile: ${source.available} buc.${used?' · deja adăugată în formular':''}</span></div>
        <p class="mt-2 text-xs text-slate-400">Achiziție netă: ${money(source.purchase_net)} lei · TVA ${esc(source.vat)}% · Coeficient ${esc(source.multiplier)} · Vânzare unitară cu TVA: ${money(source.unit_price)} lei</p>
-       <p class="ep-df-preview mt-1 text-sm font-bold text-violet-200"></p>`;
+       <p class="ep-df-preview mt-1 text-sm font-bold text-violet-200"></p>
+       <p class="ep-df-error mt-1 text-sm font-bold text-red-300" role="alert" hidden></p>`;
       const qty = card.querySelector('.ep-df-qty'), preview = card.querySelector('.ep-df-preview');
+      const error = card.querySelector('.ep-df-error');
+      qty.setAttribute('aria-describedby', error.id = `ep-df-error-${uuid()}`);
+      /* Cantitatea integrală este implicită; orice depășire se explică lângă câmp. */
       const refresh = () => {
         const n = Number(qty.value), valid = Number.isInteger(n) && n>0 && n<=Number(source.available);
-        preview.textContent = valid ? `Total cu TVA: ${money(amount(source,n))} lei` : 'Cantitate invalidă';
+        preview.textContent = valid ? `Total cu TVA: ${money(amount(source,n))} lei` : '';
+        error.hidden = valid;
+        error.textContent = valid ? '' : `Cantitate cerută: ${qty.value || 'necompletată'} buc.; disponibilă: ${source.available} buc. ${n>Number(source.available) ? 'Cantitatea cerută depășește disponibilul.' : 'Introdu un număr întreg pozitiv în limita disponibilului.'}`;
+        qty.setAttribute('aria-invalid', String(!valid));
+        return valid;
       };
-      qty.addEventListener('input',refresh); refresh(); card.source = source; el('ep-df-list').append(card);
+      qty.addEventListener('input',refresh); refresh(); card.validateQuantity = refresh; card.source = source; el('ep-df-list').append(card);
     });
     el('ep-df-confirm').disabled = !rows.some(r => !already.has(r.allocation_id));
     el('ep-df-confirm').onclick = () => {
       if (key !== JSON.stringify(options.context())) { el('ep-df-message').textContent = 'Antetul s-a schimbat. Reîncarcă lista.'; return; }
       const selected = [...el('ep-df-list').children].filter(card => card.querySelector('.ep-df-select').checked);
       if (!selected.length) { el('ep-df-message').textContent = 'Selectează cel puțin o piesă.'; return; }
-      if (selected.some(card => { const n=Number(card.querySelector('.ep-df-qty').value); return !Number.isInteger(n)||n<1||n>Number(card.source.available); })) {
-        el('ep-df-message').textContent = 'Verifică toate cantitățile selectate.'; return;
+      /* Verifică întregul lot înainte de primul append: fără import parțial sau trunchiere. */
+      const invalid = selected.filter(card => !card.validateQuantity());
+      if (invalid.length) {
+        el('ep-df-message').textContent = `Import oprit. ${invalid.map(card => `${card.source.name}: ${card.querySelector('.ep-df-error').textContent}`).join(' ')} Nicio piesă nu a fost adăugată.`;
+        invalid[0].querySelector('.ep-df-qty').focus(); return;
       }
       selected.forEach(card => {
         const s=card.source, snapshot={...s}, qty=Number(card.querySelector('.ep-df-qty').value);

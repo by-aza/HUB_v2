@@ -162,6 +162,10 @@
   const assignmentUi = {
     mode: "assign",
     modelPlate: null,
+    modelAutoValue: "",
+    modelManual: false,
+    modelLookupVersion: 0,
+    modelLookupPromise: null,
     allocationIndex: null,
     source: "part",
     partIds: [],
@@ -2316,15 +2320,56 @@
       });
     }
 
-    // Repeated blur/change/submit events for the same plate must keep manual edits.
+    /* Schimbarea numărului înlocuiește numai modelul automat; editarea manuală rămâne. */
     if (plate !== assignmentUi.modelPlate) {
-      els.assignmentModel.value = models.size === 1 ? [...models.values()][0] : "";
+      assignmentUi.modelLookupVersion++;
+      assignmentUi.modelLookupPromise = null;
+      if (!assignmentUi.modelManual) {
+        assignmentUi.modelAutoValue = models.size === 1 ? [...models.values()][0] : "";
+        els.assignmentModel.value = assignmentUi.modelAutoValue;
+      }
       assignmentUi.modelPlate = plate;
     }
     els.assignmentModelWarning.hidden = models.size < 2;
     els.assignmentModelWarning.textContent = models.size > 1
       ? `În registrul HUB există modele diferite pentru ${plate}: ${[...models.values()].join(" / ")}. Nu se alege automat un model. Verifică modelul înainte de confirmare; câmpul rămâne opțional.`
       : "";
+  };
+
+  /* Preia modelul din 'clienti_vehicule' la ieșirea din câmp, cu RLS-ul sesiunii HUB.
+     Alocările EP rămân fallback; răspunsurile întârziate nu înlocuiesc editări manuale. */
+  const lookupAssignmentVehicleModel = () => {
+    syncAssignmentVehicleModel();
+    const plate = assignmentUi.modelPlate;
+    if (!isValidAssignmentPlate(plate) || assignmentUi.modelManual) return Promise.resolve();
+    if (assignmentUi.modelLookupPromise) return assignmentUi.modelLookupPromise;
+    const version = assignmentUi.modelLookupVersion;
+    const current = () => version === assignmentUi.modelLookupVersion
+      && normalizePlate(els.assignmentPlate.value) === plate && !els.assignmentModal.hidden
+      && !assignmentUi.saving && !assignmentUi.modelManual;
+    const promise = (async () => {
+      try {
+        const { data, error } = await supabaseClient.from("clienti_vehicule")
+          .select("marca_model").eq("nr_inmatriculare", plate).limit(2);
+        if (error) throw error;
+        if (!current()) return;
+        const model = data?.length === 1 ? String(data[0].marca_model || "").trim() : "";
+        if (model && els.assignmentModel.value === assignmentUi.modelAutoValue) {
+          els.assignmentModel.value = assignmentUi.modelAutoValue = model;
+          els.assignmentModelWarning.hidden = true;
+          els.assignmentModelWarning.textContent = "";
+        }
+      } catch (_) {
+        if (!current()) return;
+        els.assignmentModelWarning.hidden = false;
+        els.assignmentModelWarning.textContent = "Modelul din fișa vehiculului nu a putut fi citit. Verifică modelul; completarea din alocările EP și editarea manuală rămân disponibile.";
+      }
+    })();
+    assignmentUi.modelLookupPromise = promise;
+    promise.finally(() => {
+      if (assignmentUi.modelLookupPromise === promise) assignmentUi.modelLookupPromise = null;
+    });
+    return promise;
   };
 
   const updateAssignmentQuantityPreview = () => {
@@ -2338,7 +2383,7 @@
     const capacity = part ? allocationCapacity(part, assignmentUi.mode, assignmentUi.allocationIndex) : 0;
     els.assignmentQuantityPreview.textContent = Number.isInteger(qty) && qty > 0 && qty <= capacity
       ? `${qty} buc. în această alocare · ${capacity - qty} buc. vor rămâne nealocate.`
-      : `Introdu o cantitate între 1 și ${capacity} buc.`;
+      : `Cantitate cerută: ${els.assignmentQty.value || "necompletată"} buc.; disponibilă: ${capacity} buc. Introdu un număr întreg între 1 și ${capacity} buc.`;
   };
 
   const renderAssignmentModal = () => {
@@ -2358,8 +2403,14 @@
     els.assignmentSave.textContent = isReassign ? "Salvează corectarea" : "Confirmă atribuirea";
     els.assignmentPlate.value = currentPlate;
     assignmentUi.modelPlate = null;
+    assignmentUi.modelManual = false;
+    assignmentUi.modelAutoValue = "";
     syncAssignmentVehicleModel();
-    if (currentAllocation) els.assignmentModel.value = currentAllocation.model || "";
+    if (currentAllocation) {
+      els.assignmentModel.value = currentAllocation.model || "";
+      assignmentUi.modelAutoValue = els.assignmentModel.value;
+      assignmentUi.modelManual = Boolean(els.assignmentModel.value.trim());
+    }
     const isBulk = assignmentUi.source === "bulk";
     els.assignmentQtyField.hidden = isBulk;
     els.assignmentQty.disabled = isBulk;
@@ -2429,6 +2480,8 @@
     if (assignmentUi.saving) return;
     if (!els.assignmentModal || els.assignmentModal.hidden) return;
     els.assignmentModal.hidden = true;
+    assignmentUi.modelLookupVersion++;
+    assignmentUi.modelLookupPromise = null;
     document.body.classList.remove("ep-modal-open");
     document.removeEventListener("keydown", handleAssignmentModalKeydown);
     assignmentUi.saving = false;
@@ -2527,7 +2580,7 @@
     if (assignmentUi.source !== "bulk") {
       const capacity = parts[0] ? allocationCapacity(parts[0], assignmentUi.mode, assignmentUi.allocationIndex) : 0;
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > capacity) {
-        addError(`Cantitatea trebuie să fie un număr întreg între 1 și ${capacity} buc.`, els.assignmentQty);
+        addError(`Cantitate cerută: ${els.assignmentQty.value || "necompletată"} buc.; disponibilă: ${capacity} buc. Cantitatea trebuie să fie un număr întreg între 1 și ${capacity} buc.`, els.assignmentQty);
       }
     }
     const model = els.assignmentModel.value.trim();
@@ -3245,15 +3298,16 @@
     });
     els.assignmentForm.addEventListener("input", (event) => {
       if (event.target === els.assignmentPlate) syncAssignmentVehicleModel();
+      if (event.target === els.assignmentModel) assignmentUi.modelManual = true;
       if (event.target === els.assignmentQty) updateAssignmentQuantityPreview();
       clearAssignmentErrorMessage();
       event.target.classList.remove("is-invalid");
       event.target.removeAttribute("aria-invalid");
     });
-    els.assignmentPlate.addEventListener("change", syncAssignmentVehicleModel);
+    els.assignmentPlate.addEventListener("change", lookupAssignmentVehicleModel);
     els.assignmentForm.addEventListener("focusout", (event) => {
       if (event.target === els.assignmentPlate) {
-        syncAssignmentVehicleModel();
+        lookupAssignmentVehicleModel();
       } else if (event.target === els.assignmentModel) {
         els.assignmentModel.value = els.assignmentModel.value.trim();
       }

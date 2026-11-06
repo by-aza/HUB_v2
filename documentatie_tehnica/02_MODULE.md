@@ -58,10 +58,22 @@ Ordinea este confirmată în sursa locală; versiunea publicată rămâne **NEED
 
 - fișier: `modules/devize/deviz_final.html`;
 - permisiune UI: `deviz_final`, fallback `devize`;
-- citiri: `deviz_final_header`, `deviz_final_linii`, `constatari`, `devize`, `comenzi_piese_sh` și `auth_profiles`;
+- citiri: `deviz_final_header`, `deviz_final_linii`, `constatari`, `devize`, `comenzi_piese_sh`, `auth_profiles` și fallback contextual `clienti_vehicule` → `clienti`;
 - salvare obișnuită: RPC-ul atomic `save_deviz_final` validează și scrie antetul împreună cu toate liniile într-o singură tranzacție; pagina nu salvează documentul prin inserări/actualizări/ștergeri independente în aceste două tabele;
 - funcții: creare manuală/import, linii ordonate pe secțiuni, reduceri, totaluri, legare la constatare și la o comandă de piesă folosită;
 - dependențe: fluxul Constatare și modulul Comenzi piese SH.
+
+**Corecție locală verificată în Chrome cu SDK/date simulate — 06.11.2026:**
+la Enter/blur/Tab pe număr, completarea păstrează ordinea istoricului
+`deviz_final_header` → `constatari` → `devize`, apoi caută în `clienti_vehicule`
+modelul/VIN-ul lipsă și în `clienti` numele clientului legat. Completează numai
+câmpurile goale, fără alegere arbitrară între vehicule duplicate; valorile manuale,
+motorul istoric și legăturile `vehicle_id`/avans rămân păstrate. Citirile suplimentare
+folosesc sesiunea existentă și RLS: Admin sau `clienti_notificari`; lipsa accesului
+nu blochează istoricul și introducerea manuală. RLS/permisiunile nu au fost modificate.
+Suita comună și limitele acceptanței sunt în
+[stadiul EP](evidenta_piese/PLAN_EVIDENTA_PIESE.md#corecții-ux-locale--06112026).
+Aceste corecții nu au fost publicate în această intervenție.
 
 Conversia directă din Constatare se face prin RPC-ul atomic `create_deviz_final_from_constatare`, nu prin inserări independente din browser.
 

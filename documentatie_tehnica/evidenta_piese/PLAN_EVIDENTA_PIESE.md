@@ -11,6 +11,52 @@
 
 > **Regula principală:** la fiecare sarcină se verifică directorul, branch-ul activ, mediul și fișierele autorizate. Repository-ul principal este `/media/aza/Depozit_Mint/HUB_v2`; mirror-ul `/home/aza/HUB AUTO/HUB_v2-LAB` este separat. Folosirea obligatorie a LAB din etapele vechi descrie acele intervenții și nu autorizează transferuri sau modificări în alt mediu.
 
+### Corecții UX locale — 06.11.2026
+
+Implementate pe `feature-responsive`, verificate în Chrome local cu SDK și date
+fictive; fără migrare, scrieri DB, commit/push/deploy:
+
+- La change/blur/Tab pe numărul din atribuirea EP, modelul se citește din
+  `clienti_vehicule.marca_model`. Alocările EP rămân fallback când fișa lipsește,
+  este ambiguă sau nu poate fi citită. Editările manuale și modelul existent la
+  corectare sunt păstrate; răspunsurile pentru alt număr/dialog închis sunt ignorate.
+- Importul **din facturi în pagina DF** propune întreaga cantitate disponibilă
+  pentru fiecare sursă; cantitatea poate fi redusă înainte și după import.
+  La depășire, mesajul inline arată cantitatea cerută și cea disponibilă.
+  Toate pozițiile selectate sunt validate înaintea adăugării primei piese;
+  un lot invalid rămâne integral neimportat, fără trunchiere. UUID-urile,
+  snapshot-ul de preț și confirmarea atomică prin salvarea DF se păstrează.
+- Validarea atribuirii EP arată de asemenea cantitatea cerută/disponibilă și
+  păstrează excluderea retururilor, magaziei și consumului DF din disponibil.
+
+Fallback-ul vehicul/client din antetul DF este descris în
+[02 Module](../02_MODULE.md#33-deviz-final).
+Catalogul producției a fost recitit **read-only** în această intervenție:
+`clienti`/`clienti_vehicule` au RLS ON, grant SELECT pentru `authenticated`,
+iar politicile SELECT cer Admin sau `clienti_notificari` prin
+`private.has_hub_permission`. Grantul anon nu acordă acces la rânduri în lipsa
+unei politici anon. Nu s-au modificat accesul, rolurile sau politicile.
+Verificări punctuale de existență, fără exportul numelor/VIN-urilor:
+B400CIR are model/VIN în `devize`, iar ambele exemple B400CIR și CT44ELD au
+fișă vehicul cu model/VIN și client legat. CT44ELD nu a avut model/VIN împreună
+în sursele istorice interogate.
+
+**Probe:** [tests/ep_df_ux.cjs](../../tests/ep_df_ux.cjs) — **64 PASS** în Chrome:
+cele patru corecții, ordinea istoricului, Enter/Tab, câmpuri manuale, răspunsuri
+întârziate/refuzate, cantități integrale/parțiale/invalide, duplicate,
+retur/magazie/alocări protejate, snapshot/rotunjire, discount, linii manuale,
+avans/guard print, payload de salvare și randarea paginii print.
+Sintaxa JS/scriptului inline DF și `git diff --check`: PASS.
+Reluare din rădăcina proiectului cu Node ≥20, Playwright disponibil în
+`NODE_PATH` și Chrome (`CHROME_BIN` opțional): `node tests/ep_df_ux.cjs`.
+
+**NEEDS_REVIEW:** acceptanță cu sesiune reală Admin/operator, autorizarea efectivă
+pentru profilurile țintă, scrieri/importuri/concurență în backend, dispozitive și
+print fizic. Browserul de test interceptează toate cererile; serviciile și
+scripturile CDN sunt simulate, deci nu certifică stilurile Tailwind, aspectul
+responsive complet sau frontendul publicat. Probele DB sunt numai citiri de
+catalog și existență; nu sunt teste live de salvare. Corecțiile nu au fost publicate.
+
 ### Stare curentă — verificare finală 05.11.2026
 
 Backendul EP este instalat, confirmat read-only prin catalog, probe SQL cu roluri
