@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/css/local-deviz-drafts.css?v=20261017">
     <script src="/js/local-deviz-drafts.js?v=20261017-ux"></script>
     <!-- Importul facturilor folosește snapshot-uri și intenții de salvare separate pe utilizator/proiect. -->
-    <script src="/js/ep_df_import.js?v=20261105-ep-transfer"></script>
+    <script src="/js/ep_df_import.js?v=20261106-ux"></script>
     <style>
         input[type='number']::-webkit-inner-spin-button,
         input[type='number']::-webkit-outer-spin-button {
@@ -750,7 +750,7 @@
             return completedCount;
         };
 
-        /* cauta datele masinii in ordinea: Deviz Final, Constatari, Devize */
+        /* Caută întâi istoricul DF/Constatări/Devize, apoi numai datele lipsă din fișa vehicul/client. */
         async function lookupVehicleHistory(plateValue) {
             const plate = normalizePlate(plateValue);
             if (!plate || plate === 'FaraNumar') return false;
@@ -816,10 +816,35 @@
                     }
                 }
 
+                /* Citiri contextuale sub RLS: Admin sau permisiunea clienti_notificari;
+                   nu schimbă vehicle_id, legăturile, avansurile sau valorile istorice. */
+                if (!values.client || !values.tipAuto || !values.serieVin) {
+                    try {
+                        const { data, error } = await sb.from('clienti_vehicule')
+                            .select('client_id, marca_model, serie_vin')
+                            .eq('nr_inmatriculare', plate).limit(2);
+                        if (error) throw error;
+                        /* Nu alegem arbitrar între fișe cu același număr. */
+                        if (data?.length === 1) {
+                            const vehicle = data[0];
+                            values.tipAuto ||= String(vehicle.marca_model || '').trim();
+                            values.serieVin ||= String(vehicle.serie_vin || '').trim();
+                            if (!values.client && vehicle.client_id != null) {
+                                const client = await sb.from('clienti').select('nume')
+                                    .eq('id', vehicle.client_id).maybeSingle();
+                                if (client.error) throw client.error;
+                                values.client = String(client.data?.nume || '').trim();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Eroare lookup auto in registrul vehicul/client:', error);
+                    }
+                }
+
                 if (lookupGeneration !== draftGeneration || draftIdentityChanged) return false;
                 const completedCount = applyVehicleHistoryValues(values, plate);
                 if (completedCount > 0) {
-                    const message = 'Date mașină completate din istoric.';
+                    const message = 'Date mașină completate din istoric sau fișa vehicul/client.';
                     setImportStatus(message, 'success');
                     window.clearTimeout(vehicleHistoryStatusTimer);
                     vehicleHistoryStatusTimer = window.setTimeout(() => {

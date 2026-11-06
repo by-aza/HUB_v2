@@ -12,13 +12,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261105-ep-transfer">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261106-ui">
 </head>
 <body>
   <!-- Starea conexiunii și recuperarea unei cereri incerte, fără afișarea datelor înainte de autorizare. -->
-  <div class="ep-connection" role="status" aria-live="polite">
+  <!-- Mesajele de încărcare/acces/recuperare apar numai când este necesar. -->
+  <div class="ep-connection" id="epConnectionNotice" role="status" aria-live="polite">
     <span id="epConnectionMessage">Se verifică accesul și se încarcă registrul HUB…</span>
-    <button type="button" class="ep-button ep-button-ghost" id="epRefresh" hidden>Actualizează</button>
     <button type="button" class="ep-button ep-button-ghost" id="epRecover" hidden>Reverifică salvarea</button>
     <a class="ep-button ep-button-ghost" id="epLogin" href="../admin/login.html" hidden>Autentificare HUB</a>
   </div>
@@ -85,6 +85,8 @@
           Retururi <span class="ep-tab-count" data-count="returns">0</span>
         </button>
       </div>
+      <!-- Actualizarea registrului rămâne lângă taburi, cu același handler și marcaj de timp. -->
+      <button type="button" class="ep-button ep-button-ghost ep-refresh" id="epRefresh">Actualizează</button>
       <p class="ep-tabbar-note">Actualizat <span>23.10.2026</span></p>
     </nav>
 
@@ -446,6 +448,8 @@
         </div>
 
         <footer class="ep-modal-foot ep-assignment-foot">
+          <!-- Resetarea păstrează poziția facturii și eliberează numai alocarea existentă. -->
+          <button type="button" class="ep-button ep-button-ghost" id="assignmentReset" hidden>Resetează atribuirea</button>
           <div class="ep-assignment-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="assignmentCancel">Anulează</button>
             <button type="submit" class="ep-button ep-button-primary" id="assignmentSave">Confirmă atribuirea</button>
@@ -601,7 +605,7 @@
     <div class="ep-modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle" aria-describedby="infoModalMessage">
       <header class="ep-modal-head">
         <div>
-          <span class="ep-eyebrow" id="infoModalEyebrow">Etapa 2</span>
+          <span class="ep-eyebrow" id="infoModalEyebrow">Informații</span>
           <h2 id="infoModalTitle">Funcționalitate în pregătire</h2>
         </div>
         <button type="button" class="ep-icon-button" id="infoModalClose" aria-label="Închide mesajul">
@@ -644,8 +648,8 @@
   <!-- Clientul comun HUB și adaptorul HUB preced inițializarea interfeței. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../js/config.js"></script>
-  <script src="../../js/evidenta_piese_api.js?v=20261105-ep-transfer"></script>
-  <script src="../../js/evidenta_piese.js?v=20261105-ep-transfer"></script>
+  <script src="../../js/evidenta_piese_api.js?v=20261106-release-delete"></script>
+  <script src="../../js/evidenta_piese.js?v=20261106-ui"></script>
   <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
   <script src="../../js/session-timeout.js?v=2"></script>
 </body>

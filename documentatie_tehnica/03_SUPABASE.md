@@ -1,5 +1,66 @@
 # Integrarea Supabase
 
+## Candidat local EP: eliberarea cantităților — 06.11.2026, NEAPLICAT
+
+[Migrarea minimă](../supabase/migrations/20261106122125_ep_release_operations.sql)
+este pregătită pentru review; **nu a fost aplicată în producție**. Schema și
+funcțiile instalate au fost inspectate live numai prin SELECT-uri de catalog.
+Cele șapte contracte consumate de migrare sunt protejate prin amprente MD5;
+divergența față de catalogul inspectat oprește tranzacția înaintea DDL.
+
+- `ep_alocari.cantitate` poate ajunge la zero numai cu istoric de eliberare;
+  noul `cantitate_eliberata` numără bucățile eliberate. Rândul, ID-ul și sursa
+  auto se păstrează până la eliminarea explicită a liniei/facturii, când istoricul
+  se arhivează în audit. Scrierile normale cer în continuare cantități pozitive;
+  alocările cu istoric de eliberare nu pot fi rescrise prin `save_allocations`.
+- `ep_transferuri_magazie.anulat_at` și `anulat_de` marchează anularea fără a
+  modifica sau șterge cantitatea originală, sursa, data ori notele trimiterii.
+- Noul RPC `ep_release_quantity(p_request uuid,p jsonb)` acceptă `kind` =
+  `allocation` sau `warehouse`, `id` și `expected_revision`. Wrapper public
+  invoker, implementare privată definer cu `search_path` gol și verificarea EP
+  existentă; EXECUTE numai pentru `authenticated`, fără DML direct nou sau politici
+  RLS noi. Actorul se stabilește prin `auth.uid()`, nu din payload.
+- `capacity` exclude transferurile anulate, păstrând retururile și consumul DF.
+  Resetarea duce cantitatea activă a alocării la zero numai fără DF, retur ori
+  transfer activ. La anularea unei trimiteri din alocare, cantitatea alocării
+  se reduce exact cu cantitatea trimiterii: disponibilul nealocat crește cu
+  aceeași valoare, iar restul liber/consumat din alocare rămâne acoperit.
+- `validate_line` se execută înainte și după operație. `begin_request` impune
+  READ COMMITTED și advisory lock-ul comun EP/DF `(19520,7001)`; revizia facturii
+  se verifică sub blocaj și crește o singură dată. Auditul before/after și
+  rezultatul idempotent se salvează în aceeași tranzacție.
+- `save_invoice` numără numai alocările active la identificarea mașinii. La
+  eliminarea unei linii, `line_delete_blockers` refuză DF salvat, retur, transfer
+  activ, alocare activă și `blocaj_istoric`. `remove_unused_line` include linia,
+  alocările resetate și trimiterile anulate în `before.removed_lines` din auditul
+  salvării, apoi elimină strict istoricul inactiv și linia, în ordinea FK.
+- Noul RPC `ep_delete_invoice(p_request uuid,p jsonb)` acceptă `id` și
+  `expected_revision`, cu aceleași autorizare EP, wrapper invoker, implementare
+  privată definer, lock comun, revizie și receipt idempotent. Verifică **toate**
+  liniile înainte de prima ștergere; nu resetează alocări și nu anulează transferuri.
+  Șterge liniile eligibile și antetul într-o tranzacție, păstrând în audit numai
+  documentul vizat și istoricul eliminat. Eșecul FK sau al auditului revine integral.
+  Helper-ele de eliminare nu sunt executabile de `authenticated`; nu se acordă
+  DELETE direct și nu se modifică niciun FK în CASCADE/SET NULL.
+- Contractele DF/avans și celelalte RPC-uri rămân neschimbate. `load_registry`
+  transmite coloanele noi prin `to_jsonb`, fără un nou contract RPC de citire.
+
+**Verificat local:** 79 verificări SQL pe PostgreSQL **16.2** temporar, inclusiv
+eliminare de linii după reset/anulare, ștergere de factură, blocaje pe fiecare
+dependență, rollback la FK/audit, conexiuni independente EP/DF, retry concurent,
+permisiuni și reconciliere cantitativă. Auth/profilurile sunt sintetice. Testul este
+[ep_release_db.py](../tests/ep_release_db.py); interfața și probele browser sunt în
+[stadiul EP](evidenta_piese/PLAN_EVIDENTA_PIESE.md#resetare-atribuire-și-anulare-magazie--candidat-local-06112026).
+
+**Înainte de producție:** review SQL, backup/recuperare verificată și aprobare
+separată pentru aplicare; validare PostgreSQL 17/Supabase și acceptanță cu sesiuni
+reale rămân **NEEDS_REVIEW**. Migrarea locală nu autorizează `db push` și nu repară
+istoricul migrărilor instalate anterior. După operații reale, revenirea nu se face
+prin DROP-ul coloanelor sau reintroducerea vechilor calcule: ar pierde sensul
+istoricului și al disponibilului; este necesară o corecție compatibilă sau un
+plan separat de restaurare. Ștergerea explicită este definitivă în registre;
+auditul de trasabilitate nu înlocuiește backupul. Publicarea frontendului rămâne separată.
+
 <a id="ep-productie-verificat-20261105"></a>
 ## EP instalat în producție — 05.11.2026, verificare finală read-only
 
