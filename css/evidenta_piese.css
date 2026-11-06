@@ -1751,6 +1751,8 @@ body.ep-drawer-open { overflow: hidden; }
 #listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-money small { font-size: 10.5px; line-height: 1.4; }
 #listPanel:is([aria-labelledby="tab-parts"], [aria-labelledby="tab-unassigned"], [aria-labelledby="tab-invoices"]) .ep-table .ep-badge { font-size: 10px; }
 .ep-invoice-foot, .ep-supplier-foot, .ep-assignment-foot, .ep-return-foot { justify-content: flex-end; }
+/* Resetarea stă în stânga; Anulează/Salvează păstrează poziția din dreapta. */
+#assignmentReset { margin-right: auto; }
 
 @media (max-width: 620px) {
   .ep-bulk-bar { flex-wrap: wrap; }

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
   const PROJECT = "xyovkxmtbvgcwavuyxxu";
-  const allowed = new Set(["ep_save_supplier", "ep_save_invoice", "ep_save_allocations", "ep_register_movement", "ep_set_default"]);
+  const allowed = new Set(["ep_save_supplier", "ep_save_invoice", "ep_save_allocations", "ep_register_movement", "ep_set_default", "ep_release_quantity", "ep_delete_invoice"]);
   let client, profile = null, defaults = { tva_proc: 21, coeficient_df: 1.53 };
   let pending = null, busy = false, stale = true, callbacks = {}, authSubscription;
   const uuid = () => {
@@ -54,15 +54,20 @@
     };
     const accounts = groups(s.accounts, "furnizor_id"), allocations = groups(s.allocations, "linie_id");
     const parts = s.lines.map((l) => {
-      const al = (allocations.get(l.id) || []).map((a) => ({
+      /* Alocările cu zero bucăți rămân în istoric, fără a reapărea în disponibil. */
+      const history = allocations.get(l.id) || [];
+      const al = history.filter(a => a.cantitate > 0).map((a) => ({
         id: a.id, plate: a.nr_inmatriculare_original, model: a.model_original,
-        vehicleId: a.vehicle_id, qty: a.cantitate
+        vehicleId: a.vehicle_id, qty: a.cantitate, releasedQty: Number(a.cantitate_eliberata || 0)
       }));
       return {
         id: l.id, invoiceId: l.factura_id, name: l.denumire, code: l.cod_piesa || "",
         qty: l.cantitate, price: l.pret_achizitie_net, vatRate: l.tva_proc, markup: l.coeficient_df,
         priceBasis: "net", plate: al.length === 1 ? al[0].plate : null,
         model: al.length === 1 ? al[0].model : null, allocations: al,
+        releasedAllocations: history.filter(a => a.cantitate_eliberata > 0).map(a => ({
+          id:a.id, plate:a.nr_inmatriculare_original, model:a.model_original, qty:a.cantitate_eliberata
+        })),
         df: l.blocaj_istoric || null, status: al.length ? "Atribuită" : "Neatribuită",
         location: l.locatie || "", note: l.observatii || ""
       };
@@ -71,7 +76,12 @@
     const source = (r) => {
       if (!r.alocare_id) return { type: "unallocated" };
       const part = partMap.get(r.linie_id), index = part?.allocations.findIndex((a) => a.id === r.alocare_id);
-      if (index == null || index < 0) throw new Error("Legătura unei mișcări nu a putut fi încărcată.");
+      if (index == null || index < 0) {
+        /* Trimiterea anulată păstrează sursa, inclusiv alocarea arhivată la zero. */
+        const archived = r.anulat_at && s.allocations.find(a => a.id === r.alocare_id && a.linie_id === r.linie_id);
+        if (archived) return { type:"allocation", allocationId:archived.id, plate:archived.nr_inmatriculare_original, model:archived.model_original };
+        throw new Error("Legătura unei mișcări nu a putut fi încărcată.");
+      }
       const a = part.allocations[index];
       return { type: "allocation", allocationIndex: index, allocationId: a.id, plate: a.plate, model: a.model };
     };
@@ -102,7 +112,8 @@
       warehouseTransfers: s.transfers.map((t) => ({
         id: t.id, reference: `MAG-${t.id.slice(0,8).toUpperCase()}`, partId: t.linie_id,
         invoiceId: partMap.get(t.linie_id)?.invoiceId, qty: t.cantitate, source: source(t),
-        notes: t.observatii || "", createdAt: t.created_at, localDate: t.data_trimitere
+        notes: t.observatii || "", createdAt: t.created_at, localDate: t.data_trimitere,
+        cancelledAt: t.anulat_at || null
       }))
     };
   };

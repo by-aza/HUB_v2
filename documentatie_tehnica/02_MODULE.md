@@ -230,6 +230,10 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 - Candidatul include registre persistente, alocări parțiale, retururi/trimitere în
   magazie, implicit Admin și import real în DF cu snapshot istoric/idempotency;
   contractele instalate corespund adaptorilor, conform [verificării DB](03_SUPABASE.md#ep-productie-verificat-20261105).
+- **Candidat local 06.11:** resetare atribuire, anulare trimitere, eliminare de linii
+  după eliberare și ștergere explicită a facturilor nefolosite, cu audit și
+  protecțiile DF/retur păstrate. Necesită
+  migrarea nouă, încă neaplicată; [reguli, teste și limite](evidenta_piese/PLAN_EVIDENTA_PIESE.md#resetare-atribuire-și-anulare-magazie--candidat-local-06112026).
 - Probe locale statice/Chrome cu transport simulat și PostgreSQL izolat, distincte
   de verificarea read-only a producției la 05.11; acceptanța
   live rămâne **NEEDS_REVIEW**. [Stadiu și limite](evidenta_piese/PLAN_EVIDENTA_PIESE.md),

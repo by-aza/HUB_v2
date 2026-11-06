@@ -279,7 +279,8 @@ async function testEp(browser) {
   await context.close();
 }
 
-(async()=>{
+module.exports = { createPage };
+if (require.main === module) (async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROME_BIN || '/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
   try { await testDf(browser);await testEp(browser);console.log(`TOTAL ${checks} PASS — browser local, Supabase simulat`); }
   finally {await browser.close();}

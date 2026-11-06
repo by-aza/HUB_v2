@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261105-ep-transfer">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261106-release">
 </head>
 <body>
   <!-- Starea conexiunii și recuperarea unei cereri incerte, fără afișarea datelor înainte de autorizare. -->
@@ -446,6 +446,8 @@
         </div>
 
         <footer class="ep-modal-foot ep-assignment-foot">
+          <!-- Resetarea păstrează poziția facturii și eliberează numai alocarea existentă. -->
+          <button type="button" class="ep-button ep-button-ghost" id="assignmentReset" hidden>Resetează atribuirea</button>
           <div class="ep-assignment-foot-actions">
             <button type="button" class="ep-button ep-button-ghost" id="assignmentCancel">Anulează</button>
             <button type="submit" class="ep-button ep-button-primary" id="assignmentSave">Confirmă atribuirea</button>
@@ -644,8 +646,8 @@
   <!-- Clientul comun HUB și adaptorul HUB preced inițializarea interfeței. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../js/config.js"></script>
-  <script src="../../js/evidenta_piese_api.js?v=20261105-ep-transfer"></script>
-  <script src="../../js/evidenta_piese.js?v=20261106-ux"></script>
+  <script src="../../js/evidenta_piese_api.js?v=20261106-release-delete"></script>
+  <script src="../../js/evidenta_piese.js?v=20261106-release-delete"></script>
   <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
   <script src="../../js/session-timeout.js?v=2"></script>
 </body>

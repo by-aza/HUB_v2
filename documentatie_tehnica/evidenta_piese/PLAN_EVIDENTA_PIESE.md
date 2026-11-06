@@ -11,6 +11,61 @@
 
 > **Regula principală:** la fiecare sarcină se verifică directorul, branch-ul activ, mediul și fișierele autorizate. Repository-ul principal este `/media/aza/Depozit_Mint/HUB_v2`; mirror-ul `/home/aza/HUB AUTO/HUB_v2-LAB` este separat. Folosirea obligatorie a LAB din etapele vechi descrie acele intervenții și nu autorizează transferuri sau modificări în alt mediu.
 
+### Resetare atribuire și anulare magazie — candidat local 06.11.2026
+
+Implementare locală pe `feature-responsive`; necesită
+[migrarea nouă și contractul din 03](../03_SUPABASE.md#candidat-local-ep-eliberarea-cantităților--06112026-neaplicat),
+**neaplicată în producție**. Nu se reaplică cele trei consolidări istorice EP.
+
+- **Resetează atribuirea** apare în stânga footerului numai la corectarea unei
+  alocări existente, opus butoanelor Anulează/Salvează. Confirmarea eliberează
+  cantitatea salvată a alocării, independent de editările nesalvate din modal,
+  și păstrează linia facturii. DF-ul salvat, returul, transferul activ sau
+  blocajul istoric refuză resetarea integrală.
+- **Anulează trimiterea** apare în detaliile trimiterii din panoul piesei/facturii.
+  După confirmare anulează întreaga înregistrare selectată, inclusiv când ea
+  reprezintă numai o parte din cantitatea piesei/alocării. Revine strict acea
+  cantitate în **De atribuit**, inclusiv pentru sursa auto; restul alocării,
+  alte transferuri, retururi și cantitățile DF rămân păstrate.
+- Trimiterile anulate și atribuirile eliberate rămân în istoric până la eliminarea
+  explicită a liniei/facturii, apoi sunt păstrate în audit. Anulările nu
+  intră în KPI-ul magaziei, disponibilul activ sau calculele de destinație.
+  Dacă anularea lasă o alocare parțială cu istoric, sursa nu se rescrie prin
+  corectare; restul liber poate fi resetat dacă nu este protejat. Pentru o altă
+  mașină se creează o atribuire nouă din cantitatea eliberată.
+- Nicio eliberare optimistă în UI: interfața se actualizează după RPC și
+  reîncărcarea registrului. Refuzurile se afișează, iar răspunsurile incerte
+  folosesc recuperarea existentă cu același UUID/payload.
+- **Editează factura → elimină poziția → salvează** funcționează după resetarea
+  unei alocări nefolosite sau anularea trimiterii, inclusiv dintr-o alocare auto,
+  dacă nu mai există altă dependență activă/protejată. Rămâne regula existentă
+  de minimum o poziție în editor; documentul întreg se elimină prin acțiunea dedicată.
+- **Șterge factura**, lângă **Editează factura**, explică în română blocajele
+  pe fiecare poziție. DF-ul salvat, returul, istoricul financiar protejat,
+  atribuirea activă și trimiterea activă refuză operația. Nu se resetează/anulează
+  nimic automat. După rezolvarea manuală a operațiilor eligibile, confirmarea
+  explicită permite ștergerea atomică a antetului și tuturor pozițiilor;
+  facturile și piesele se reîncarcă din backend. Istoricul inactiv eliminat se
+  păstrează în audit conform [contractului din 03](../03_SUPABASE.md#candidat-local-ep-eliberarea-cantităților--06112026-neaplicat).
+
+**Probe locale:** [SQL](../../tests/ep_release_db.py) — **79 PASS** pe PostgreSQL
+16.2 temporar, cu test de concurență pe două conexiuni; [Chrome](../../tests/ep_release_ui.cjs)
+— **23 PASS**, [ștergere și eliminare linii în Chrome](../../tests/ep_invoice_delete_ui.cjs)
+— **25 PASS**, SDK/Auth simulate; [regresii EP/DF](../../tests/ep_df_ux.cjs)
+— **64 PASS**. Confirmări, cantități parțiale/integrale, transferuri multiple,
+consum DF, retur, revizie veche, retry/audit, alocări arhivate, refuz fără mutație
+optimistă, confirmarea/refuzul ștergerii, actualizarea ambelor liste, recuperarea
+ștergerii după răspuns incert, discount/avans/print și Enter/Tab. Capturile 1440/390 px ale modalului
+au fost inspectate: reset în stânga pe desktop, accesibil pe mobil fără overflow.
+Sintaxă JS, legături noi și `git diff --check`: PASS.
+
+Reluare locală: `python3 tests/ep_release_db.py` cu `pgserver` și
+`psycopg2-binary` disponibile; Node ≥20 + Playwright/Chrome pentru
+`node tests/ep_release_ui.cjs`, `node tests/ep_invoice_delete_ui.cjs` și `node tests/ep_df_ux.cjs`.
+Testele folosesc `/tmp` și transport simulat, fără credențiale/date de producție.
+**NEEDS_REVIEW:** PostgreSQL 17/Supabase, sesiuni reale Admin/operator și recepția
+pe dispozitivele țintă. Nu s-au aplicat SQL în producție, commit, push sau deploy.
+
 ### Corecții UX locale — 06.11.2026
 
 Implementate pe `feature-responsive`, verificate în Chrome local cu SDK și date
