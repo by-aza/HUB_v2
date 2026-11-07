@@ -152,7 +152,7 @@ async function testDf(browser) {
   }
   await p.locator('.ep-df-qty').nth(1).fill('2');await p.locator('#ep-df-confirm').click();
   check(await p.locator('#piese-rows-body .piesa-cantitate').evaluateAll(es=>es.map(e=>e.value)),['5','2'],'import integral și parțial în același lot');
-  check(await p.locator('#piese-rows-body .piesa-pret').evaluateAll(es=>es.every(e=>e.readOnly&&e.value==='18.51')),true,'prețul snapshot rămâne blocat');
+  check(await p.locator('#piese-rows-body .piesa-pret').evaluateAll(es=>es.every(e=>!e.readOnly&&e.value==='18.51')),true,'prețul DF este editabil și afișat cu doi zecimali');
   check(await p.evaluate(()=>devizData.totalPiese.final),129.6,'totalul EP folosește regula de cent');
   await open();check(await p.locator('.ep-df-select:disabled').count(),2,'sursele deja adăugate nu se dublează');
   await p.locator('#ep-df-close').click();

@@ -10,9 +10,9 @@
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261106-ui">
+  <link rel="stylesheet" href="../../css/evidenta_piese.css?v=20261107-default">
 </head>
 <body>
   <!-- Starea conexiunii și recuperarea unei cereri incerte, fără afișarea datelor înainte de autorizare. -->
@@ -227,6 +227,11 @@
                 <option value="Trimisă în contabilitate">Trimisă în contabilitate</option>
               </select>
             </label>
+            <!-- Implicit local: completează numai înmatriculările goale, fără coloană nouă în DB. -->
+            <label class="ep-field" for="invoiceDefaultPlate">
+              <span>Număr înmatriculare</span>
+              <input type="text" id="invoiceDefaultPlate" autocomplete="off" placeholder="opțional, ex. CT11AAA" aria-describedby="invoiceFormHelp">
+            </label>
             <label class="ep-field ep-field--wide" for="invoiceNotes">
               <span>Observații <small>opțional</small></span>
               <textarea id="invoiceNotes" rows="2" maxlength="500" placeholder="Note despre recepție, diferențe sau termene…"></textarea>
@@ -234,7 +239,7 @@
           </div>
 
           <p class="ep-invoice-help" id="invoiceFormHelp">
-            Prețurile de achiziție se introduc <b>fără TVA</b>. Numărul de înmatriculare este opțional; piesele fără mașină rămân în <b>De atribuit</b>.
+            Prețurile de achiziție se introduc <b>fără TVA</b>. Înmatricularea implicită completează doar pozițiile goale, needitate și neprotejate; fiecare poziție poate avea alt număr. Piesele fără mașină rămân în <b>De atribuit</b>.
           </p>
 
           <section class="ep-invoice-section" aria-labelledby="invoicePartsTitle">
@@ -649,7 +654,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../js/config.js"></script>
   <script src="../../js/evidenta_piese_api.js?v=20261106-release-delete"></script>
-  <script src="../../js/evidenta_piese.js?v=20261106-ui"></script>
+  <script src="../../js/evidenta_piese.js?v=20261107-default"></script>
   <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
   <script src="../../js/session-timeout.js?v=2"></script>
 </body>
