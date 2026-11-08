@@ -1,5 +1,63 @@
 # Integrarea Supabase
 
+## EP/DF: preț de vânzare editabil — 07.11.2026, APLICAT ÎN PRODUCȚIE
+
+[Migrarea aplicată](../supabase/migrations/20261107145959_ep_df_editable_selling_price.sql)
+modifică punctual `ep_private.save_df` și `ep_private.save_df_base`, fără DML,
+backfill, coloane sau drepturi noi. Migrările aplicate anterior rămân nemodificate.
+
+- `save_df` acceptă un `pret_unitar` finit și nenegativ pentru importul EP.
+  Dacă lipsește într-un payload vechi, păstrează prețul DF existent sau prețul
+  sursă la primul import. Snapshot-ul este construit din DB pentru import nou
+  și preluat din linia salvată pentru editare; snapshot-ul clientului este ignorat.
+- Prețul final rămâne în `deviz_final_linii.pret_unitar`; `ep_snapshot.unit_price`,
+  `purchase_net`, `vat`, `multiplier` și identificatorii sursei rămân originale.
+  Răspunsul și auditul before/after păstrează prețul final separat de snapshot.
+- `save_df_base` păstrează calculul istoric EP (net și TVA rotunjite separat)
+  când prețul este egal cu `ep_snapshot.unit_price` și snapshot-ul nu are
+  `manual_df_price_preserved: true`. Prețurile legacy cu acest marcaj folosesc
+  formula DF chiar dacă sunt egale cu `snapshot.unit_price`. Pentru un preț personalizat
+  folosește calculul DF existent, `cantitate × pret_unitar`, cu discount selectiv;
+  antetul păstrează precizia după discount, iar linia este rotunjită la doi zecimali.
+- Owner-ul, ACL-urile, `search_path`, lock-ul comun EP/DF, reviziile, UUID-ul
+  idempotent, verificările mașinii, sursei, cantității și drepturilor sunt păstrate.
+  Schimbarea numai a prețului DF nu consumă cantitate suplimentară și nu schimbă
+  revizia facturii. Înlocuirile cer exact o potrivire a fiecărui bloc de cod;
+  un contract diferit oprește tranzacția pentru review.
+- Migrarea nu recalculează niciun document salvat, inclusiv DF-244. Revenirea
+  ulterioară la validarea veche ar respinge personalizările noi; nu se înlocuiesc
+  prețurile salvate cu prețul sursă pentru a obține un rollback tehnic.
+
+**Corecție legacy — 07.11.2026:** citirea read-only din producție confirmă
+DF-244, linia **12170 / MP59079**: preț salvat **535**, discount **10%**, total
+**481,50**; snapshot-ul are `unit_price=535` și `manual_df_price_preserved=true`,
+iar sursa calculată este **477,968634**. Egalitatea prețurilor nu indică aici
+un import obișnuit. Vechea ramură a candidatului ar fi produs **430,17** la
+resalvare. Aceeași excludere legacy este folosită de helperul frontend `amount`.
+Calea `loadDeviz` restaurează `row.pret_unitar`; `decorate` și `applySaved`
+păstrează prioritatea prețului salvat față de snapshot.
+
+**Verificat local:** [51 probe SQL](../tests/ep_df_price_db.py) pe PostgreSQL 16.2
+cu Auth/mașină/surse sintetice și vectorii financiari citiți read-only:
+DF-244 și cele cinci importuri DF-245 (**12186–12190**) sunt redeschise și
+resalvate de două ori fără modificarea prețurilor, discounturilor, totalurilor,
+snapshot-urilor sau ID-urilor importate. Antetele păstrează totalul pieselor
+**1634**, respectiv **944,253**; restul pieselor este reprezentat printr-un
+rând rezidual sintetic, nu prin copierea celorlalte linii de producție.
+Proba fără garda legacy eșuează la 430,17, confirmând detectarea regresiei.
+Sunt păstrate verificările de audit, permisiuni, retry și concurență.
+Regresiile SQL existente: **79 PASS**.
+Comportamentul frontend și probele Chrome sunt în
+[stadiul EP](evidenta_piese/PLAN_EVIDENTA_PIESE.md#înmatriculare-implicită-preț-df-editabil-și-zero-clar--candidat-local-07112026).
+
+**Stare producție:** versiunea `20261107145959` este deja aplicată în Supabase
+producție, conform confirmării utilizatorului. Numele fișierului local a fost
+aliniat la versiunea aplicată; această actualizare nu a executat SQL și nu a
+reaplicat migrarea. Corecția legacy descrisă mai sus a folosit numai citiri.
+
+**NEEDS_REVIEW:** acceptanța funcțională cu sesiuni reale și starea publicării
+frontendului nu au fost reverificate în această actualizare documentară.
+
 ## Candidat local EP: eliberarea cantităților — 06.11.2026, NEAPLICAT
 
 [Migrarea minimă](../supabase/migrations/20261106122125_ep_release_operations.sql)

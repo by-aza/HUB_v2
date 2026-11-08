@@ -1604,6 +1604,19 @@
     return clean ? Number(clean) : Number.NaN;
   };
 
+  /* Implicitul nu rescrie valori existente, editări manuale (inclusiv golirea) sau alocări protejate. */
+  const applyInvoiceDefaultPlate = () => {
+    const plate = normalizePlate(els.invoiceDefaultPlate.value);
+    els.invoiceDefaultPlate.value = plate;
+    if (!plate || invoiceUi.hydrating) return;
+    invoiceLineRows().forEach((row) => {
+      const input = lineField(row, "plate");
+      const original = row.dataset.partId ? partById(row.dataset.partId) : null;
+      const protectedLine = original && (allocatedQty(original) > 0 || returnCommittedQty(original) > 0 || warehouseQty(original) > 0);
+      if (!input.value && !row.dataset.plateEdited && !input.readOnly && !input.disabled && !protectedLine) input.value = plate;
+    });
+  };
+
   /* Linia facturii: net de achiziție, TVA și total DF calculat independent. */
   const invoiceLineRowHTML = () => {
     invoiceUi.lineSeq += 1;
@@ -1707,6 +1720,7 @@
     updateInvoiceFormTotals();
     const row = invoiceLineRows().at(-1);
     row.dataset.partId = API.uuid();
+    applyInvoiceDefaultPlate();
     if (!invoiceUi.hydrating) {
       const markupInput = lineField(row, "markup");
       markupInput.value = "";
@@ -3203,6 +3217,7 @@
     els.invoiceNumber = document.getElementById("invoiceNumber");
     els.invoiceDate = document.getElementById("invoiceDate");
     els.invoiceStatus = document.getElementById("invoiceStatus");
+    els.invoiceDefaultPlate = document.getElementById("invoiceDefaultPlate");
     els.invoiceNotes = document.getElementById("invoiceNotes");
     els.invoiceFormError = document.getElementById("invoiceFormError");
     els.addInvoiceLine = document.getElementById("addInvoiceLine");
@@ -3473,7 +3488,13 @@
     els.invoiceForm.addEventListener("submit", saveInvoice);
     els.addInvoiceLine.addEventListener("click", () => addInvoiceLine(true));
 
+    /* Normalizează în timpul tastării; propagă numărul complet numai la ieșirea din câmp. */
+    els.invoiceDefaultPlate.addEventListener("input", () => {
+      els.invoiceDefaultPlate.value = normalizePlate(els.invoiceDefaultPlate.value);
+    });
+    els.invoiceDefaultPlate.addEventListener("change", applyInvoiceDefaultPlate);
     els.invoiceForm.addEventListener("input", (event) => {
+      if (event.target.matches('[data-field="plate"]')) event.target.closest("tr").dataset.plateEdited = "true";
       if (event.target.matches('[data-field="markup"]')) event.target.closest("tr").dataset.markupEdited = "true";
       clearInvoiceErrorMessage();
       if (event.target.matches(".is-invalid")) {

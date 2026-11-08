@@ -13,7 +13,9 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money = value => Number(value || 0).toLocaleString('ro-RO', {minimumFractionDigits:2, maximumFractionDigits:2});
   /* Componente monetare la cent, folosind zecimalele text salvate, fără implicitul global curent. */
-  const amount = (snapshot, quantity) => {
+  const amount = (snapshot, quantity, sellingPrice = snapshot.unit_price) => {
+    /* Prețurile DF personalizate sau legacy păstrate folosesc DF; importurile obișnuite păstrează regula EP. */
+    if (snapshot.manual_df_price_preserved === true || Number(sellingPrice) !== Number(snapshot.unit_price)) return Number(sellingPrice) * Number(quantity);
     const dec = value => {
       const m = String(value).match(/^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i);
       if (!m || (!m[2] && !m[3])) throw new Error('Valoare financiară invalidă');
@@ -72,12 +74,20 @@
     remember(); return send();
   };
   const recover = async () => { await restorePending(); if (!pending) return null; return send(); };
+  /* Prețul precis este separat de textul cu doi zecimali; formatarea nu reprezintă editare. */
+  const sellingPrice = row => row.epImport ? row.epSellingPrice : row.querySelector('.piesa-pret')?.value ?? '';
+  const priceText = value => String(value).trim() !== '' && Number.isFinite(Number(value)) ? Number(value).toFixed(2) : String(value);
   const decorate = (row,item) => {
     row.epImport = item.epImport ? clone(item.epImport) : null;
     if (!row.epImport) return;
-    const input = row.querySelector('.piesa-pret'); input.readOnly = true;
-    input.value = Number(row.epImport.snapshot.unit_price).toFixed(2);
-    input.title = 'Preț din factura sursă, păstrat la salvarea în DF';
+    /* Prețul de vânzare aparține DF; snapshot-ul facturii rămâne separat și nemodificat. */
+    const input = row.querySelector('.piesa-pret'); input.readOnly = false; input.step = 'any';
+    row.epSellingPrice = String(item.pretUnitar ?? row.epImport.snapshot.unit_price ?? '');
+    input.value = priceText(row.epSellingPrice);
+    /* Numai un input explicit schimbă valoarea financiară; blur-ul schimbă doar afișarea. */
+    input.addEventListener('input', () => { row.epSellingPrice = input.value; });
+    input.addEventListener('blur', () => { input.value = priceText(row.epSellingPrice); });
+    input.title = `Preț de vânzare editabil în DF. Preț sursă: ${row.epImport.snapshot.unit_price} lei`;
     row.querySelector('.piesa-cantitate').step = '1'; row.querySelector('.piesa-cantitate').min = '1';
     const note = document.createElement('small'); note.className = 'mt-1 block text-xs text-violet-300';
     note.textContent = `${row.epImport.snapshot.supplier} · ${row.epImport.snapshot.invoice_number}`;
@@ -88,7 +98,7 @@
     const rows = new Map((result.ep_imports || []).map(r => [r.ep_import_id,r]));
     (state.piese || []).forEach(item => {
       const saved = rows.get(item.epImport?.id);
-      if (saved) { item.epImport = fromDb(saved); item.pretUnitar = saved.ep_snapshot.unit_price; }
+      if (saved) { item.epImport = fromDb(saved); item.pretUnitar = saved.pret_unitar ?? saved.ep_snapshot.unit_price; }
     });
     document.querySelectorAll('#piese-rows-body tr').forEach(row => {
       const saved = rows.get(row.epImport?.id);
@@ -166,6 +176,6 @@
       if(pending)config.status('Există o salvare incertă. Folosește Reverifică salvarea înainte de a continua.','error');
     }).catch(()=>{el('btn-importa-facturi').hidden=true;});
   };
-  window.HubEpDf={amount,fromDb,decorate,applySaved,configure,close,save,recover,
+  window.HubEpDf={amount,sellingPrice,fromDb,decorate,applySaved,configure,close,save,recover,
     get pending(){return Boolean(pending);},get busy(){return busy;},get ready(){return ready;}};
 })();

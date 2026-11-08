@@ -21,7 +21,8 @@
   --blue: #5aa7ff;
   --radius: 12px;
   --shadow: 0 18px 45px rgba(0, 0, 0, .3);
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  /* Zero clar în cifre și coduri; dimensiunile compacte rămân aceleași. */
+  --mono: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -36,6 +37,9 @@ body {
     radial-gradient(820px 420px at 92% -8%, rgba(90, 167, 255, .035), transparent 66%),
     var(--bg);
   font: 13px/1.45 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Cifre aliniate în coloane, fără glifa zero barată. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "zero" 0, "tnum" 1;
 }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -1101,7 +1105,8 @@ body.ep-drawer-open { overflow: hidden; }
 
 .ep-invoice-meta {
   display: grid;
-  grid-template-columns: minmax(190px, 1.35fr) minmax(155px, 1fr) minmax(150px, .9fr) minmax(190px, 1.2fr);
+  /* Cele cinci câmpuri de antet încap pe același rând desktop. */
+  grid-template-columns: minmax(150px, 1.25fr) minmax(120px, 1fr) minmax(125px, .9fr) minmax(150px, 1.2fr) minmax(145px, 1fr);
   gap: 9px 10px;
 }
 .ep-field { min-width: 0; display: grid; align-content: start; gap: 4px; }
@@ -1873,4 +1878,14 @@ body.ep-drawer-open { overflow: hidden; }
   .ep-tabbar { gap: 10px; }
   .ep-tab { flex: none; padding-inline: 8px; font-size: 13px; }
   .ep-refresh { padding-inline: 7px; }
+}
+
+/* Cifre tabulare și zero clar inclusiv după regulile compacte cu prescurtarea font. */
+:is(.ep-tab-count, .ep-tabbar-note span, .ep-kpi-copy strong, .ep-code,
+    .ep-invoice-cell strong, .ep-plate, .ep-money, .ep-money small, .ep-date,
+    .ep-df, .ep-plate-block strong, .ep-detail-stats strong, .ep-timeline-item time,
+    .ep-invoice-lines td.ep-line-no, .ep-line-total strong, .ep-invoice-total strong,
+    .ep-assignment-row-index, .ep-df-link, input[type="number"], input[data-field="plate"]) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "zero" 0, "tnum" 1;
 }

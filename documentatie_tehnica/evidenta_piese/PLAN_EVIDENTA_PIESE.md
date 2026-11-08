@@ -11,6 +11,57 @@
 
 > **Regula principală:** la fiecare sarcină se verifică directorul, branch-ul activ, mediul și fișierele autorizate. Repository-ul principal este `/media/aza/Depozit_Mint/HUB_v2`; mirror-ul `/home/aza/HUB AUTO/HUB_v2-LAB` este separat. Folosirea obligatorie a LAB din etapele vechi descrie acele intervenții și nu autorizează transferuri sau modificări în alt mediu.
 
+### Înmatriculare implicită, preț DF editabil și zero clar — candidat local 07.11.2026
+
+Implementare locală pe `feature-responsive`, fără commit, push sau deploy.
+Această secțiune descrie comportamentul candidatului și înlocuiește pentru el
+mențiunile mai vechi despre prețul importat blocat în DF.
+
+- **Factură nouă:** câmp opțional „Număr înmatriculare” imediat după „Status
+  document”, pe același prim rând desktop. Normalizează majuscule fără spații
+  sau separatori și, la ieșirea din câmp, completează numai înmatriculările goale, needitate și
+  neprotejate, inclusiv la adăugarea unei poziții. Fiecare linie poate avea
+  alt număr sau poate fi golită manual; schimbarea implicitului nu rescrie
+  valorile deja completate. Implicitul se resetează la deschiderea formularului,
+  inclusiv în editare, și nu este salvat ca o coloană nouă în DB.
+- **Deviz Final:** prețul calculat al facturii este implicitul editabil, cu
+  precizia sursei păstrată. Personalizarea se păstrează în starea DF, la salvare,
+  reîncărcarea paginii, redeschidere și editare ulterioară. Prețul gol, negativ
+  sau ne-finit este refuzat înainte de RPC; zero explicit este permis.
+  Snapshot-ul original EP rămâne separat de prețul final. Regula financiară,
+  migrarea aplicată și limitele verificării sunt în
+  [03 — contract SQL](../03_SUPABASE.md#epdf-preț-de-vânzare-editabil--07112026-aplicat-în-producție).
+- **Lizibilitate EP:** afișajele numerice și codurile folosesc Inter, cifre
+  tabulare și zero fără bară, păstrând dimensiunile compacte și structura UI.
+
+**Probe locale:** [ep_invoice_df_price_ui.cjs](../../tests/ep_invoice_df_price_ui.cjs)
+— **51 PASS** în Chrome headless, SDK/Auth/salvare/citire simulate; inclusiv
+16 linii, override-uri, golire manuală, editare, alocare divizată protejată,
+totaluri, prețuri DF personalizate, discount, reload real și două salvări.
+Corecția legacy acoperă DF-244 (535 → 481,50 cu discount 10%), prioritatea
+prețului salvat la reload și cele cinci importuri obișnuite DF-245, fără
+recalcularea lor după regula prețului personalizat.
+Viewport-uri 1440×1000 și 390×844; capturi inspectate pentru EP și DF. Inter
+și scriptul Tailwind al paginii au fost încărcate din copii temporare pentru
+proba vizuală; nicio dependență nouă în proiect.
+
+Regresiile existente: **64 PASS** EP/DF, **23 PASS** eliberare cantități și
+**25 PASS** ștergere/editare facturi în Chrome; **79 PASS** SQL local.
+Sintaxa JS/DF inline/Python, parsarea CSS și `git diff --check` sunt verificate.
+
+Reluare: `node tests/ep_invoice_df_price_ui.cjs` cu Node ≥20, Playwright în
+`NODE_PATH` și Chrome (`CHROME_BIN` opțional). Pentru aspect fidel folosește
+`HUB_TEST_TAILWIND` către o copie locală a scriptului paginii și
+`HUB_TEST_INTER_CSS` către CSS Inter cu fonturi locale/inline. Fără ultimul
+parametru sunt 50 verificări și fontul web efectiv nu este validat. Probele
+PostgreSQL și dependențele lor sunt descrise în [03](../03_SUPABASE.md).
+
+**NEEDS_REVIEW:** acceptanță cu sesiuni Supabase reale, verificare pe dispozitive
+fizice și starea publicării frontendului; aplicarea SQL este consemnată în
+[03 — stare producție](../03_SUPABASE.md#epdf-preț-de-vânzare-editabil--07112026-aplicat-în-producție).
+Corecția legacy a folosit numai citiri de producție pentru vectorii financiari
+DF-244/245; toate salvările de test sunt locale sau simulate în Chrome.
+
 ### Resetare atribuire și anulare magazie — candidat local 06.11.2026
 
 Implementare locală pe `feature-responsive`; necesită
