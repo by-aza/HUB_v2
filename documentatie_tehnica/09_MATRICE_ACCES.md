@@ -203,7 +203,6 @@ Consecințe:
 | Tabel | Module | SELECT recomandat | INSERT recomandat | UPDATE recomandat | DELETE recomandat | Protecție actuală | Diferență UI / acces real |
 |---|---|---|---|---|---|---|---|
 | `flota_auto` | Lista mașini, Dashboard, Admin Alerte, Edge alerte | A/P(`flota`,`lista_masini`,`admin_alerte`); service role Edge | A/P(`flota`,`lista_masini`,`admin_alerte`) | aceleași | **?** — politica permite, UI normal nu confirmă ștergerea | RLS **ON**; A/P(`flota`) CRUD | UI acceptă `lista_masini`, Admin acceptă `admin_alerte`, dar RLS recunoaște doar `flota`; posibile refuzuri legitime |
-| `baza_vin` | Bază VIN | A/P(`baza_vin`) | aceleași | aceleași | **?** — politica permite, UI nu are flux D confirmat | RLS **ON**; A/P(`baza_vin`) CRUD | în general aliniat, exceptând D și fallback-ul UI `flota` |
 | `detailing` | Detailing, Dashboard, Manager | A/P(`detailing`); P(`manager_dashboard`) pentru citire KPI | A/P(`detailing`) | aceleași | aceleași | RLS **ON**; A/P(`detailing`) CRUD | UI poate afișa modulul prin fallback `constatari`, dar RLS îl refuză; Manager Dashboard are nevoie de citire și depinde în prezent de permisiunea sa explicită `detailing` |
 | `telefoane_clienti` | Registru Telefoane | A/P(`telefoane`) | aceleași | aceleași | aceleași | RLS **ON**; A/P(`telefoane`) CRUD | UI acceptă fallback `devize`; RLS nu îl acceptă |
 | `generator_logs` | Generator, Dashboard, Manager | A/P(`generator`,`magazie`,`manager_dashboard`) | A/P(`generator`,`magazie`) | aceleași | — | RLS **ON**, dar politică `ALL TO public USING true WITH CHECK true` | acces anonim total; permission gate-ul UI nu are efect asupra datelor |
@@ -246,7 +245,7 @@ Consecințe:
 2. `generator_logs` este public chiar dacă modulul are permission gate;
 3. Constatarea necesită clienți/vehicule/contacte, dar politicile lor cer `clienti_notificari`;
 4. anunțurile sunt citite de dashboard pentru toți, însă RLS le oferă numai Adminului;
-5. fallback-urile UI `lista_masini→flota`, `detailing→constatari`, `telefoane→devize` și `baza_vin→flota` nu sunt toate reflectate în RLS;
+5. fallback-urile UI `lista_masini→flota`, `detailing→constatari` și `telefoane→devize` nu sunt toate reflectate în RLS;
 6. Manager Dashboard este permis prin rol, dar tabelele nu au politici read-only dedicate;
 7. cererile de plată sunt filtrate în browser pentru non-manageri, nu în DB;
 8. Clienți & Notificări apare fără permission gate, deși datele cer `clienti_notificari`;
@@ -259,7 +258,7 @@ Consecințe:
 - dacă Manager poate șterge orice cerere de plată neplătită sau numai să o marcheze plătită;
 - cine trebuie să poată vedea anunțurile; sarcinile TODO sunt confirmate exclusiv Admin;
 - dacă fallback-urile istorice din UI sunt reguli intenționate sau doar compatibilitate temporară;
-- cine poate șterge Flotă, Bază VIN, Constatare, Contracte, produse și personal;
+- cine poate șterge Flotă, Constatare, Contracte, produse și personal;
 - ce proiecție din profilurile altor utilizatori este necesară pentru afișarea numelor actorilor;
 - dacă datele Manager Dashboard trebuie accesibile tuturor celor cu `manager_dashboard` sau numai rolului Manager/Admin;
 - dacă modulul Clienți & Notificări trebuie scos din starea DEMO înainte de extinderea accesului.

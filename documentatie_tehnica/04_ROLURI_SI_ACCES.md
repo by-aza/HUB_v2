@@ -1,5 +1,11 @@
 # Roluri și restricții de acces
 
+**12.11.2026 — Bază VIN eliminat din frontend:** bifa, maparea și eticheta
+`baza_vin` nu mai sunt oferite în Gestionare Useri. Salvarea păstrează celelalte
+permisiuni și cheile existente din profil, fără curățare în masă a JSON-ului.
+Starea eliminării din producție este în
+[03](03_SUPABASE.md#bază-vin--eliminat-la-12112026).
+
 ## Frontend curent, regulă de business și DB — 03.11.2026
 
 **NEEDS_REVIEW pentru autorizarea efectivă.** Citirea surselor locale nu testează
@@ -93,7 +99,6 @@ admin_megafon
 admin_useri
 avansuri
 awb
-baza_vin
 cautare_deviz
 clienti_notificari
 clienti_notificari_config
@@ -137,7 +142,6 @@ Nu există un catalog SQL separat al permisiunilor. Numele sunt implicit definit
 | Dezmembrări desktop | `dezmembrari_manage` | `dezmembrari` istoric |
 | Captură Dezmembrări | control în pagină/RLS | `dezmembrari_capture` sau manage/Admin |
 | Lista mașini | `lista_masini` | `flota` |
-| Bază VIN | `baza_vin` | `flota` |
 | AWB | `awb` | `magazie` |
 | Piese stoc | `piese_stoc` | `magazie` |
 | Consumabile | `consumabile` | `magazie` |

@@ -191,14 +191,6 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 - funcții: număr, VIN, marcă, șofer și termene RCA/ITP/rovinietă;
 - dependență: funcția Edge de alerte citește aceleași date.
 
-### 5.2 Bază VIN
-
-- fișier: `modules/flota/baza-vin.html`;
-- permisiune UI: `baza_vin`, fallback `flota`;
-- date: `baza_vin` S/I/U;
-- funcție: mapare identificator intern → VIN;
-- include cod pentru Realtime.
-
 ## 6. Stocuri și magazie
 
 ### 6.1 Consumabile
@@ -218,6 +210,56 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 - funcții: căutare/listare și inițiere conversație WhatsApp.
 
 ### 6.3 Evidență Facturi & Piese — frontend transferat, backend instalat
+
+**Istoric HUB — candidat local verificat la 12.11.2026, `feature-responsive`.**
+`buildPartHistory()` din `js/evidenta_piese.js` afișează autorul rezolvat din
+UUID-ul salvat și exclusiv porecla HUB (`auth_profiles.porecla`),
+prin adaptorul `js/evidenta_piese_api.js`. Porecla este cea disponibilă în profil
+la citire; utilizatorul conectat nu este substitut pentru autorul unei acțiuni vechi.
+Lipsa poreclei, o poreclă goală/numai cu spații, lipsa profilului sau refuzul citirii
+păstrează registrul disponibil, cu „Autor necunoscut”, fără înlocuire cu numele
+complet. Citirea cere numai `id,porecla`; poreclele sunt escapate HTML.
+
+Orele provin din timestamp-urile înregistrate și se afișează în fusul local al
+browserului, cu secunde. Evenimentele certe sunt ordonate descrescător; datele
+lipsă/invalide apar la sfârșit cu „Data necunoscută”. Referințele legacy nu
+primesc data facturii sau o oră inventată. Cantitatea disponibilă rămâne în
+detalii, fără un eveniment artificial datat azi.
+
+Înregistrarea facturii este numită explicit astfel: nu certifică momentul
+creării unei linii. „Alocare înregistrată” include și sursele arhivate la zero;
+mașina și cantitatea curentă rămân în detaliile alocării, fără a fi prezentate
+drept conținutul acțiunii inițiale după corectări. Retururile și magazia afișează
+autorul și momentul înregistrării; anularea folosește propriul autor și moment.
+Datele comerciale ale returului și trimiterii rămân separate.
+
+Autorul importului DF necesită
+[migrarea aplicată în producție și proveniența DB](03_SUPABASE.md#ep-istoric-hub--12112026-aplicat-în-producție).
+Frontendul funcționează și cu loader-ul anterior, afișând autor necunoscut la DF.
+Pagina EP actualizează versiunile celor două scripturi pentru invalidarea cache-ului.
+
+**Probe locale:** [ep_history_ui.cjs](../tests/ep_history_ui.cjs), **28 PASS** în
+Chrome headless cu Auth/Supabase simulate, inclusiv operator EP, autori distincți,
+profil/poreclă indisponibilă, citire refuzată, timestamp absent/invalid, fusuri orare diferite,
+istoric retur și magazie. Regresii Chrome: **64 PASS** EP/DF, **23 PASS** eliberări,
+**25 PASS** facturi și **79 PASS** factură/preț DF. Reluare cu Node ≥20,
+Playwright în `NODE_PATH`, Chrome (`CHROME_BIN` opțional). Nicio salvare de test
+nu accesează producția. **NEEDS_REVIEW:** acceptanță cu sesiuni reale și starea
+publicării frontendului. Notele datate de mai jos păstrează stadiile anterioare.
+
+**Validare timpurie a facturilor duplicate — verificată local la 12.11.2026.**
+În formularul de factură nouă/editare, `findDuplicateInvoice()` reutilizează
+`invoiceNumberKey()` / `normalizeInvoiceNumber()`: același furnizor și același
+număr după eliminarea spațiilor marginale, comprimarea spațiilor și conversia
+în majuscule; factura editată este exclusă. Verificarea folosește registrul deja
+încărcat, la ieșirea din câmpul număr (Tab/click) și la schimbarea furnizorului.
+Afișează inline „Această factură există deja la furnizorul selectat.” și marchează
+câmpul invalid; corectarea furnizorului/numărului elimină imediat avertizarea.
+Datele introduse și validarea de la salvare sunt păstrate; verificarea timpurie
+nu afișează „Factura nu a fost salvată” și nu face interogări sau scrieri noi.
+Probe: [ep_invoice_duplicate_ui.cjs](../tests/ep_invoice_duplicate_ui.cjs),
+**56 PASS** în Chrome local cu transport simulat: creare/editare, normalizare,
+schimbări de furnizor, corectare, resetarea formularului și salvare.
 
 - Sursele LAB v2.3 au fost integrate local pe `feature-responsive` la 05.11.2026;
   **backendul EP este instalat și verificat read-only; frontendul nu este publicat**.

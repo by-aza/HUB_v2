@@ -70,7 +70,7 @@ Integrarea Supabase cuprinde 36 de tabele publice, un view, patru funcții publi
 - constatări service și transformare atomică în deviz final;
 - comenzi de piese second-hand;
 - stoc consumabile și mișcări de stoc;
-- flotă, bază VIN, AWB, telefoane clienți, detailing și generator;
+- flotă, AWB, telefoane clienți, detailing și generator;
 - dezmembrări desktop și captură mobilă, cu fotografii private și OCR;
 - administrare utilizatori, echipe, alerte, anunțuri, audit și alte configurații;
 - Manager Dashboard nou integrat în LAB la `modules/manager/manager.html`, deschis din `index.html`, cu date reale, fără mock/demo data în versiunea finală;
@@ -139,3 +139,9 @@ Noul Manager a înlocuit funcțional vechiul Manager în LAB. Versiunea activă 
 Valoarea devizelor este `total_manopera + total_piese`, înainte de avans; `total_general` reprezintă restul după avans în Deviz final și nu alimentează KPI-ul Manager. Avansurile rămân indicator separat. Plățile folosesc cererile comune `plati_manager`, cu copiere IBAN și marcarea plății ca efectuată. Căutarea este globală, comună cu HUB. Caseta Dezmembrări evidențiază De completat (`draft`), iar Necesită atenție include avertizări din date reale.
 
 La 16.10.2026, utilizatorul a raportat testarea manuală a noului Manager în LAB, inclusiv pe alți utilizatori, cu rezultat pozitiv („pare funcțional”). Aceasta este confirmarea utilizatorului, nu o nouă testare independentă în această actualizare; nu stabilește rezultatul individual al fiecărui scenariu de eroare și nu confirmă deploy-ul în producție.
+
+## Actualizare 12.11.2026 — eliminare Bază VIN
+
+Pagina și intrările Bază VIN din Index/Admin au fost eliminate; utilizatorul a
+confirmat ștergerea `public.baza_vin` și a datelor sale din producție la 12.11.2026.
+Proveniența stării DB și referința migrării sunt în [03](03_SUPABASE.md#bază-vin--eliminat-la-12112026).

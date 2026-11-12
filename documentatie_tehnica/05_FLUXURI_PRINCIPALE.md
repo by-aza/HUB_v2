@@ -220,7 +220,6 @@ Versiunea finală nu conține mock/demo data; datele indisponibile nu sunt înlo
 - **Telefoane:** CRUD pe un registru simplu de contacte;
 - **Detailing:** programare → în lucru → final, cu pachet și estimare;
 - **Generator:** start sesiune → stop → combustibil și total;
-- **Bază VIN:** mapare identificator → VIN;
 - **Flotă:** creare/actualizare vehicul și termene.
 
 Cod Realtime există în mai multe dintre aceste pagini, dar publicația nu avea tabele la verificare; nu se presupune sincronizare live garantată.
