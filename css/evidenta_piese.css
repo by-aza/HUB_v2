@@ -699,6 +699,46 @@ tr.is-selected .ep-row-select svg { opacity: 1; }
 .ep-detail-sub .ep-code { font-size: 12px; }
 .ep-detail-sub .ep-badge { padding: 2px 6px; font-size: 12px; }
 
+/* Antet compact pe două coloane: date în stânga, cele trei capsule vertical în dreapta. */
+.ep-supplier-header-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-areas: "information controls";
+  align-items: start;
+  gap: 10px;
+}
+.ep-supplier-heading { grid-area: information; min-width: 0; overflow-wrap: anywhere; }
+.ep-supplier-heading .ep-detail-sub > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+/* Coloana dreaptă are un singur control pe rând și aceeași lățime pentru toate. */
+.ep-supplier-header-controls { grid-area: controls; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 4px; min-width: 0; }
+/* Aceeași înălțime, formă, spațiere și tipografie pentru cele trei capsule. */
+.ep-supplier-hero .ep-supplier-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* Facturi albastre și editare chihlimbar, lângă statusul verde existent. */
+.ep-supplier-invoices { color: #9ac7ff; background: rgba(90, 167, 255, .12); }
+.ep-supplier-edit { color: #f2c45e; background: rgba(245, 179, 43, .12); }
+
+@media (max-width: 480px) {
+  /* Pe telefoane înguste datele primesc lățimea întreagă, urmate de coloana de controale. */
+  .ep-supplier-header-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "information" "controls"; }
+  .ep-supplier-header-controls { width: max-content; max-width: 100%; }
+}
+
 .ep-detail-section { margin-top: 12px; }
 .ep-detail-section h4 {
   margin: 0 0 6px;
@@ -1120,6 +1160,8 @@ body.ep-drawer-open { overflow: hidden; }
 }
 .ep-field > span small { color: var(--muted-2); font-size: 12px; font-weight: 500; }
 .ep-required { color: #ff8e99; font-weight: 800; }
+/* Avertizarea de duplicat rămâne lângă numărul facturii și se împachetează pe mobil. */
+.ep-invoice-number-warning { color: #ff8e99; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .ep-field--wide { grid-column: 1 / -1; }
 .ep-field input,
 .ep-field select,

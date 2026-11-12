@@ -203,6 +203,14 @@
     return `${day}.${month}.${year}`;
   };
 
+  /* Istoricul folosește numai timestamp-uri cu fus orar, afișate în ora locală a browserului. */
+  const historyTimestamp = (value) => typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/.test(value) &&
+    isValidISODate(value.slice(0, 10)) && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
+  const historyTime = (value) => historyTimestamp(value) === null ? '<time>Data necunoscută</time>'
+    : `<time datetime="${escapeHTML(value)}">${escapeHTML(new Date(value).toLocaleString("ro-RO"))}</time>`;
+  const historyAuthor = (name) => escapeHTML(name || "Autor necunoscut");
+
   const isValidISODate = (value) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const date = new Date(`${value}T12:00:00Z`);
@@ -299,12 +307,6 @@
     if (haystack.includes(cleanQuery)) return true;
     const compact = (text) => text.replace(/[\s\-./]/g, "");
     return compact(haystack).includes(compact(cleanQuery));
-  };
-
-  const addDays = (iso, days) => {
-    const date = new Date(`${iso}T12:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
   };
 
   const daysSince = (iso) => {
@@ -569,9 +571,10 @@
     <div class="ep-detail-card">${records.map((entry) => `<div class="ep-warehouse-record">
       <strong>${escapeHTML(entry.reference)} · ${entry.qty} buc.</strong>
       <small>${escapeHTML(partById(entry.partId)?.name || "")} · ${escapeHTML(returnSourceLabel(entry))}</small>
-      <time datetime="${escapeHTML(entry.createdAt)}">${escapeHTML(new Date(entry.createdAt).toLocaleString("ro-RO"))}</time>
+      ${historyTime(entry.createdAt)}
+      <small>${historyAuthor(entry.createdByName)}</small>
       ${entry.notes ? `<p>${escapeHTML(entry.notes)}</p>` : ""}
-      ${entry.cancelledAt ? `<small>Anulată la ${escapeHTML(new Date(entry.cancelledAt).toLocaleString("ro-RO"))} · ${entry.qty} buc. eliberate în De atribuit</small>` : ""}
+      ${entry.cancelledAt ? `<small>Anulată la ${historyTime(entry.cancelledAt)} · ${entry.qty} buc. eliberate în De atribuit</small><small>${historyAuthor(entry.cancelledByName)}</small>` : ""}
     </div>`).join("")}</div></section>` : "";
 
   const partHaystack = (part) => {
@@ -992,43 +995,44 @@
   const buildPartHistory = (part) => {
     const invoice = invoiceById(part.invoiceId);
     const returns = returnsForPart(part.id);
+    /* Liniile nu au metadate de creare; evenimentul numește explicit factura înregistrată. */
     const events = [
-      { date: invoice.date, title: "Piesă înregistrată", by: "Andrei Popescu · recepție factură" }
+      { date: invoice.createdAt, title: `Factură înregistrată · ${invoice.number}`, by: invoice.createdByName }
     ];
 
-    allocationsForPart(part).forEach((allocation) => {
-      events.push({ date: addDays(invoice.date, 1), title: `${allocation.qty} buc. atribuite la ${allocation.plate}`, by: "Cristina Neagu · dispecerat" });
+    /* Crearea alocării nu este atribuită celui care i-a corectat ulterior mașina/cantitatea. */
+    (part.allocationHistory || allocationsForPart(part)).forEach((allocation) => {
+      events.push({ date: allocation.createdAt, title: "Alocare înregistrată", by: allocation.createdByName });
     });
     if (part.df) {
-      events.push({ date: addDays(invoice.date, 2), title: `Importată în ${part.df}`, by: "Mihai Ionescu · deviz final" });
+      events.push({ date: null, title: `Referință istorică · ${part.df}` });
     }
     importsForPart(part.id).forEach((entry) => {
-      events.push({ date: entry.createdAt.slice(0, 10), sortAt: entry.createdAt, title: `${entry.reference} · ${entry.qty} buc. · ${entry.plate}`, by: "Import DF · preț de vânzare salvat", actualDate: true });
+      events.push({ date: entry.createdAt, title: `${entry.reference} · ${entry.qty} buc. · ${entry.plate}`, by: entry.createdByName });
     });
     warehouseForPart(part.id).forEach((entry) => {
-      events.push({ date: entry.localDate, sortAt: entry.createdAt, title: `Trimis în magazie · ${entry.qty} buc. · ${entry.reference}`, by: returnSourceLabel(entry), actualDate: true });
-      if (entry.cancelledAt) events.push({ date: entry.cancelledAt.slice(0,10), sortAt: entry.cancelledAt, title:`Trimitere anulată · ${entry.qty} buc. · ${entry.reference}`, by:"Cantitate eliberată în De atribuit", actualDate:true });
+      events.push({ date: entry.createdAt, title: `Trimis în magazie · ${entry.qty} buc. · ${entry.reference}`, by: entry.createdByName });
+      if (entry.cancelledAt) events.push({ date: entry.cancelledAt, title:`Trimitere anulată · ${entry.qty} buc. · ${entry.reference}`, by:entry.cancelledByName });
     });
     if (part.status === "Montată") {
-      events.push({ date: addDays(invoice.date, 3), title: "Marcată ca montată", by: "Mihai Ionescu · service" });
+      events.push({ date: null, title: "Status existent · Montată" });
     }
     returns.forEach((item) => {
-      (item.history || []).forEach(({ date }) => {
-        if (date) events.push({ date, title: `${item.code} · ${item.qty} buc. · Retur înregistrat`, by: returnSourceLabel(item), actualDate: true });
+      (item.history || []).forEach(({ date, createdByName }) => {
+        events.push({ date, title: `${item.code} · ${item.qty} buc. · Retur înregistrat`, by: createdByName });
       });
     });
-    if (remainingQty(part) > 0) {
-      events.push({ date: todayLocal(), title: `${remainingQty(part)} buc. așteaptă atribuirea`, by: "Cantitate rămasă de alocat" });
-    }
 
-    const times = ["09:15", "10:05", "11:20", "13:40", "15:10", "16:25"];
     return events
-      /* Cele mai recente evenimente sunt primele, inclusiv ordinea reală din aceeași zi. */
-      .sort((a, b) => new Date(b.sortAt || b.date) - new Date(a.sortAt || a.date))
-      .map((event, index) => `<div class="ep-timeline-item">
+      /* Datele certe descresc cronologic; înregistrările fără dată rămân la sfârșit. */
+      .sort((a, b) => {
+        const first = historyTimestamp(a.date), second = historyTimestamp(b.date);
+        return first === second ? 0 : first === null ? 1 : second === null ? -1 : second - first;
+      })
+      .map((event) => `<div class="ep-timeline-item">
         <strong>${escapeHTML(event.title)}</strong>
-        <time>${formatDate(event.date)}${event.actualDate ? "" : ` · ${times[index % times.length]}`}</time>
-        <small>${escapeHTML(event.by)}</small>
+        ${historyTime(event.date)}
+        <small>${historyAuthor(event.by)}</small>
       </div>`)
       .join("");
   };
@@ -1247,14 +1251,28 @@
       .sort(byDateDesc);
 
     return `
-      <div class="ep-detail-hero">
-        <span class="ep-eyebrow">Furnizor · ${escapeHTML(city || "date fiscale")}</span>
-        <div class="ep-detail-title-row">
-          <div>
-            <h3>${escapeHTML(supplier.name)}</h3>
-            <p class="ep-detail-sub"><span>${escapeHTML(cui || "CUI nespecificat")}</span><span>·</span><span>${escapeHTML(city || "Oraș nespecificat")}</span></p>
+      <div class="ep-detail-hero ep-supplier-hero">
+        <!-- Un singur grid ține datele în stânga și cele trei controale în dreapta, deasupra KPI-urilor. -->
+        <div class="ep-supplier-header-grid">
+          <div class="ep-supplier-heading">
+            <span class="ep-eyebrow">Furnizor · ${escapeHTML(city || "date fiscale")}</span>
+            <div class="ep-detail-title-row">
+              <div>
+                <h3>${escapeHTML(supplier.name)}</h3>
+                <p class="ep-detail-sub"><span>${escapeHTML(cui || "CUI nespecificat")}</span><span>·</span><span>${escapeHTML(city || "Oraș nespecificat")}</span></p>
+              </div>
+            </div>
           </div>
-          <span class="ep-badge ep-badge--success">Partener activ</span>
+          <!-- Coloană proprie: status, facturi și editare; handler-ele și ID-ul furnizorului rămân aceleași. -->
+          <div class="ep-supplier-header-controls">
+            <span class="ep-badge ep-badge--success ep-supplier-pill">Partener activ</span>
+            <button type="button" class="ep-button ep-supplier-pill ep-supplier-invoices" data-action="supplier-invoices" data-id="${escapeHTML(supplier.id)}">
+              ${ICONS.file} Vezi facturile
+            </button>
+            <button type="button" class="ep-button ep-supplier-pill ep-supplier-edit" data-action="edit-supplier" data-id="${escapeHTML(supplier.id)}">
+              ${ICONS.edit} Editează furnizorul
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1311,24 +1329,16 @@
             </button>`;
           }).join("") : `<p class="ep-detail-note">Nicio factură asociată încă.</p>`}
         </div>
-      </section>
-
-      <div class="ep-detail-actions">
-        <button type="button" class="ep-button ep-button-primary ep-wide" data-action="supplier-invoices" data-id="${escapeHTML(supplier.id)}">
-          ${ICONS.file} Vezi facturile
-        </button>
-        <button type="button" class="ep-button ep-wide" data-action="edit-supplier" data-id="${escapeHTML(supplier.id)}">
-          ${ICONS.edit} Editează furnizorul
-        </button>
-      </div>`;
+      </section>`;
   };
 
   const buildReturnDetail = (item) => {
     const part = partById(item.partId);
     const invoice = part ? invoiceById(part.invoiceId) : null;
     const supplier = invoice ? supplierById(invoice.supplierId) : null;
-    /* Istoricul folosește cardul de detalii, fără etape de curierat. */
-    const history = (item.history || []).map((entry) => detailRow("Retur înregistrat", formatDate(entry.date))).join("");
+    /* Data comercială a returului rămâne distinctă de momentul înregistrării în HUB. */
+    const history = (item.history || []).map((entry) => detailRow("Retur înregistrat",
+      `${historyTime(entry.date)}<small>${historyAuthor(entry.createdByName)}</small>`)).join("");
 
     return `
       <div class="ep-detail-hero">
@@ -1347,7 +1357,7 @@
 
       <div class="ep-detail-stats">
         <div><span>Cantitate</span><strong>${item.qty} buc.</strong></div>
-        <div><span>Înregistrat la</span><strong>${formatDate(item.requestedAt)}</strong></div>
+        <div><span>Înregistrat la</span><strong>${historyTime(item.createdAt)}</strong></div>
       </div>
 
       <section class="ep-detail-section">
@@ -1745,10 +1755,36 @@
 
   const clearInvoiceError = () => {
     clearInvoiceErrorMessage();
+    els.invoiceNumberDuplicate.hidden = true;
+    els.invoiceNumber.setCustomValidity("");
     els.invoiceForm.querySelectorAll(".is-invalid").forEach((field) => {
       field.classList.remove("is-invalid");
       field.removeAttribute("aria-invalid");
     });
+  };
+
+  /* Aceeași cheie furnizor/număr normalizat la verificarea timpurie și la salvare; editarea se exclude. */
+  const findDuplicateInvoice = (supplierId, number) => {
+    const key = invoiceNumberKey(number);
+    return supplierId && key ? DATA.invoices.find((invoice) =>
+      invoice.id !== invoiceUi.editingId && invoice.supplierId === supplierId && invoiceNumberKey(invoice.number) === key
+    ) : null;
+  };
+
+  /* Avertizare lângă număr, fără mesaj de salvare eșuată și fără modificarea datelor introduse. */
+  const updateInvoiceDuplicateFeedback = () => {
+    const duplicate = findDuplicateInvoice(els.invoiceSupplier.value, els.invoiceNumber.value);
+    const wasDuplicate = !els.invoiceNumberDuplicate.hidden;
+    els.invoiceNumberDuplicate.hidden = !duplicate;
+    els.invoiceNumber.setCustomValidity(duplicate ? els.invoiceNumberDuplicate.textContent : "");
+    if (duplicate) {
+      els.invoiceNumber.classList.add("is-invalid");
+      els.invoiceNumber.setAttribute("aria-invalid", "true");
+    } else if (wasDuplicate) {
+      els.invoiceNumber.classList.remove("is-invalid");
+      els.invoiceNumber.removeAttribute("aria-invalid");
+    }
+    return duplicate;
   };
 
   const setInvoiceDate = (iso) => {
@@ -1793,12 +1829,10 @@
 
     const number = normalizeInvoiceNumber(els.invoiceNumber.value);
     els.invoiceNumber.value = number;
+    const duplicate = updateInvoiceDuplicateFeedback();
     if (!number) {
       addError("Introdu numărul facturii.", els.invoiceNumber);
     } else if (supplier) {
-      const duplicate = DATA.invoices.find((invoice) =>
-        invoice.id !== invoiceUi.editingId && invoice.supplierId === supplier.id && invoiceNumberKey(invoice.number) === invoiceNumberKey(number)
-      );
       if (duplicate) {
         addError(`Factura ${number} există deja pentru ${supplier.name}.`, els.invoiceNumber);
       }
@@ -3215,6 +3249,7 @@
     els.invoiceBody = document.getElementById("invoiceBody");
     els.invoiceSupplier = document.getElementById("invoiceSupplier");
     els.invoiceNumber = document.getElementById("invoiceNumber");
+    els.invoiceNumberDuplicate = document.getElementById("invoiceNumberDuplicate");
     els.invoiceDate = document.getElementById("invoiceDate");
     els.invoiceStatus = document.getElementById("invoiceStatus");
     els.invoiceDefaultPlate = document.getElementById("invoiceDefaultPlate");
@@ -3487,6 +3522,8 @@
     els.invoiceCancel.addEventListener("click", () => closeInvoiceModal());
     els.invoiceForm.addEventListener("submit", saveInvoice);
     els.addInvoiceLine.addEventListener("click", () => addInvoiceLine(true));
+    /* Schimbarea furnizorului reverifică numărul existent, inclusiv în modul de editare. */
+    els.invoiceSupplier.addEventListener("change", updateInvoiceDuplicateFeedback);
 
     /* Normalizează în timpul tastării; propagă numărul complet numai la ieșirea din câmp. */
     els.invoiceDefaultPlate.addEventListener("input", () => {
@@ -3501,6 +3538,8 @@
         event.target.classList.remove("is-invalid");
         event.target.removeAttribute("aria-invalid");
       }
+      /* După detectare, corectarea numărului șterge imediat avertizarea; echivalentele rămân invalide. */
+      if (event.target === els.invoiceNumber && !els.invoiceNumberDuplicate.hidden) updateInvoiceDuplicateFeedback();
       updateInvoiceFormTotals();
     });
 
@@ -3512,6 +3551,7 @@
       }
       if (event.target === els.invoiceNumber) {
         event.target.value = normalizeInvoiceNumber(event.target.value);
+        updateInvoiceDuplicateFeedback();
         return;
       }
       if (event.target.matches('[data-field="name"]')) {

@@ -213,7 +213,9 @@
             </label>
             <label class="ep-field" for="invoiceNumber">
               <span>Număr factură <b class="ep-required">*</b></span>
-              <input type="text" id="invoiceNumber" autocomplete="off" placeholder="ex. FA-1102" required>
+              <input type="text" id="invoiceNumber" autocomplete="off" placeholder="ex. FA-1102" aria-describedby="invoiceNumberDuplicate" required>
+              <!-- Duplicatul se anunță lângă număr înainte de orice încercare de salvare. -->
+              <small id="invoiceNumberDuplicate" class="ep-invoice-number-warning" role="status" hidden>Această factură există deja la furnizorul selectat.</small>
             </label>
             <label class="ep-field" for="invoiceDate">
               <span>Data facturii <b class="ep-required">*</b></span>
@@ -653,8 +655,9 @@
   <!-- Clientul comun HUB și adaptorul HUB preced inițializarea interfeței. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../js/config.js"></script>
-  <script src="../../js/evidenta_piese_api.js?v=20261106-release-delete"></script>
-  <script src="../../js/evidenta_piese.js?v=20261107-default"></script>
+  <!-- Istoricul HUB încarcă metadatele reale ale autorilor și acțiunilor. -->
+  <script src="../../js/evidenta_piese_api.js?v=20261112-history"></script>
+  <script src="../../js/evidenta_piese.js?v=20261112-history"></script>
   <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
   <script src="../../js/session-timeout.js?v=2"></script>
 </body>

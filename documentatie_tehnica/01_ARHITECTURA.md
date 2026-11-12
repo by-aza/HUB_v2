@@ -118,8 +118,7 @@ HUB_v2-LAB/
 │   │   ├── clienti-notificari.html
 │   │   └── clienti-notificari.html.orig
 │   ├── flota/
-│   │   ├── lista_masini.html
-│   │   └── baza-vin.html
+│   │   └── lista_masini.html
 │   ├── formulare/
 │   │   ├── constatari_v2.html
 │   │   ├── constatare-print.html
@@ -194,7 +193,6 @@ Supabase este accesat direct din browser cu cheia publică `anon`. `js/config.js
 | `devize/plati.html` | inline | Supabase, `config.js`, inline |
 | `devize/comenzi_piese_sh.html` | `style.css`, `comenzi_piese_sh.css`, Tailwind | Supabase, `config.js`, Lucide, `audit.js`, `comenzi_piese_sh.js` |
 | `devize/clienti-notificari.html` | `clienti-notificari.css` | Lucide, Supabase, `config.js`, `clienti-notificari.js` |
-| `flota/baza-vin.html` | `style.css`, Tailwind | Supabase, `session-timeout.js`, inline |
 | `flota/lista_masini.html` | `style.css`, Tailwind | Supabase, `audit.js`, `session-timeout.js`, inline |
 | `formulare/constatari_v2.html` | `constatari_v2.css` | Lucide, Supabase, `config.js`, `constatari_v2.js` |
 | `formulare/constatare-print.html` | inline pentru tipărire | script inline; date prin `localStorage` |

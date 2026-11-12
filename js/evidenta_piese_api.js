@@ -46,7 +46,10 @@
   };
 
   /* Adaptarea denumirilor DB la modelul UI existent păstrează UUID-urile și sursele istorice. */
-  const mapSnapshot = (s) => {
+  const mapSnapshot = (s, authors) => {
+    /* Autorii provin exclusiv din UUID-ul înregistrat, niciodată din sesiunea curentă. */
+    const activity = (row) => ({ createdAt: row.created_at || null, createdBy: row.created_by || null,
+      createdByName: authors.get(row.created_by) || null });
     const groups = (rows, key) => {
       const map = new Map();
       rows.forEach((r) => { if (!map.has(r[key])) map.set(r[key], []); map.get(r[key]).push(r); });
@@ -58,13 +61,15 @@
       const history = allocations.get(l.id) || [];
       const al = history.filter(a => a.cantitate > 0).map((a) => ({
         id: a.id, plate: a.nr_inmatriculare_original, model: a.model_original,
-        vehicleId: a.vehicle_id, qty: a.cantitate, releasedQty: Number(a.cantitate_eliberata || 0)
+        vehicleId: a.vehicle_id, qty: a.cantitate, releasedQty: Number(a.cantitate_eliberata || 0), ...activity(a)
       }));
       return {
         id: l.id, invoiceId: l.factura_id, name: l.denumire, code: l.cod_piesa || "",
         qty: l.cantitate, price: l.pret_achizitie_net, vatRate: l.tva_proc, markup: l.coeficient_df,
         priceBasis: "net", plate: al.length === 1 ? al[0].plate : null,
         model: al.length === 1 ? al[0].model : null, allocations: al,
+        /* Inclusiv alocările arhivate; cantitatea/mașina curentă nu descriu crearea inițială. */
+        allocationHistory: history.map(a => ({ id: a.id, ...activity(a) })),
         releasedAllocations: history.filter(a => a.cantitate_eliberata > 0).map(a => ({
           id:a.id, plate:a.nr_inmatriculare_original, model:a.model_original, qty:a.cantitate_eliberata
         })),
@@ -95,34 +100,54 @@
       })),
       invoices: s.invoices.map((f) => ({
         id: f.id, revision: f.revision, number: f.numar, supplierId: f.furnizor_id,
-        date: f.data_factura, status: f.status_document, note: f.observatii || ""
+        date: f.data_factura, status: f.status_document, note: f.observatii || "", ...activity(f)
       })),
       parts, dfImports: (s.imports || []).map(r => ({
         id:r.id,dfId:r.df_id,reference:`DF-${String(r.df_id).padStart(3,"0")}`,
         partId:r.part_id,invoiceId:partMap.get(r.part_id)?.invoiceId,allocationId:r.allocation_id,
         qty:Number(r.qty),plate:r.snapshot.plate,unitPriceWithVat:r.snapshot.unit_price,
-        createdAt:r.snapshot.imported_at
+        ...activity(r), createdAt:r.snapshot.imported_at || null
       })),
       returns: s.returns.map((r) => ({
         id: r.id, code: `RET-${r.id.slice(0,8).toUpperCase()}`, partId: r.linie_id,
         qty: r.cantitate, source: source(r), requestedAt: r.data_retur,
         reference: r.referinta || "", reason: r.motiv || "", note: r.observatii || "",
-        history: [{ date: r.data_retur }]
+        ...activity(r), history: [{ date: r.created_at || null, createdByName: authors.get(r.created_by) || null }]
       })),
       warehouseTransfers: s.transfers.map((t) => ({
         id: t.id, reference: `MAG-${t.id.slice(0,8).toUpperCase()}`, partId: t.linie_id,
         invoiceId: partMap.get(t.linie_id)?.invoiceId, qty: t.cantitate, source: source(t),
-        notes: t.observatii || "", createdAt: t.created_at, localDate: t.data_trimitere,
-        cancelledAt: t.anulat_at || null
+        notes: t.observatii || "", ...activity(t), localDate: t.data_trimitere,
+        cancelledAt: t.anulat_at || null, cancelledBy: t.anulat_de || null,
+        cancelledByName: authors.get(t.anulat_de) || null
       }))
     };
+  };
+  /* Poreclele se citesc numai pentru UUID-urile autorilor salvați, cu RLS existent. */
+  const loadAuthors = async (s) => {
+    const ids = [...new Set([...(s.invoices || []), ...(s.allocations || []), ...(s.returns || []),
+      ...(s.transfers || []), ...(s.imports || [])].flatMap(r => [r.created_by, r.anulat_de]).filter(Boolean))];
+    const authors = new Map();
+    for (let start = 0; start < ids.length; start += 100) {
+      try {
+        const { data, error } = await client.from("auth_profiles").select("id,porecla").in("id", ids.slice(start, start + 100));
+        if (!error && Array.isArray(data)) data.forEach(p => {
+          const nickname = (p.porecla || "").trim();
+          if (nickname) authors.set(p.id, nickname);
+        });
+      } catch (_) { /* Autor necunoscut dacă profilul nu poate fi citit. */ }
+    }
+    return authors;
   };
   const load = async ({ duringWrite = false } = {}) => {
     if (busy && !duringWrite) throw new Error("Așteaptă finalizarea salvării.");
     await authorize();
+    const viewerId = profile.id;
     const { data, error } = await client.rpc("ep_load_registry");
     if (error) { stale = true; notify("Registrul nu a putut fi încărcat. Reîncearcă."); throw new Error(error.message); }
-    const mapped = mapSnapshot(data);
+    const authors = await loadAuthors(data);
+    if (!profile || profile.id !== viewerId) throw new Error("Sesiunea HUB s-a schimbat. Reîncarcă registrul.");
+    const mapped = mapSnapshot(data, authors);
     defaults = { ...data.defaults };
     callbacks.onData?.(mapped);
     stale = false; notify(pending ? "O salvare anterioară trebuie reverificată." : "Date încărcate din HUB.");

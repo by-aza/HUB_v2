@@ -1,5 +1,77 @@
 # Integrarea Supabase
 
+## Bază VIN — eliminat la 12.11.2026
+
+`public.baza_vin` și datele sale au fost șterse din Supabase producție
+(`xyovkxmtbvgcwavuyxxu`) la **12.11.2026**, conform confirmării utilizatorului.
+Tabela nu mai face parte din schema utilizată de aplicație; pagina și intrările
+din Index/Admin au fost eliminate. Actualizarea este exclusiv documentară,
+fără acces nou la Supabase sau execuție SQL.
+
+[Scriptul de retragere](../supabase/migrations/20261112152345_remove_unused_baza_vin.sql)
+este păstrat ca referință. Mențiunea „NEAPLICAT” din antetul său descrie momentul
+pregătirii, nu starea actuală a tabelei; fișierul SQL nu a fost modificat aici.
+**NEEDS_REVIEW:** înregistrarea acestei versiuni în istoricul migrărilor nu a fost
+confirmată; ștergerea tabelei nu dovedește metoda folosită. Referințele din
+cataloagele datate 12/21.10 de mai jos sunt exclusiv dovezi ale auditurilor anterioare.
+
+## EP: istoric HUB — 12.11.2026, APLICAT ÎN PRODUCȚIE
+
+**Verificat live, exclusiv read-only:** HUB `xyovkxmtbvgcwavuyxxu`, PostgreSQL
+17.6. `ep_facturi`, `ep_alocari`, `ep_retururi` și `ep_transferuri_magazie` au
+`created_by` și `created_at`; transferurile au și `anulat_de`/`anulat_at`.
+`ep_factura_linii` nu are metadate proprii de creare. Loader-ul livrează deja
+metadatele existente ale acestor înregistrări. `auth_profiles` conține
+`nume`, `prenume`, `porecla`; rolul `authenticated` are SELECT, iar politica de
+citire existentă permite rezolvarea profilurilor. Frontendul citește numai
+profilurile referite, în loturi de maximum 100 UUID-uri, fără alte drepturi.
+
+La preflight-ul anterior aplicării, importurile din `deviz_final_linii` aveau
+`ep_snapshot.imported_at`, dar loader-ul nu livra autorul. Creatorul antetului DF nu dovedește
+autorul unui import ulterior. `audit_logs` înregistrează `save_df`, cu UUID-ul
+actorului și stările `before`/`after`. Accesul direct la audit rămâne restricționat;
+frontendul nu îl interoghează și nu primește descrierile auditului.
+
+[Migrarea aplicată](../supabase/migrations/20261112141250_ep_history_import_author.sql)
+adaugă numai `imports[].created_by` în rezultatul `ep_private.load_registry()`:
+
+- selectează unicul audit `save_df` din modulul EP, entitatea și DF-ul corect,
+  care introduce `ep_import_id` în `after`, absent în `before`, cu același
+  `ep_snapshot.imported_at`; resalvările nu înlocuiesc autorul inițial;
+- audit absent, ambiguu, invalid sau fără UUID → `NULL`; fără completare din
+  sesiunea curentă sau din creatorul antetului;
+- păstrează poarta `require_access()`, wrapper-ul public invoker și implementarea
+  privată definer, owner-ul `postgres`, ACL, `search_path`, cheile existente ale
+  snapshot-ului și toate RPC-urile de scriere. Garda MD5 cere definiția inspectată
+  a loader-ului (`5196ccef2adcdfeca8451f5e4ddce2b7`); un contract diferit cere review;
+- fără DML, backfill, tabele/coloane noi, RLS sau granturi. Rollback-ul restaurează
+  definiția anterioară a loader-ului din `03_IMPORT_DF_EP.sql`; frontendul tolerează
+  lipsa câmpului nou.
+
+**Stare producție:** versiunea `20261112141250` este aplicată cu succes în Supabase
+producție, conform confirmării utilizatorului. Fișierul local a fost redenumit
+pentru a corespunde versiunii aplicate; SQL-ul executabil este păstrat exact.
+Această actualizare nu a executat SQL, nu a reaplicat migrarea și nu a accesat Supabase.
+
+SELECT-ul de rezolvare, rulat anterior separat read-only în producție, găsește un autor
+cu audit unic pentru **9 din 10 importuri active** la 12.11.2026; pentru celălalt
+rezultatul este neutru. Această citire nu certifică afișarea în browser sau
+aplicarea migrației. Catalogul actual conține și `release_quantity`,
+`anulat_de`/`anulat_at`, spre deosebire de stadiul „neaplicat” consemnat la
+06.11 mai jos; aceasta este o constatare nouă de catalog, nu o confirmare a
+execuției unei versiuni de migrare sau a acceptanței funcționale.
+
+**Probe locale:** [ep_history_db.py](../tests/ep_history_db.py), **9 PASS** pentru
+SELECT-ul extras din migrare, pe PostgreSQL 16.2 cu audit sintetic. Acoperă
+introducere, resalvare de alt actor, asociere greșită, JSON invalid, audit lipsă,
+duplicat și UUID lipsă. Testul nu execută migrarea și nu instalează loader-ul
+modificat. Regresii RPC existente: **79 PASS** eliberări/facturi și **51 PASS** DF.
+Reluare: `python3 tests/ep_history_db.py`, cu `pgserver` și `psycopg2` disponibile.
+Comportamentul UI și probele Chrome sunt în [02 — modul EP](02_MODULE.md#63-evidență-facturi--piese--frontend-transferat-backend-instalat).
+
+**NEEDS_REVIEW:** verificarea funcțională a loader-ului cu sesiuni reale EP/DF și
+starea publicării frontendului; acestea nu sunt certificate de confirmarea aplicării SQL.
+
 ## EP/DF: preț de vânzare editabil — 07.11.2026, APLICAT ÎN PRODUCȚIE
 
 [Migrarea aplicată](../supabase/migrations/20261107145959_ep_df_editable_selling_price.sql)
@@ -594,7 +666,6 @@ Tipurile confirmate sunt `car`, `engine`, `gearbox`, `part`; statusurile sunt `d
 | Domeniu | Reguli principale confirmate |
 |---|---|
 | `admin_announcements` | CRUD doar pentru rolul Admin |
-| `baza_vin` | Admin sau permisiunea `baza_vin`, pentru CRUD |
 | `clienti`, `clienti_contacte`, `clienti_vehicule` | S/I/U prin `private.has_hub_permission('clienti_notificari')`; fără politică D |
 | config/sabloane notificări | control prin `clienti_notificari_config`; fără ștergere |
 | istoric/termene notificări | control prin `clienti_notificari`; fără ștergere |
@@ -688,7 +759,7 @@ Lipsa verificării JWT și folosirea service role în interiorul funcției fac e
 
 ## 8. Realtime
 
-Cod client Realtime există în dashboard, AWB, Generator, Telefoane, Flotă și Bază VIN. La verificare, interogarea publicației `supabase_realtime` nu a întors tabele. Prin urmare:
+Cod client Realtime există în dashboard, AWB, Generator, Telefoane și Flotă. La verificare, interogarea publicației `supabase_realtime` nu a întors tabele. Prin urmare:
 
 - abonamentele pot fi inactive în starea curentă;
 - pollingul la 60 de secunde din dashboard asigură totuși reîmprospătare periodică;
