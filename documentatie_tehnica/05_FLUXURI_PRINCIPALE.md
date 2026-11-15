@@ -15,6 +15,13 @@ Toate cele 36 tabele publice sunt ACTIVE ÎN PRODUCȚIE și ACTIVE ÎN LAB. User
 
 Regulile exacte și restanțele Generator/TODO/GRANT/Storage sunt în [09_MATRICE_ACCES.md](09_MATRICE_ACCES.md) și [22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md). Nu s-au executat din nou probele modulelor în această rundă.
 
+## Flux Dashboard HUB — actualizare locală 15.11.2026
+
+Fluxul actual al indexului separă zona superioară live de cardurile inferioare
+de navigare. Citirile pentru căutare rămân distincte de contoarele eliminate;
+comportamentul curent este descris în [02, §2](02_MODULE.md#2-nucleu-și-autentificare).
+Pasajele Dashboard din arhiva de mai jos păstrează fluxul anterior.
+
 ---
 
 ## Arhivă documentară — stări și planuri anterioare

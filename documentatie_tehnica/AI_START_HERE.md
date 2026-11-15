@@ -51,7 +51,7 @@ Detalii: [arhitectură](01_ARHITECTURA.md), [module](02_MODULE.md), [integrări]
 
 | Loc verificat | Responsabilitate |
 |---|---|
-| [index.html](../index.html) | Dashboard, navigare, badge-uri și integrarea căutării comune |
+| [index.html](../index.html) | Dashboard, navigare, alerte live (zona superioară) și integrarea căutării comune |
 | [modules/](../modules/) | Pagini pe domenii: `admin`, `devize`, `flota`, `formulare`, `manager`, `stocuri` |
 | [css/](../css/) | Stiluri comune minimale și fișiere dedicate modulelor |
 | [js/](../js/) | Configurare, audit, sesiune, ciorne și logica unor module |

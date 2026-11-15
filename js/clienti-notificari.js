@@ -1,39 +1,9 @@
 "use strict";
 
-/* data fixă păstrează scenariile demo reproductibile */
-const DEMO_TODAY = "2026-10-04";
-/* procent unic pentru textul, indicatorul și lățimea benzii de dezvoltare */
-const MODULE_PROGRESS = 70;
+/* starea paginii păstrează numai selecțiile și filtrele reale */
+let activeDossierTab="general",activityScope="active",currentPage=1;
+let toastTimer=null,tableResizeTimer=null;
 
-/* clienții, vehiculele, reminderele și istoricul sunt date fictive în memorie */
-const initialClients = [
-  {id:11,name:"Ion Popescu",phone:"0722 111 222",email:"ion.popescu@example.test",channels:["WhatsApp","Email"],consent:true,timing:[30,15,5,0],notes:["Preferă programările dimineața.","Confirmă lucrările suplimentare prin telefon."],notificationHistory:[{date:"03.10.2026 09:10",reason:"ITP · 5 zile",channel:"WhatsApp",status:"Livrat"}],vehicles:[
-    {id:1101,make:"Dacia",model:"Duster",year:2020,plate:"CT11AAA",vin:"UU1HSDCJ6L1234101",reminders:[{type:"ITP",date:"2026-10-09"},{type:"RCA",date:"2027-01-20"}],service:[{id:"s1101a",date:"2026-09-28",type:"Constatări v2",description:"Verificare tren față și sistem frânare",status:"Finalizat"},{id:"s1101b",date:"2026-09-25",type:"Deviz",description:"Deviz final DF-184 pentru revizie",status:"Acceptat"},{id:"s1101c",date:"2026-08-11",type:"Vizită service",description:"Revizie periodică 84.200 km",status:"Închis"}]},
-    {id:1102,make:"Volkswagen",model:"Golf",year:2018,plate:"CT11BBB",vin:"WVWZZZAUZJW123102",reminders:[{type:"Revizie",date:"2026-11-18"}],service:[{id:"s1102a",date:"2026-07-14",type:"Deviz estimativ",description:"Estimare kit distribuție",status:"Transmis"},{id:"s1102b",date:"2026-07-13",type:"Comenzi Piese SH",description:"Solicitare alternator",status:"Livrat"}]},
-    {id:1103,make:"BMW",model:"X3",year:2022,plate:"CT11CCC",vin:"WBA56DP090N123103",reminders:[{type:"Schimb ulei",date:"2026-10-19"},{type:"ITP",date:"2027-06-20"}],service:[{id:"s1103a",date:"2026-10-02",type:"Vizită service",description:"Diagnoză martor motor",status:"Închis"},{id:"s1103b",date:"2026-10-01",type:"Constatări v2",description:"Eroare sondă NOx identificată",status:"Finalizat"},{id:"s1103c",date:"2026-09-30",type:"Deviz estimativ",description:"Estimare înlocuire sondă NOx",status:"În analiză"}]}
-  ]},
-  {id:2,name:"Miruna Ene",phone:"0733 250 614",email:"miruna.ene@example.test",channels:["Email"],consent:true,timing:[30,15,5,0],notes:["Preferă contactul după ora 10:00."],notificationHistory:[{date:"04.10.2026 07:00",reason:"RCA · ziua termenului",channel:"Email",status:"Programat"}],vehicles:[{id:201,make:"Volkswagen",model:"Golf",year:2021,plate:"CT34XYZ",vin:"WVWZZZAUZMW145632",reminders:[{type:"RCA",date:"2026-10-04"},{type:"Revizie",date:"2026-11-14"}],service:[{id:"s201",date:"2026-09-12",type:"Deviz",description:"Înlocuire plăcuțe frână",status:"Finalizat"}]}]},
-  {id:3,name:"Tudor Damian",phone:"0744 361 725",email:"tudor.damian@example.test",channels:["Email"],consent:true,timing:[30,15],notificationProblem:true,notes:[],notificationHistory:[{date:"03.10.2026 08:04",reason:"RCA · 5 zile",channel:"Email",status:"Eșuat"}],vehicles:[{id:301,make:"Toyota",model:"Corolla",year:2020,plate:"CT78GHI",vin:"NMTBZ3BE70R094815",reminders:[{type:"RCA",date:"2026-10-09"}],service:[{id:"s301",date:"2026-08-20",type:"Vizită service",description:"Schimb ulei și filtre",status:"Închis"}]}]},
-  {id:4,name:"Ilinca Rusu",phone:"0766 472 836",email:"ilinca.rusu@example.test",channels:["WhatsApp"],consent:true,timing:[30,5,0],notes:[],notificationHistory:[],vehicles:[{id:401,make:"Dacia",model:"Duster",year:2018,plate:"B92KLM",vin:"UU1HSDCJ659321704",reminders:[{type:"ITP",date:"2026-10-02"},{type:"RCA",date:"2026-12-02"}],service:[{id:"s401",date:"2026-06-03",type:"Constatări v2",description:"Verificare suspensie",status:"Finalizat"}]}]},
-  {id:5,name:"Rareș Voicu",phone:"0755 583 947",email:"rares.voicu@example.test",channels:["WhatsApp","Email","SMS"],consent:true,timing:[15,5],notes:["Două vehicule în familie."],notificationHistory:[],vehicles:[{id:501,make:"Renault",model:"Megane",year:2017,plate:"B14RVS",vin:"VF1RFB00861247835",reminders:[{type:"Revizie",date:"2026-10-19"}],service:[]},{id:502,make:"Audi",model:"A4",year:2019,plate:"CT90RVV",vin:"WAUZZZF49KA188346",reminders:[{type:"ITP",date:"2027-05-20"}],service:[]}]},
-  {id:6,name:"Sabina Petrescu",phone:"0721 694 158",email:"sabina.petrescu@example.test",channels:["SMS"],consent:true,timing:[30,15,5,0],notes:[],notificationHistory:[],vehicles:[{id:601,make:"Ford",model:"Focus",year:2016,plate:"CT56DEF",vin:"WF05XXGCC5GR27491",reminders:[{type:"Revizie",date:"2026-11-03"}],service:[]}]},
-  {id:7,name:"Cezar Munteanu",phone:"",email:"",channels:["WhatsApp"],consent:true,timing:[30],notes:[],notificationHistory:[],vehicles:[{id:701,make:"Audi",model:"A4",year:2015,plate:"CT08CMN",vin:"WAUZZZ8K7FA092611",reminders:[{type:"ITP",date:"2026-10-19"}],service:[]}]},
-  {id:8,name:"Oana Luca",phone:"0730 716 269",email:"oana.luca@example.test",channels:["Email","SMS"],consent:false,timing:[30,15,5],notes:["Acordul trebuie reconfirmat."],notificationHistory:[],vehicles:[{id:801,make:"Hyundai",model:"Tucson",year:2023,plate:"B123ONA",vin:"TMAJ3813DPJ149002",reminders:[{type:"RCA",date:"2026-10-24"}],service:[]}]}
-];
-
-/* avansurile au relații explicite vehicul → fișă → plăți */
-const initialAdvances = [
-  {id:1,vehicleId:1101,date:"2026-09-25",notes:"Rezervare piese revizie",archived:false,payments:[{id:101,amount:500,method:"Cash",date:"2026-09-25T10:15"}]},
-  {id:2,vehicleId:1103,date:"2026-09-30",notes:"Diagnoză și comandă sondă NOx",archived:false,payments:[{id:201,amount:400,method:"Card",date:"2026-09-30T14:20"},{id:202,amount:450,method:"OP",date:"2026-10-02T09:05"}]},
-  {id:3,vehicleId:401,date:"2026-05-29",notes:"Avans istoric arhivat",archived:true,payments:[{id:301,amount:250,method:"Cash",date:"2026-05-29T11:00"}]},
-  {id:4,vehicleId:201,date:"2026-09-10",notes:"Piese sistem frânare",archived:false,payments:[{id:401,amount:300,method:"Card",date:"2026-09-10T16:40"}]}
-];
-
-let clients=structuredClone(initialClients),advances=structuredClone(initialAdvances);
-let selectedClientId=11,selectedVehicleId=1101,activeDossierTab="general",activeWindow="all",activityScope="active",currentPage=1,editingClientId=null,managedVehicleId=null,editingAdvanceId=null,editingPayment={advanceId:null,paymentId:null};
-let nextAdvanceId=10,nextPaymentId=1000,toastTimer=null,tableResizeTimer=null;
-/* statusul de închidere financiară este separat de avansuri și se resetează la refresh */
-let vehicleFinancialCompletions={};
 /* configurația automatizării este încărcată exclusiv din rândul Supabase cu id 1 */
 let automationSettings=null;
 /* configurația și șabloanele tabului Notificări sunt cache read-only */
@@ -53,30 +23,18 @@ const realAdvancesByVehicle=new Map(),realAdvancesLoadState=new Map();
 const realVisitsByVehicle=new Map(),expandedRealVisitKeys=new Set(),expandedRealAdvanceNotes=new Set();
 /* istoricul vehiculului păstrează separat fișele, devizele și comenzile de piese */
 const realServiceHistoryByVehicle=new Map(),realVehicleEstimatesByVehicle=new Map(),realVehicleFinalEstimatesByVehicle=new Map(),realVehiclePartsByVehicle=new Map(),realServiceHistoryLoadState=new Map(),expandedRealServiceVisits=new Set(),expandedRealVehicleParts=new Set();
+/* piesele din facturi sunt citite separat, numai pentru ID-ul vehiculului selectat */
+const realInvoicePartsByVehicle=new Map(),realInvoicePartsLoadState=new Map();
 /* selectorul intern pornește implicit în vederea cronologică */
 let activeVehicleHistoryView="timeline";
 /* formularele comune intră în modul real numai când sunt deschise din dosarul Supabase */
 let realAdvanceFormContext=null,realPaymentFormContext=null;
-/* contextele separă formularele Supabase de datele demo din memorie */
+/* contextele identifică înregistrările reale editate în formulare */
 let realClientFormContext=null,realVehicleFormClientId=null;
 const optionalSchemaColumns={clienti:new Set(),clienti_vehicule:new Set()};
 /* referințele DOM principale păstrează randările compacte */
-const dom={search:document.getElementById("globalSearch"),kpis:document.getElementById("kpiGrid"),attention:document.getElementById("attentionGrid"),table:document.getElementById("clientsTableBody"),drawer:document.getElementById("clientDrawer"),typeFilter:document.getElementById("typeFilter"),channelFilter:document.getElementById("channelFilter"),statusFilter:document.getElementById("statusFilter"),clientModal:document.getElementById("clientModal"),vehicleModal:document.getElementById("vehicleModal"),reminderModal:document.getElementById("reminderModal"),advanceModal:document.getElementById("advanceModal"),advanceFormModal:document.getElementById("advanceFormModal"),paymentModal:document.getElementById("paymentModal"),actionModal:document.getElementById("actionModal"),clientForm:document.getElementById("clientForm"),vehicleForm:document.getElementById("vehicleForm"),reminderForm:document.getElementById("reminderForm"),advanceForm:document.getElementById("advanceForm"),paymentForm:document.getElementById("paymentForm"),toast:document.getElementById("toast")};
+const dom={search:document.getElementById("globalSearch"),kpis:document.getElementById("kpiGrid"),attention:document.getElementById("attentionGrid"),table:document.getElementById("clientsTableBody"),drawer:document.getElementById("clientDrawer"),clientModal:document.getElementById("clientModal"),vehicleModal:document.getElementById("vehicleModal"),advanceFormModal:document.getElementById("advanceFormModal"),paymentModal:document.getElementById("paymentModal"),actionModal:document.getElementById("actionModal"),clientForm:document.getElementById("clientForm"),vehicleForm:document.getElementById("vehicleForm"),advanceForm:document.getElementById("advanceForm"),paymentForm:document.getElementById("paymentForm"),toast:document.getElementById("toast")};
 const automationSettingsButton=document.getElementById("automationSettingsBtn");
-
-/* sincronizează toate reprezentările vizuale din constanta unică de progres */
-function renderModuleDevelopmentProgress(){
-  const progress=Math.max(0,Math.min(100,Number(MODULE_PROGRESS)||0));
-  const banner=document.getElementById("moduleDevelopmentProgress");
-  const title=document.getElementById("moduleProgressTitle");
-  const value=document.getElementById("moduleProgressValue");
-  if(!banner||!title||!value)return;
-  banner.style.setProperty("--cn-module-progress",`${progress}%`);
-  banner.setAttribute("aria-valuenow",String(progress));
-  banner.setAttribute("aria-valuetext",`Modul funcțional ${progress}%`);
-  title.textContent=`Modul în dezvoltare activă — funcțional ${progress}%`;
-  value.textContent=`${progress}%`;
-}
 
 /* afișează setările doar administratorului sau utilizatorului cu permisiunea dedicată */
 async function applyAutomationSettingsPermission(){
@@ -111,31 +69,14 @@ function normalizeTemplateVariables(value){
   try{const parsed=JSON.parse(value);if(Array.isArray(parsed))return parsed.map(item=>String(item).trim()).filter(Boolean)}catch{}
   return value.split(",").map(item=>item.trim()).filter(Boolean);
 }
-const daysUntil=date=>Math.round((new Date(`${date}T12:00:00`)-new Date(`${DEMO_TODAY}T12:00:00`))/86400000);
-const getClient=(id=selectedClientId)=>clients.find(client=>client.id===Number(id));
-const getVehicle=(id=selectedVehicleId)=>clients.flatMap(client=>client.vehicles).find(vehicle=>vehicle.id===Number(id));
-const getSelectedVehicle=()=>getClient()?.vehicles.find(vehicle=>vehicle.id===selectedVehicleId)||getClient()?.vehicles[0];
-/* numele vehiculului provine din câmpul unic marca_model, cu rezervă pentru datele demo vechi */
-const vehicleMakeModel=vehicle=>String(vehicle?.marca_model||[vehicle?.make,vehicle?.model].filter(Boolean).join(" ")||"").trim();
-const normalizeVin=value=>String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,17);
-const nextReminder=vehicle=>[...(vehicle?.reminders||[])].sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
-const advanceTotal=advance=>advance.payments.reduce((sum,payment)=>sum+Number(payment.amount),0);
-const vehicleAdvances=(vehicleId,archived=false)=>advances.filter(item=>item.vehicleId===Number(vehicleId)&&item.archived===archived);
-const vehicleTotal=vehicleId=>vehicleAdvances(vehicleId).reduce((sum,item)=>sum+advanceTotal(item),0);
-const paymentCount=vehicleId=>vehicleAdvances(vehicleId).reduce((sum,item)=>sum+item.payments.length,0);
-/* starea financiară nu adaugă plăți și nu modifică totalul avansurilor */
-function financialStatus(vehicleId){const completion=vehicleFinancialCompletions[vehicleId];if(completion)return{label:"Achitat integral",tone:"paid",date:completion.date};if(vehicleTotal(vehicleId)>0)return{label:"Avans încasat",tone:"advance",date:null};return{label:"Fără avans",tone:"",date:null}}
 
-/* statusul listei este derivat din acord și următorul termen */
-function rowStatus(client,reminder){if(!client.consent)return"Fără acord";if(client.notificationProblem)return"Eșuat";if(!reminder)return"Activ";const days=daysUntil(reminder.date);if(days<0)return"Expirat";if(days<=5)return"Urgent";if(days<=30)return"Programat";return"Activ"}
-function statusTone(status){return["Expirat","Eșuat","Fără acord"].includes(status)?"danger":status==="Urgent"?"warning":"success"}
-function allRows(){return clients.flatMap(client=>client.vehicles.map(vehicle=>{const reminder=nextReminder(vehicle);return{client,vehicle,reminder,status:rowStatus(client,reminder),days:reminder?daysUntil(reminder.date):9999}}))}
+const normalizeVin=value=>String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,17);
 
 /* citește toate paginile returnate de Data API fără a presupune că sunt sub limita implicită */
-async function readAllSupabaseRows(table,columns){
+async function readAllSupabaseRows(table,columns,filter=query=>query){
   const pageSize=1000,rows=[];
   for(let from=0;;from+=pageSize){
-    const{data,error}=await supabaseClient.from(table).select(columns).order("id",{ascending:true}).range(from,from+pageSize-1);
+    const{data,error}=await filter(supabaseClient.from(table).select(columns)).order("id",{ascending:true}).range(from,from+pageSize-1);
     if(error)throw new Error(`${table}: ${error.message}`);
     rows.push(...(data||[]));
     if((data||[]).length<pageSize)return rows;
@@ -299,6 +240,7 @@ async function cancelIneligibleClientNotifications(clientId){
 /* combină relațiile client → vehicul și client → contacte într-un rând per vehicul */
 async function loadClientVehicleRows(){
   clientListState="loading";clientListError="";
+  void loadRealSummary();
   /* o reîncărcare după editarea termenelor forțează recalcularea programărilor */
   realNotificationHistoryState.clear();realNotificationHistoryByVehicle.clear();renderTable();
   try{
@@ -359,11 +301,68 @@ function filteredRows(){
   });
 }
 
-/* KPI-urile includ sumele active, fără fișele arhivate */
-function renderKpis(){const rows=allRows(),activeReceived=advances.filter(item=>!item.archived).reduce((sum,item)=>sum+advanceTotal(item),0);const items=[["users", "Clienți",clients.length,"în memoria demo",""],["car-front","Vehicule",rows.length,"rânduri client + vehicul",""],["calendar-clock","Termene ≤ 30 zile",rows.filter(row=>row.days>=0&&row.days<=30).length,"inclusiv astăzi","warning"],["banknote","Avansuri încasate",formatMoney(activeReceived),`${advances.filter(item=>!item.archived).length} fișe active`,"success"]];dom.kpis.innerHTML=items.map(([icon,label,value,note,tone])=>`<article class="cn-kpi ${tone}"><span class="cn-kpi-icon"><i data-lucide="${icon}"></i></span><div class="cn-kpi-copy"><span>${label}</span><strong>${value}</strong><small>${note}</small></div></article>`).join("")}
+/* sumarul de sus folosește exclusiv citiri reale, independent de încărcarea dosarului */
+let summaryVersion=0;
+let realSummary={state:"loading",clients:null,vehicles:null,deadlines:null,advances:null,attention:[],attentionError:false};
+async function loadRealSummary(){
+  const version=++summaryVersion;
+  realSummary={state:"loading",clients:null,vehicles:null,deadlines:null,advances:null,attention:[],attentionError:false};
+  renderKpis();renderAttention();lucide.createIcons();
+  const results=await Promise.allSettled([
+    readAllSupabaseRows("clienti","id, nume, status_activitate"),
+    readAllSupabaseRows("clienti_vehicule","id, client_id, nr_inmatriculare, status_vehicul"),
+    readAllSupabaseRows("clienti_vehicule_termene","id, vehicle_id, tip, denumire, data_termen, activ",query=>query.eq("activ",true)),
+    supabaseClient.from("evidente_avansuri").select("id",{count:"exact",head:true}).eq("este_arhivat",false).then(({count,error})=>{if(error)throw error;return count}),
+    readAllSupabaseRows("clienti_notificari_istoric","id, client_id, vehicle_id, status",query=>query.eq("status","esuata"))
+  ]);
+  if(version!==summaryVersion)return;
+  const [clientsResult,vehiclesResult,deadlinesResult,advancesResult,failedResult]=results;
+  const summary={state:"ready",clients:null,vehicles:null,deadlines:null,advances:null,attention:[],attentionError:false};
+  const clientRows=clientsResult.status==="fulfilled"?clientsResult.value:[],vehicleRows=vehiclesResult.status==="fulfilled"?vehiclesResult.value:[];
+  const clientsById=new Map(clientRows.map(row=>[String(row.id),row])),vehiclesById=new Map(vehicleRows.map(row=>[String(row.id),row]));
+  if(clientsResult.status==="fulfilled")summary.clients=clientRows.filter(row=>row.status_activitate==="activ").length;
+  if(vehiclesResult.status==="fulfilled")summary.vehicles=vehicleRows.filter(row=>row.status_vehicul==="activ").length;
+  if(advancesResult.status==="fulfilled")summary.advances=advancesResult.value;
+  /* numără fiecare termen activ; nu reduce termenele multiple ale unui vehicul la unul singur */
+  const relationsReady=clientsResult.status==="fulfilled"&&vehiclesResult.status==="fulfilled";
+  if(relationsReady&&deadlinesResult.status==="fulfilled"){
+    summary.deadlines=0;
+    deadlinesResult.value.forEach(deadline=>{
+      const vehicle=vehiclesById.get(String(deadline.vehicle_id)),client=clientsById.get(String(vehicle?.client_id));
+      if(vehicle?.status_vehicul!=="activ"||client?.status_activitate!=="activ")return;
+      const days=realNotificationDays(deadline.data_termen);
+      if(days===null)return;
+      if(days>=0&&days<=30)summary.deadlines++;
+      if(days<=5)summary.attention.push({client,vehicle,days,title:days<0?`${deadlineDisplayName(deadline)} expirat`:days===0?`${deadlineDisplayName(deadline)} expiră astăzi`:`${deadlineDisplayName(deadline)} în ${days} zile`});
+    });
+    summary.attention.sort((a,b)=>a.days-b.days);
+  }else summary.attentionError=true;
+  /* o notificare eșuată apare numai dacă rândul persistent are statusul esuata */
+  if(relationsReady&&failedResult.status==="fulfilled"){
+    failedResult.value.forEach(notification=>{
+      const vehicle=vehiclesById.get(String(notification.vehicle_id)),client=clientsById.get(String(notification.client_id));
+      summary.attention.push({client,vehicle,title:"Notificare eșuată"});
+    });
+  }else summary.attentionError=true;
+  results.forEach(result=>{if(result.status==="rejected")console.error("Nu s-a putut încărca o componentă a sumarului:",result.reason)});
+  realSummary=summary;renderKpis();renderAttention();lucide.createIcons();
+}
 
-/* cardurile de atenție selectează direct rândul relevant */
-function renderAttention(){const items=[];allRows().forEach(row=>{if(row.days<0)items.push({...row,title:`${row.reminder.type} expirat`});else if(row.days<=5)items.push({...row,title:row.days===0?`${row.reminder.type} expiră astăzi`:`${row.reminder.type} în ${row.days} zile`})});clients.filter(client=>client.notificationProblem||!client.consent).forEach(client=>items.push({client,vehicle:client.vehicles[0],title:client.notificationProblem?"Notificare eșuată":"Acord lipsă"}));const visible=items.slice(0,5);document.getElementById("attentionCount").textContent=items.length;dom.attention.innerHTML=visible.map(item=>`<button class="cn-attention-card" data-select-client="${item.client.id}" data-select-vehicle="${item.vehicle.id}"><i data-lucide="triangle-alert"></i><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.client.name)} · ${escapeHtml(item.vehicle.plate)}</small></span></button>`).join("")||"<span class='cn-preview-message'>Nicio excepție.</span>"}
+/* cardurile păstrează designul și disting încărcarea sau eroarea de valoarea zero */
+function renderKpis(){
+  const items=[["users","Clienți activi",realSummary.clients,"status activ",""],["car-front","Vehicule active",realSummary.vehicles,"status activ",""],["calendar-clock","Termene ≤ 30 zile",realSummary.deadlines,"de azi până la 30 zile inclusiv","warning"],["banknote","Avansuri active",realSummary.advances,"fișe nearhivate","success"]];
+  dom.kpis.innerHTML=items.map(([icon,label,value,note,tone])=>`<article class="cn-kpi ${tone}"><span class="cn-kpi-icon"><i data-lucide="${icon}"></i></span><div class="cn-kpi-copy"><span>${label}</span><strong>${value??"—"}</strong><small>${realSummary.state==="loading"?"Se încarcă...":value===null?"Date indisponibile":note}</small></div></article>`).join("");
+}
+
+/* atenția folosește selecția reală existentă și include toate termenele expirate sau la cel mult 5 zile */
+function renderAttention(){
+  const loading=realSummary.state==="loading",items=realSummary.attention;
+  document.getElementById("attentionCount").textContent=loading?"—":`${realSummary.attentionError?"≥ ":""}${items.length}`;
+  dom.attention.innerHTML=items.map(item=>{
+    const selectable=item.vehicle&&item.client&&String(item.vehicle.client_id)===String(item.client.id);
+    return`<button type="button" class="cn-attention-card" ${selectable?`data-select-real-vehicle="${escapeHtml(item.vehicle.id)}"`:"disabled"}><i data-lucide="triangle-alert"></i><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.client?.nume||"Client indisponibil")} · ${escapeHtml(item.vehicle?.nr_inmatriculare||"Vehicul indisponibil")}</small></span></button>`;
+  }).join("")+(loading?"<span class='cn-preview-message'>Se încarcă...</span>":realSummary.attentionError?"<span class='cn-preview-message'>Unele date nu au putut fi încărcate.</span>":!items.length?"<span class='cn-preview-message'>Nicio excepție.</span>":"");
+}
 
 /* numărul de rânduri folosește înălțimea reală a zonei de tabel */
 function calculateRowsPerPage(){const tableWrap=document.querySelector(".cn-table-wrap"),measuredHeight=tableWrap?.clientHeight||Math.max(240,(window.innerHeight||900)-470),measuredRow=dom.table.querySelector("tr")?.getBoundingClientRect().height||49,headerHeight=36;return Math.max(4,Math.min(24,Math.floor((measuredHeight-headerHeight)/measuredRow)))}
@@ -458,7 +457,6 @@ function realVisitCard(group,isActive){
   return`<article class="cn-real-visit ${isActive?"is-active":""} ${allArchived?"is-archived":""}"><button type="button" class="cn-real-visit-summary" data-toggle-real-visit="${escapeHtml(group.key)}" aria-expanded="${expanded}"><span class="cn-real-visit-title"><strong>${escapeHtml(title)} · ${formatDate(group.date)}</strong><small>${formatMoney(total)} · ${paymentLabel} · ${statusLabel}</small></span><span class="cn-financial-status ${statusTone}">${statusLabel}</span><i data-lucide="chevron-down"></i></button><div class="cn-real-visit-details" ${expanded?"":"hidden"}>${notes?`<div class="cn-real-visit-note ${noteExpanded?"is-expanded":""}"><strong>Observații</strong><span class="cn-real-visit-note-text">${escapeHtml(notes)}</span><button type="button" class="cn-real-visit-note-toggle" data-toggle-real-advance-note="${escapeHtml(advance.id)}" aria-expanded="${noteExpanded}" hidden>${noteExpanded?"Vezi mai puțin":"Vezi mai mult"}</button></div>`:""}<div class="cn-payment-table-wrap"><table class="cn-payment-table"><thead><tr><th>Data</th><th>Metodă</th><th>Sumă</th></tr></thead><tbody>${payments.map(payment=>`<tr><td>${formatDateTime(payment.data_platii||payment.created_at)}</td><td>${escapeHtml(payment.metoda_plata||"—")}</td><td class="cn-money">${formatMoney(payment.suma)}</td></tr>`).join("")||'<tr><td colspan="3">Nicio plată.</td></tr>'}</tbody></table></div>${allArchived?"":`<div class="cn-real-visit-actions">${settled?"":`<button type="button" class="cn-button cn-button-small cn-button-settle" data-settle-real-advance="${escapeHtml(advance.id)}"><i data-lucide="circle-check-big"></i> Achită integral</button>`}<button type="button" class="cn-button cn-button-small cn-button-primary" data-add-real-payment="${escapeHtml(advance.id)}"><i data-lucide="plus"></i> Adaugă plată</button></div>`}</div></article>`;
 }
 
-
 /* afișează controlul de extindere numai când observația depășește cele trei rânduri vizibile */
 function syncRealAdvanceNoteToggles(){
   document.querySelectorAll(".cn-real-visit-note").forEach(note=>{
@@ -475,7 +473,6 @@ function realAdvancesTab(row){
   const records=realAdvancesByVehicle.get(key)||[],groups=groupRealAdvances(row.vehicleId,records),activeGroup=groups.find(group=>!group.advances.every(isRealAdvanceSettled)&&!group.advances.every(advance=>advance.este_arhivat===true));
   return`<div class="cn-tab-stack"><section class="cn-card cn-real-advances-head"><div class="cn-card-header"><div><h3>Avansuri · <span class="cn-plate">${escapeHtml(row.plate||"—")}</span></h3><span class="cn-preview-message">${groups.length} ${groups.length===1?"intrare financiară":"intrări financiare"}</span></div><button type="button" class="cn-button cn-button-primary" data-action="new-real-advance"><i data-lucide="plus"></i> Avans</button></div></section><div class="cn-real-visits">${groups.map(group=>realVisitCard(group,group===activeGroup)).join("")||'<div class="cn-empty-card">Nu există avansuri pentru acest vehicul.</div>'}</div></div>`;
 }
-
 
 /* preia istoricul real al vehiculului din constatări, devize și comenzi de piese */
 async function loadRealServiceHistory(vehicleId){
@@ -599,10 +596,56 @@ function realVehicleEstimatesView(estimates,finalEstimates){
   }).join("")||'<div class="cn-empty-card">Nu există devize pentru acest vehicul.</div>')+'</div>';
 }
 
+/* preia alocările prin vehicle_id și relațiile reale linie → factură, fără asociere după număr auto */
+async function loadRealInvoiceParts(vehicleId){
+  const key=String(vehicleId);
+  realInvoicePartsLoadState.set(key,"loading");
+  try{
+    const rows=await readAllSupabaseRows("ep_alocari",`
+      id, vehicle_id, linie_id, cantitate, cantitate_eliberata, created_at,
+      linie:ep_factura_linii!ep_alocari_linie_id_fkey(
+        id, factura_id, denumire, cod_piesa, cantitate, pret_achizitie_net,
+        factura:ep_facturi!ep_factura_linii_factura_id_fkey(id, numar, data_factura, furnizor_denumire_originala)
+      )`,query=>query.eq("vehicle_id",vehicleId));
+    /* o relație ascunsă sau indisponibilă nu este prezentată drept listă goală confirmată */
+    if(rows.some(item=>!item.linie||!item.linie.factura))throw new Error("Detaliile liniilor sau facturilor nu sunt disponibile.");
+    realInvoicePartsByVehicle.set(key,rows);
+    realInvoicePartsLoadState.set(key,"ready");
+  }catch(error){
+    realInvoicePartsByVehicle.set(key,[]);
+    realInvoicePartsLoadState.set(key,"error");
+    console.error("Piesele din facturi nu au putut fi încărcate:",error);
+  }
+  if(String(selectedRealVehicleId)===key&&activeDossierTab==="service"&&activeVehicleHistoryView==="parts"){renderRealDossier();lucide.createIcons()}
+}
+
+/* identificatorii includ sursa; o alocare sau comandă apare o singură dată în lista combinată */
+function combinedVehicleParts(parts,invoiceParts){
+  const items=new Map();
+  parts.forEach(part=>items.set(`sh:${part.id}`,{source:"sh",part,date:part.data_comanda}));
+  invoiceParts.forEach(part=>items.set(`invoice:${part.id}`,{source:"invoice",part,date:part.linie?.factura?.data_factura||part.created_at}));
+  return[...items.values()].sort((a,b)=>vehicleHistoryTimestamp(b.date)-vehicleHistoryTimestamp(a.date));
+}
+
+/* piesele alocate din facturi folosesc același card compact, fără un status inventat */
+function realInvoicePartCard(allocation){
+  const line=allocation.linie,invoice=line.factura,key=`invoice:${allocation.id}`,expanded=expandedRealVehicleParts.has(key);
+  return`<article class="cn-vehicle-part"><button type="button" class="cn-vehicle-part-summary" data-toggle-real-part="${escapeHtml(key)}" aria-expanded="${expanded}"><span><strong><span class="cn-part-source">FACTURĂ</span> ${escapeHtml(line.denumire||"Piesă fără denumire")}</strong><small>${formatVehicleHistoryDate(invoice.data_factura)} · ${escapeHtml(invoice.furnizor_denumire_originala||"Furnizor nespecificat")}</small></span><span class="cn-part-quantity">Alocat: ${escapeHtml(allocation.cantitate)}</span><span class="cn-vehicle-part-price"><strong>Factura ${escapeHtml(invoice.numar||"—")}</strong></span><i data-lucide="chevron-down"></i></button><div class="cn-vehicle-part-details" ${expanded?"":"hidden"}><strong>Factură</strong><span>${escapeHtml(invoice.numar||"—")} · ${formatVehicleHistoryDate(invoice.data_factura)}</span><strong>Furnizor</strong><span>${escapeHtml(invoice.furnizor_denumire_originala||"Furnizor nespecificat")}</span><strong>Cantitate alocată / eliberată</strong><span>${escapeHtml(allocation.cantitate)} / ${escapeHtml(allocation.cantitate_eliberata??0)}</span>${line.cod_piesa?`<strong>Cod piesă</strong><span>${escapeHtml(line.cod_piesa)}</span>`:""}</div></article>`;
+}
+
+/* încărcarea și eroarea facturilor nu ascund comenzile SH deja disponibile */
+function realVehiclePartsView(vehicleId,parts){
+  const key=String(vehicleId);
+  if(!realInvoicePartsLoadState.has(key))void loadRealInvoiceParts(vehicleId);
+  const state=realInvoicePartsLoadState.get(key),items=combinedVehicleParts(parts,realInvoicePartsByVehicle.get(key)||[]);
+  const message=state==="loading"?'<div class="cn-empty-card">Se încarcă piesele din facturi...</div>':state==="error"?'<div class="cn-empty-card">Piesele din facturi nu au putut fi încărcate.</div>':!items.length?'<div class="cn-empty-card">Nu există piese asociate acestui vehicul.</div>':"";
+  return'<div class="cn-vehicle-parts">'+items.map(item=>item.source==="sh"?realVehiclePartCard(item.part):realInvoicePartCard(item.part)).join("")+message+'</div>';
+}
+
 /* comenzile de piese afișează observațiile numai după expandare */
 function realVehiclePartCard(part){
   const key=String(part.id),expanded=expandedRealVehicleParts.has(key),transport=Number(part.pret_transport)||0;
-  return'<article class="cn-vehicle-part"><button type="button" class="cn-vehicle-part-summary" data-toggle-real-part="'+escapeHtml(key)+'" aria-expanded="'+expanded+'"><span><strong>'+escapeHtml(part.denumire_piesa||"Piesă fără denumire")+'</strong><small>'+formatVehicleHistoryDate(part.data_comanda)+' · '+escapeHtml(part.furnizor||"Furnizor nespecificat")+'</small></span><span class="cn-financial-status">'+escapeHtml(vehiclePartStatus(part.status))+'</span><span class="cn-vehicle-part-price"><strong>'+formatMoney(part.pret_piesa)+'</strong>'+(transport?'<small>Transport '+formatMoney(transport)+'</small>':"")+'</span><i data-lucide="chevron-down"></i></button>'+(part.observatii?'<div class="cn-vehicle-part-details" '+(expanded?'':'hidden')+'><strong>Observații</strong><span>'+escapeHtml(part.observatii)+'</span></div>':"")+'</article>';
+  return'<article class="cn-vehicle-part"><button type="button" class="cn-vehicle-part-summary" data-toggle-real-part="'+escapeHtml(key)+'" aria-expanded="'+expanded+'"><span><strong><span class="cn-part-source">SH</span> '+escapeHtml(part.denumire_piesa||"Piesă fără denumire")+'</strong><small>'+formatVehicleHistoryDate(part.data_comanda)+' · '+escapeHtml(part.furnizor||"Furnizor nespecificat")+'</small></span><span class="cn-financial-status">'+escapeHtml(vehiclePartStatus(part.status))+'</span><span class="cn-vehicle-part-price"><strong>'+formatMoney(part.pret_piesa)+'</strong>'+(transport?'<small>Transport '+formatMoney(transport)+'</small>':"")+'</span><i data-lucide="chevron-down"></i></button>'+(part.observatii?'<div class="cn-vehicle-part-details" '+(expanded?'':'hidden')+'><strong>Observații</strong><span>'+escapeHtml(part.observatii)+'</span></div>':"")+'</article>';
 }
 
 /* cronologia combină sursele fără a presupune relații care nu există în bază */
@@ -622,8 +665,7 @@ function realServiceHistoryTab(row){
   if(state==="loading")return'<div class="cn-empty-card"><span class="cn-list-spinner" aria-hidden="true"></span><strong>Se încarcă istoricul service...</strong></div>';
   if(state==="error")return'<div class="cn-empty-card cn-real-advances-error">Istoricul service nu a putut fi încărcat.</div>';
   const visits=realServiceHistoryByVehicle.get(key)||[],estimates=realVehicleEstimatesByVehicle.get(key)||[],finalEstimates=realVehicleFinalEstimatesByVehicle.get(key)||[],parts=realVehiclePartsByVehicle.get(key)||[];
-  const orderedParts=[...parts].sort((a,b)=>vehicleHistoryTimestamp(b.data_comanda)-vehicleHistoryTimestamp(a.data_comanda));
-  const views={timeline:()=>realVehicleTimeline(visits,estimates,finalEstimates,parts),service:()=>'<div class="cn-service-visits">'+(visits.map(realServiceVisitCard).join("")||'<div class="cn-empty-card">Nu există fișe service pentru acest vehicul.</div>')+'</div>',estimates:()=>realVehicleEstimatesView(estimates,finalEstimates),parts:()=>'<div class="cn-vehicle-parts">'+(orderedParts.map(realVehiclePartCard).join("")||'<div class="cn-empty-card">Nu există comenzi de piese pentru acest vehicul.</div>')+'</div>'};
+  const views={timeline:()=>realVehicleTimeline(visits,estimates,finalEstimates,parts),service:()=>'<div class="cn-service-visits">'+(visits.map(realServiceVisitCard).join("")||'<div class="cn-empty-card">Nu există fișe service pentru acest vehicul.</div>')+'</div>',estimates:()=>realVehicleEstimatesView(estimates,finalEstimates),parts:()=>realVehiclePartsView(row.vehicleId,parts)};
   const tabs=[["timeline","Cronologie"],["service","Fișe service"],["estimates","Devize"],["parts","Piese"]];
   return'<div class="cn-tab-stack"><section class="cn-card cn-service-history-head"><div class="cn-card-header"><div><h3>Istoric vehicul · <span class="cn-plate">'+escapeHtml(row.plate||"—")+'</span></h3><span class="cn-preview-message">'+(visits.length+estimates.length+finalEstimates.length+parts.length)+' evenimente, de la cele mai noi</span></div></div><nav class="cn-history-tabs" aria-label="Secțiuni istoric vehicul">'+tabs.map(([id,label])=>'<button type="button" class="'+(activeVehicleHistoryView===id?'is-active':'')+'" data-history-view="'+id+'">'+label+'</button>').join("")+'</nav></section>'+views[activeVehicleHistoryView]()+'</div>';
 }
@@ -767,9 +809,6 @@ function previewRealNotification(deadlineId,scheduledThreshold=null){
   showActionModal(`Previzualizare · ${deadlineDisplayName(deadline)}`,"PREVIEW — NU SE TRIMITE",`<div class="cn-preview-box"><div class="cn-preview-meta"><span>Client</span><strong>${escapeHtml(row.name||"—")}</strong><span>Vehicul</span><strong>${escapeHtml(row.plate||"—")}</strong><span>Șablon</span><strong>${escapeHtml(template.denumire||templateType)}</strong></div><p class="cn-preview-message">${escapeHtml(message)}</p></div><div class="cn-simulation-note"><i data-lucide="eye"></i><span>Previzualizare locală. Nu se trimite niciun mesaj.</span></div>`);
 }
 
-/* filele neconectate rămân neutre și nu amestecă datele demo cu dosarul real */
-function realUnavailableTab(label){return`<div class="cn-empty-card">${label} nu este conectat încă pentru datele reale.</div>`}
-
 /* dosarul real păstrează fila activă și pornește citirea avansurilor numai la nevoie */
 function renderRealDossier(){
   const row=clientVehicleRows.find(item=>String(item.vehicleId)===String(selectedRealVehicleId));
@@ -782,24 +821,8 @@ function renderRealDossier(){
   if(activeDossierTab==="advances")requestAnimationFrame(syncRealAdvanceNoteToggles);
 }
 
-/* antetul dosarului rămâne vizibil indiferent de fila aleasă */
-function dossierHeader(client,vehicle){const tabs=[["general","General"],["advances","Avansuri"],["service","Istoric service"],["notifications","Notificări"]];return`<header class="cn-dossier-header"><div class="cn-dossier-title"><div><span class="cn-eyebrow">DOSAR CLIENT</span><h2>${escapeHtml(client.name)}</h2><p>Client #${String(client.id).padStart(4,"0")}</p></div><button class="cn-icon-button" data-action="edit-client" title="Editare client"><i data-lucide="pencil"></i></button></div><div class="cn-selected-vehicle"><i data-lucide="car-front"></i><span><strong>${escapeHtml(vehicleMakeModel(vehicle)||"—")}</strong><small>${escapeHtml(vehicle?.plate||"Fără vehicul")}</small></span></div></header><nav class="cn-dossier-tabs">${tabs.map(([id,label])=>`<button class="${activeDossierTab===id?"is-active":""}" data-tab="${id}">${label}</button>`).join("")}</nav>`}
-
-/* fila General include contact, vehicule și notițe compacte */
-function generalTab(client,vehicle){return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><h3>Date de contact</h3><span class="cn-consent ${client.consent?"":"cn-no-consent"}">${client.consent?"Acord confirmat":"Fără acord"}</span></div><div class="cn-contact-grid"><div class="cn-info-row"><i data-lucide="phone"></i>${escapeHtml(client.phone||"Nespecificat")}</div><div class="cn-info-row"><i data-lucide="mail"></i>${escapeHtml(client.email||"Nespecificat")}</div></div><div class="cn-channel-list" style="margin-top:9px">${client.channels.map(channel=>`<span class="cn-chip">${escapeHtml(channel)}</span>`).join("")}</div></section><section class="cn-card"><div class="cn-card-header"><h3>Vehicule (${client.vehicles.length})</h3><button class="cn-link-button" data-action="add-vehicle"><i data-lucide="plus"></i> Adaugă vehicul</button></div><div class="cn-vehicle-list">${client.vehicles.map(item=>`<button class="cn-vehicle-card ${item.id===vehicle.id?"is-selected":""}" data-select-client="${client.id}" data-select-vehicle="${item.id}"><span><strong>${escapeHtml(vehicleMakeModel(item))}</strong><small>${item.year||"An nespecificat"} · VIN ${escapeHtml(item.vin||"—")}</small></span><strong class="cn-plate">${escapeHtml(item.plate)}</strong></button>`).join("")}</div></section><section class="cn-card"><div class="cn-card-header"><h3>Notițe (${client.notes.length})</h3><button class="cn-link-button" data-action="add-note"><i data-lucide="plus"></i> Adaugă</button></div><div class="cn-notes-list">${client.notes.map(note=>`<p class="cn-note">${escapeHtml(note)}</p>`).join("")||'<p class="cn-note">Nicio notiță în sesiunea demo.</p>'}</div></section><div class="cn-compact-actions"><button class="cn-button cn-button-ghost" data-action="edit-client"><i data-lucide="pencil"></i>Editare client</button><button class="cn-button cn-button-ghost" data-action="add-vehicle"><i data-lucide="plus"></i>Adaugă vehicul</button></div></div>`}
-
-/* fila Avansuri rezumă toate vehiculele clientului, independent de selecția globală */
-function advancesTab(client){const total=client.vehicles.reduce((sum,vehicle)=>sum+vehicleTotal(vehicle.id),0);return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><div><h3>Avansuri pe toate vehiculele</h3><span class="cn-preview-message">Sumele provin exclusiv din plățile active. Achitarea integrală este un status separat.</span></div></div><div class="cn-vehicle-list">${client.vehicles.map(vehicle=>{const records=vehicleAdvances(vehicle.id),payments=paymentCount(vehicle.id),status=financialStatus(vehicle.id);return`<article class="cn-advance-vehicle"><button class="cn-advance-vehicle-main" data-open-advances="${vehicle.id}"><span><strong><span class="cn-plate">${escapeHtml(vehicle.plate)}</span> — ${escapeHtml(vehicleMakeModel(vehicle))}</strong><small>${records.length} fișe · ${payments} plăți</small></span><strong class="cn-money">${formatMoney(vehicleTotal(vehicle.id))}</strong></button><div class="cn-financial-actions"><span class="cn-financial-status ${status.tone}">${status.label}</span>${status.date?`<span class="cn-financial-date">${formatDate(status.date)}</span>`:""}<button class="cn-button cn-button-small ${status.tone==="paid"?"cn-button-ghost":"cn-button-primary"}" data-toggle-financial="${vehicle.id}">${status.tone==="paid"?"Anulează achitarea":"Marchează ca achitat integral"}</button></div></article>`}).join("")}</div></section><div class="cn-total-row"><span>Total încasat client</span><strong class="cn-money">${formatMoney(total)}</strong></div></div>`}
-
-/* fila Istoric service afișează doar cronologia vehiculului selectat */
-function serviceTab(vehicle){const events=[...(vehicle.service||[])].sort((a,b)=>b.date.localeCompare(a.date));return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><div><h3>Istoric service · <span class="cn-plate">${escapeHtml(vehicle.plate)}</span></h3><span class="cn-preview-message">Date fictive, sortate de la nou la vechi.</span></div></div>${events.map(item=>`<div class="cn-service-row"><span class="cn-service-date">${formatDate(item.date)}</span><span class="cn-service-main"><strong>${escapeHtml(item.type)}</strong><span>${escapeHtml(item.description)}</span><em class="cn-status success">${escapeHtml(item.status)}</em></span><button class="cn-button cn-button-small cn-button-ghost" data-service-id="${item.id}">Detalii</button></div>`).join("")||'<div class="cn-empty-card">Nu există evenimente service pentru acest vehicul.</div>'}</section></div>`}
-
-/* fila Notificări păstrează reminderele, preferințele și simulările */
-function notificationsTab(client,vehicle){const reminders=[...vehicle.reminders].sort((a,b)=>a.date.localeCompare(b.date));return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><h3>Remindere · <span class="cn-plate">${escapeHtml(vehicle.plate)}</span></h3><button class="cn-link-button" data-action="add-reminder"><i data-lucide="plus"></i> Adaugă</button></div>${reminders.map(reminder=>{const days=daysUntil(reminder.date);return`<div class="cn-reminder-row"><span class="cn-status ${days<0?"danger":days<=5?"warning":"success"}">${escapeHtml(reminder.type)}</span><span class="cn-reminder-main"><strong>${escapeHtml(reminder.label||reminder.type)}</strong><span>${escapeHtml(reminder.notes||"Reminder automat")}</span></span><span class="cn-reminder-date"><strong>${formatDate(reminder.date)}</strong><small>${days<0?"Expirat":days+" zile"}</small></span></div>`}).join("")||'<p class="cn-note">Nu există remindere.</p>'}</section><section class="cn-card"><div class="cn-card-header"><h3>Preferințe notificare</h3><span class="cn-consent ${client.consent?"":"cn-no-consent"}">${client.consent?"Acord activ":"Fără acord"}</span></div><div class="cn-timing-list">${[30,15,5,0].map(value=>`<span class="cn-chip">${client.timing.includes(value)?"✓ ":""}${value===0?"În ziua termenului":value+" zile"}</span>`).join("")}</div><div class="cn-channel-list" style="margin-top:7px">${client.channels.map(channel=>`<span class="cn-chip">${escapeHtml(channel)}</span>`).join("")}</div></section><section class="cn-card"><div class="cn-card-header"><h3>Istoric notificări</h3></div>${client.notificationHistory.map(entry=>`<div class="cn-history-row"><span class="cn-service-date">${escapeHtml(entry.date)}</span><span><strong>${escapeHtml(entry.reason)}</strong><small>${escapeHtml(entry.channel)}</small></span><span class="cn-status ${entry.status==="Eșuat"?"danger":"success"}">${escapeHtml(entry.status)}</span></div>`).join("")||'<p class="cn-note">Nu există notificări în istoric.</p>'}</section><div class="cn-compact-actions"><button class="cn-button cn-button-ghost" data-action="whatsapp"><i data-lucide="message-circle"></i>WhatsApp</button><button class="cn-button cn-button-ghost" data-action="email"><i data-lucide="mail"></i>Email</button><button class="cn-button cn-button-primary" data-action="offer"><i data-lucide="file-plus-2"></i>Creează ofertă</button></div></div>`}
-
-/* randarea dosarului păstrează fila activă când se schimbă clientul */
-function renderDossier(){const client=getClient(),vehicle=getSelectedVehicle();if(!client||!vehicle){dom.drawer.innerHTML='<div class="cn-empty-card">Selectează un client.</div>';return}const content={general:()=>generalTab(client,vehicle),advances:()=>advancesTab(client),service:()=>serviceTab(vehicle),notifications:()=>notificationsTab(client,vehicle)}[activeDossierTab]();dom.drawer.innerHTML=dossierHeader(client,vehicle)+`<div class="cn-dossier-content">${content}</div>`}
-function refreshAll(){renderKpis();renderAttention();renderTable();renderDossier();lucide.createIcons()}
+/* dosarul inițial așteaptă lista reală, fără afișarea clienților fictivi */
+function refreshAll(){renderKpis();renderAttention();renderTable();if(clientListState==="ready")renderRealDossier();else dom.drawer.innerHTML='<div class="cn-empty-card">Se încarcă datele...</div>';lucide.createIcons()}
 
 /* modalurile blochează scroll-ul paginii cât timp sunt deschise */
 function openModal(modal){modal.hidden=false;document.body.style.overflow="hidden";lucide.createIcons()}
@@ -906,7 +929,7 @@ async function saveRealVehicleDeadlines(vehicleId,form,existingRows){
 /* pregătește modalul real pentru client nou sau pentru clientul și vehiculul selectate */
 function openRealClientModal(row=null){
   realClientFormContext=row?{mode:"edit",clientId:row.clientId,vehicleId:row.vehicleId}:{mode:"create"};
-  editingClientId=null;dom.clientForm.reset();
+  dom.clientForm.reset();
   const editing=Boolean(row),vehicleSection=document.getElementById("vehicleFormSection");
   const deadlinesSection=document.getElementById("vehicleDeadlinesSection");
   vehicleSection.hidden=false;
@@ -930,22 +953,6 @@ function openRealClientModal(row=null){
   }else fillClientPreferenceFields(dom.clientForm);
   openModal(dom.clientModal);
   if(editing)loadVehicleDeadlinesForEdit(row.vehicleId);
-}
-
-/* formularul demo păstrează aceeași structură cu marca_model unic */
-function openClientModal(client=null){
-  realClientFormContext=null;editingClientId=client?.id||null;dom.clientForm.reset();
-  const vehicle=getSelectedVehicle(),editing=Boolean(client);
-  document.getElementById("clientModalTitle").textContent=editing?"Editează client":"Adaugă client";
-  document.getElementById("clientModalSubtitle").textContent="Datele demo există numai în sesiunea curentă.";
-  document.getElementById("vehicleFormSection").hidden=editing;
-  document.getElementById("vehicleDeadlinesSection").hidden=true;
-  dom.clientForm.querySelector('button[type="submit"]').textContent=editing?"Salvează modificările":"Salvează clientul";
-  if(client){
-    dom.clientForm.elements.name.value=client.name;dom.clientForm.elements.phone.value=client.phone;dom.clientForm.elements.email.value=client.email;
-    dom.clientForm.elements.notes.value=(client.notes||[]).join("\n");fillClientPreferenceFields(dom.clientForm,client);
-  }else if(vehicle){dom.clientForm.elements.marca_model.value=vehicleMakeModel(vehicle)}
-  openModal(dom.clientModal);
 }
 
 /* verifică în browser unicitatea numărului și VIN-ului înainte de INSERT sau UPDATE */
@@ -1040,11 +1047,6 @@ async function saveRealClientForm(form,button){
 dom.clientForm.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]');
   if(realClientFormContext){try{await saveRealClientForm(form,button)}catch(error){console.error("Datele clientului nu au putut fi salvate:",error);showToast(error.message||"Datele clientului nu au putut fi salvate.")}finally{button.disabled=false;button.textContent=realClientFormContext?.mode==="edit"?"Salvează modificările":"Salvează clientul"}return}
-  const channels=[...form.querySelectorAll('[name="channels"]:checked')].map(input=>input.value),timing=[...form.querySelectorAll('[name="timing"]:checked')].map(input=>Number(input.value));
-  if(!channels.length){showToast("Selectează cel puțin un canal.");return}
-  if(editingClientId){Object.assign(getClient(editingClientId),{name:form.elements.name.value.trim(),phone:form.elements.phone.value.trim(),email:form.elements.email.value.trim(),channels,consent:form.elements.consent.checked,timing,notes:form.elements.notes.value.trim()?[form.elements.notes.value.trim()]:[]})}
-  else{const id=Math.max(...clients.map(item=>item.id))+1,vehicleId=Date.now(),plate=normalizePlate(form.elements.plate.value)||"FARANUMAR";clients.push({id,name:form.elements.name.value.trim(),phone:form.elements.phone.value.trim(),email:form.elements.email.value.trim(),channels,consent:form.elements.consent.checked,timing,notes:form.elements.notes.value.trim()?[form.elements.notes.value.trim()]:[],notificationHistory:[],vehicles:[{id:vehicleId,marca_model:form.elements.marca_model.value.trim()||"Vehicul nespecificat",year:Number(form.elements.year.value)||"",plate,vin:normalizeVin(form.elements.vin.value),reminders:[],service:[]}]});selectedClientId=id;selectedVehicleId=vehicleId}
-  closeModal(dom.clientModal);refreshAll();showToast(editingClientId?"Client actualizat în memorie.":"Client adăugat în memorie.");
 });
 
 /* deschide formularul de mașină pentru clientul real selectat */
@@ -1060,21 +1062,13 @@ dom.vehicleForm.addEventListener("submit",async event=>{
     const payload=realVehiclePayload(form,realVehicleFormClientId);
     try{await validateRealVehicleIdentity(payload.nr_inmatriculare,payload.serie_vin);button.disabled=true;button.textContent="Se salvează...";const{data,error}=await supabaseClient.from("clienti_vehicule").insert(payload).select("id").single();if(error)throw error;if(!data?.id)throw new Error("Vehiculul nu a fost creat.");selectedRealVehicleId=data.id;closeModal(dom.vehicleModal);realVehicleFormClientId=null;await loadClientVehicleRows();showToast(`Mașina ${payload.nr_inmatriculare} a fost adăugată.`)}catch(error){console.error("Vehiculul nu a putut fi adăugat:",error);showToast(error.message||"Vehiculul nu a putut fi adăugat.")}finally{button.disabled=false;button.textContent="Adaugă mașina"}return;
   }
-  const id=Date.now(),plate=normalizePlate(form.elements.plate.value);getClient().vehicles.push({id,marca_model:form.elements.marca_model.value.trim(),year:Number(form.elements.year.value)||"",plate,vin:normalizeVin(form.elements.vin.value),notes:form.elements.notes?.value.trim()||"",reminders:[],service:[]});selectedVehicleId=id;form.reset();closeModal(dom.vehicleModal);refreshAll();showToast(`Vehiculul ${plate} a fost adăugat.`);
 });
-
-/* reminderul nou este legat strict de vehiculul selectat */
-function openReminderModal(){const vehicle=getSelectedVehicle();dom.reminderForm.reset();document.getElementById("customReminderNameField").hidden=true;dom.reminderForm.elements.label.required=false;document.getElementById("reminderVehicleLabel").textContent=`${vehicleMakeModel(vehicle)} · ${vehicle.plate}`;openModal(dom.reminderModal)}
-dom.reminderForm.addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,type=form.elements.type.value,label=form.elements.label.value.trim();if(type==="Personalizat"&&!label)return form.elements.label.focus();getSelectedVehicle().reminders.push({type,date:form.elements.date.value,label:type==="Personalizat"?label:"",notes:form.elements.notes.value.trim()});closeModal(dom.reminderModal);refreshAll();showToast("Reminder adăugat vehiculului selectat.")});
-
-/* notițele rămân într-o listă compactă fără opțiune de ștergere */
-function openNoteForm(client){showActionModal("Adaugă notiță","NOTIȚĂ ÎN MEMORIE",`<form id="noteForm"><label class="cn-field"><span>Notiță pentru ${escapeHtml(client.name)}</span><textarea name="note" required></textarea></label><button class="cn-button cn-button-primary" style="margin-top:10px">Adaugă notița</button></form>`);document.getElementById("noteForm").addEventListener("submit",event=>{event.preventDefault();const note=event.currentTarget.elements.note.value.trim();if(!note)return;client.notes.push(note);closeModal(dom.actionModal);renderDossier();lucide.createIcons();showToast("Notiță adăugată în memorie.")})}
 
 /* formularul real primește vehiculul selectat și nu oferă câmp manual pentru numărul auto */
 function openRealAdvanceForm(){
   const row=clientVehicleRows.find(item=>String(item.vehicleId)===String(selectedRealVehicleId));
   if(!row)return;
-  realAdvanceFormContext={vehicleId:row.vehicleId};editingAdvanceId=null;dom.advanceForm.reset();
+  realAdvanceFormContext={vehicleId:row.vehicleId};dom.advanceForm.reset();
   document.querySelector("#advanceFormModal .cn-eyebrow").textContent="AVANS CLIENT";
   document.getElementById("advanceFormTitle").textContent="Adaugă avans";
   document.getElementById("advanceFormVehicle").textContent=`${row.plate||"Fără număr auto"} · ${row.makeModel||"Vehicul nespecificat"}`;
@@ -1086,6 +1080,7 @@ function openRealAdvanceForm(){
 
 /* reîncarcă un vehicul și poate redeschide intrarea atinsă de ultima operație */
 async function refreshRealVehicleAdvances(vehicleId,advanceId=null){
+  void loadRealSummary();
   const key=String(vehicleId);realAdvancesLoadState.delete(key);await loadRealVehicleAdvances(vehicleId);
   if(advanceId){
     const group=groupRealAdvances(vehicleId,realAdvancesByVehicle.get(key)||[]).find(item=>item.advances.some(advance=>String(advance.id)===String(advanceId)));
@@ -1138,7 +1133,7 @@ async function saveRealAdvance(event){
 function openRealPaymentForm(advanceId){
   const key=String(selectedRealVehicleId),advance=(realAdvancesByVehicle.get(key)||[]).find(item=>String(item.id)===String(advanceId)),row=clientVehicleRows.find(item=>String(item.vehicleId)===key);
   if(!advance||!row)return;
-  realPaymentFormContext={vehicleId:row.vehicleId,advanceId:advance.id};editingPayment={advanceId:null,paymentId:null};dom.paymentForm.reset();
+  realPaymentFormContext={vehicleId:row.vehicleId,advanceId:advance.id};dom.paymentForm.reset();
   document.querySelector("#paymentModal .cn-eyebrow").textContent="PLATĂ AVANS";
   document.getElementById("paymentModalTitle").textContent="Adaugă plată";
   document.getElementById("paymentVehicleLabel").textContent=`${row.plate||"—"} · AV-${advance.id}`;
@@ -1203,43 +1198,16 @@ function openNewConstatareFromCn(){
   window.location.assign(target.href);
 }
 
-/* modalul mare afișează separat fișele active și arhivate ale vehiculului */
-function openAdvanceManager(vehicleId){managedVehicleId=Number(vehicleId);renderAdvanceManager();openModal(dom.advanceModal)}
-function renderAdvanceManager(){const vehicle=getVehicle(managedVehicleId),client=clients.find(item=>item.vehicles.some(car=>car.id===managedVehicleId));if(!vehicle)return;document.getElementById("advanceModalTitle").textContent=`Evidență Avansuri — ${vehicle.plate}`;document.getElementById("advanceModalSubtitle").textContent=`${client.name} · ${vehicleMakeModel(vehicle)}`;const active=vehicleAdvances(vehicle.id),archived=vehicleAdvances(vehicle.id,true),status=financialStatus(vehicle.id);document.getElementById("advanceModalBody").innerHTML=`<div class="cn-advance-toolbar"><div class="cn-advance-summary"><span>Vehicul<strong class="cn-plate">${escapeHtml(vehicle.plate)}</strong></span><span>Total avansuri active<strong class="cn-money">${formatMoney(vehicleTotal(vehicle.id))}</strong></span><span>Plăți avans<strong>${paymentCount(vehicle.id)}</strong></span></div><div class="cn-advance-toolbar-actions"><span class="cn-financial-status ${status.tone}">${status.label}</span>${status.date?`<span class="cn-financial-date">din ${formatDate(status.date)}</span>`:""}<button class="cn-button cn-button-small ${status.tone==="paid"?"cn-button-ghost":"cn-button-primary"}" data-toggle-financial="${vehicle.id}">${status.tone==="paid"?"Anulează achitarea":"Marchează ca achitat integral"}</button><button class="cn-button cn-button-primary" data-action="new-advance"><i data-lucide="plus"></i>Adaugă avans</button></div></div><div class="cn-advance-records">${active.map(advanceCard).join("")||'<div class="cn-empty-card">Nu există avansuri active pentru acest vehicul.</div>'}</div><h3 class="cn-archived-title">Arhivă demo (${archived.length})</h3><div class="cn-advance-records">${archived.map(advanceCard).join("")||'<div class="cn-empty-card">Nu există fișe arhivate.</div>'}</div>`;lucide.createIcons()}
-function advanceCard(advance){const total=advanceTotal(advance);return`<article class="cn-advance-record ${advance.archived?"is-archived":""}"><div class="cn-advance-record-head"><div><h3>Fișa AV-${String(advance.id).padStart(3,"0")} · ${formatDate(advance.date)}</h3><p>${escapeHtml(advance.notes||"Fără observații")} · <strong class="cn-money">${formatMoney(total)}</strong> · ${advance.payments.length} plăți</p></div><div class="cn-record-actions">${advance.archived?'<span class="cn-status warning">Arhivat</span>':`<button class="cn-button cn-button-small cn-button-primary" data-add-payment="${advance.id}">Adaugă plată</button><button class="cn-button cn-button-small cn-button-ghost" data-edit-advance="${advance.id}">Editare fișă</button><button class="cn-button cn-button-small cn-button-danger" data-archive-advance="${advance.id}">Arhivează</button>`}</div></div><div class="cn-payment-table-wrap"><table class="cn-payment-table"><thead><tr><th>Data și ora</th><th>Referință</th><th>Metodă</th><th>Sumă</th><th>Acțiune</th></tr></thead><tbody>${advance.payments.map(payment=>`<tr><td>${formatDateTime(payment.date)}</td><td>AV-${String(advance.id).padStart(3,"0")}</td><td>${escapeHtml(payment.method)}</td><td class="cn-money">${formatMoney(payment.amount)}</td><td>${advance.archived?"—":`<button class="cn-button cn-button-small cn-button-ghost" data-edit-payment="${payment.id}" data-advance-id="${advance.id}">Editare</button>`}</td></tr>`).join("")||'<tr><td colspan="5">Nicio plată.</td></tr>'}</tbody></table></div></article>`}
-
-/* fișa nouă creează obligatoriu și plata inițială, ca în modulul original */
-function openAdvanceForm(advance=null){realAdvanceFormContext=null;document.querySelector("#advanceFormModal .cn-eyebrow").textContent="AVANS DEMO";editingAdvanceId=advance?.id||null;dom.advanceForm.reset();const vehicle=getVehicle(managedVehicleId);document.getElementById("advanceFormTitle").textContent=advance?"Editează fișa":"Adaugă avans";document.getElementById("advanceFormVehicle").textContent=`${vehicle.plate} · ${vehicleMakeModel(vehicle)}`;document.getElementById("initialPaymentFields").hidden=Boolean(advance);dom.advanceForm.elements.amount.required=!advance;dom.advanceForm.elements.date.value=advance?.date||DEMO_TODAY;dom.advanceForm.elements.notes.value=advance?.notes||"";openModal(dom.advanceFormModal)}
 dom.advanceForm.addEventListener("submit",async event=>{
   event.preventDefault();
-  if(realAdvanceFormContext){await saveRealAdvance(event);return}
-  const form=event.currentTarget;
-  if(editingAdvanceId){const advance=advances.find(item=>item.id===editingAdvanceId);advance.date=form.elements.date.value;advance.notes=form.elements.notes.value.trim()}else{const amount=Number(form.elements.amount.value);if(!Number.isFinite(amount)||amount<.01){showToast("Plata inițială trebuie să fie mai mare decât 0.");return}advances.push({id:nextAdvanceId++,vehicleId:managedVehicleId,date:form.elements.date.value,notes:form.elements.notes.value.trim(),archived:false,payments:[{id:nextPaymentId++,amount,method:form.elements.method.value,date:new Date().toISOString()}]})}
-  closeModal(dom.advanceFormModal);renderAdvanceManager();renderDossier();renderKpis();showToast(editingAdvanceId?"Fișă actualizată.":"Avans și plată inițială adăugate.");
+  if(realAdvanceFormContext)await saveRealAdvance(event);
 });
 
-/* plățile sunt editate individual și recalculează imediat toate totalurile */
-function openPaymentForm(advanceId,paymentId=null){realPaymentFormContext=null;document.querySelector("#paymentModal .cn-eyebrow").textContent="PLATĂ DEMO";const advance=advances.find(item=>item.id===Number(advanceId)),payment=advance?.payments.find(item=>item.id===Number(paymentId));editingPayment={advanceId:Number(advanceId),paymentId:payment?.id||null};dom.paymentForm.reset();const vehicle=getVehicle(advance.vehicleId);document.getElementById("paymentModalTitle").textContent=payment?"Editează plată":"Adaugă plată";document.getElementById("paymentVehicleLabel").textContent=`${vehicle.plate} · Fișa AV-${String(advance.id).padStart(3,"0")}`;document.getElementById("paymentDateField").hidden=!payment;dom.paymentForm.elements.date.required=Boolean(payment);dom.paymentForm.elements.amount.value=payment?.amount||"";dom.paymentForm.elements.method.value=payment?.method||"Cash";dom.paymentForm.elements.date.value=toLocalInput(payment?.date);openModal(dom.paymentModal)}
 dom.paymentForm.addEventListener("submit",async event=>{
   event.preventDefault();
-  if(realPaymentFormContext){await saveRealPayment(event);return}
-  const form=event.currentTarget,advance=advances.find(item=>item.id===editingPayment.advanceId),amount=Number(form.elements.amount.value);
-  if(!advance||amount<.01)return;
-  if(editingPayment.paymentId){const payment=advance.payments.find(item=>item.id===editingPayment.paymentId);Object.assign(payment,{amount,method:form.elements.method.value,date:new Date(form.elements.date.value).toISOString()})}else advance.payments.push({id:nextPaymentId++,amount,method:form.elements.method.value,date:new Date().toISOString()});
-  closeModal(dom.paymentModal);renderAdvanceManager();renderDossier();renderKpis();showToast(editingPayment.paymentId?"Plată actualizată.":"Plată adăugată.");
+  if(realPaymentFormContext)await saveRealPayment(event);
 });
 
-/* arhivarea cere confirmare și exclude fișa din totalurile active */
-function archiveAdvance(id){const advance=advances.find(item=>item.id===Number(id));if(!advance||!confirm(`Arhivezi fișa AV-${String(advance.id).padStart(3,"0")}? Înregistrarea va rămâne vizibilă în arhiva demo.`))return;advance.archived=true;renderAdvanceManager();renderDossier();renderKpis();showToast("Fișa a fost mutată în arhiva demo.")}
-
-/* marchează sau inversează închiderea financiară fără a crea o plată */
-function toggleFinancialCompletion(vehicleId){const id=Number(vehicleId);if(vehicleFinancialCompletions[id]){delete vehicleFinancialCompletions[id];showToast("Statusul Achitat integral a fost anulat.")}else{vehicleFinancialCompletions[id]={date:new Date().toISOString().slice(0,10)};showToast("Vehicul marcat ca achitat integral.")}renderDossier();if(!dom.advanceModal.hidden&&managedVehicleId===id)renderAdvanceManager();lucide.createIcons()}
-
-/* acțiunile de comunicare sunt numai previzualizări locale */
-function previewAction(kind){const client=getClient(),vehicle=getSelectedVehicle(),reminder=nextReminder(vehicle)||{type:"service",date:DEMO_TODAY};if(kind==="whatsapp")showActionModal("Previzualizare WhatsApp","SIMULARE — NU SE TRIMITE",`<div class="cn-preview-box"><div class="cn-preview-meta"><span>Destinatar</span><strong>${escapeHtml(client.phone||"Telefon indisponibil")}</strong><span>Vehicul</span><strong>${escapeHtml(vehicle.plate)}</strong></div><p class="cn-preview-message">Bună ziua, ${escapeHtml(client.name)}! Termenul pentru ${escapeHtml(reminder.label||reminder.type)} este ${formatDate(reminder.date)}.</p></div><div class="cn-simulation-note"><i data-lucide="flask-conical"></i>Nu se deschide WhatsApp și nu se trimite nimic.</div>`);if(kind==="email")showActionModal("Previzualizare email","SIMULARE — NU SE TRIMITE",`<div class="cn-preview-box"><div class="cn-preview-meta"><span>Către</span><strong>${escapeHtml(client.email||"Email indisponibil")}</strong><span>Subiect</span><strong>Reminder ${escapeHtml(reminder.type)} — ${escapeHtml(vehicle.plate)}</strong></div><p class="cn-preview-message">Mesaj demo pentru ${escapeHtml(client.name)} privind vehiculul ${escapeHtml(vehicleMakeModel(vehicle))}.</p></div>`);if(kind==="offer")showActionModal("Creează ofertă","FLUX DEMO",`<div class="cn-preview-box"><strong>Clienți &amp; Notificări → Deviz estimativ</strong><p class="cn-preview-message">Ar transfera ${escapeHtml(client.name)}, ${escapeHtml(vehicle.plate)} și contextul reminderului. Nu se creează o ofertă reală.</p></div>`)}
-
-/* fluxul de permisiuni păstrează avertizarea și accesul temporar verde */
-function showRestrictedAutomation(){showActionModal("Acces restricționat","PERMISIUNI HUB",`<div class="cn-simulation-note cn-restricted-warning"><i data-lucide="lock-keyhole"></i><span>Nu aveți permisiunea de a modifica setările automatizărilor. Contactați administratorul HUB pentru acordarea accesului.</span></div><button class="cn-demo-access-button" data-action="view-automation-settings">Vizualizează setări</button><p class="cn-preview-message">Buton temporar disponibil exclusiv în demo.</p>`)}
 async function showAutomationSettings(){
   /* preia configurația reală înainte de construirea controalelor */
   showActionModal("Setări modul","CONFIGURARE MODUL",`<div class="cn-settings-loading" role="status"><span class="cn-settings-spinner"></span><strong>Se încarcă setările...</strong><small>Citire din Supabase</small></div>`,"module-settings");
@@ -1297,7 +1265,7 @@ async function showAutomationSettings(){
       <article class="cn-rule-card"><div class="cn-rule-icon is-danger"><i data-lucide="circle-x"></i></div><div class="cn-rule-copy"><div class="cn-rule-title"><h5>Trimitere eșuată</h5><span class="cn-rule-status">Activ</span></div><p>Notificarea este marcată „Eșuat”. Nu se folosește fallback automat pe alt canal.</p></div></article>
       <article class="cn-rule-card"><div class="cn-rule-icon is-manual"><i data-lucide="mouse-pointer-click"></i></div><div class="cn-rule-copy"><div class="cn-rule-title"><h5>Trimitere manuală</h5><span class="cn-rule-status is-permitted">Permisă</span></div><p>Trimiterea manuală rămâne disponibilă și va intra ulterior în istoric.</p></div></article>
     </div></section>
-  </div><div class="cn-rules-demo-note"><i data-lucide="flask-conical"></i><span><strong>Doar demonstrație UI.</strong> Regulile nu salvează date și nu declanșează trimiteri reale.</span></div>`;
+  </div><div class="cn-rules-demo-note"><i data-lucide="flask-conical"></i><span><strong>Informații despre reguli.</strong> Regulile nu salvează date și nu declanșează trimiteri reale.</span></div>`;
 
   showActionModal("Setări modul","CONFIGURARE MODUL",`<form id="automationForm" class="cn-module-settings-layout"><nav id="moduleSettingsTabs" class="cn-module-settings-tabs" role="tablist" aria-label="Secțiuni configurare"><button id="module-settings-tab-automation" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="module-settings-panel-automation" data-settings-tab="automation"><i data-lucide="workflow"></i><span>Automatizări</span></button><button id="module-settings-tab-channels" type="button" role="tab" aria-selected="false" aria-controls="module-settings-panel-channels" data-settings-tab="channels"><i data-lucide="radio"></i><span>Canale</span></button><button id="module-settings-tab-templates" type="button" role="tab" aria-selected="false" aria-controls="module-settings-panel-templates" data-settings-tab="templates"><i data-lucide="message-square-text"></i><span>Șabloane mesaje</span></button><button id="module-settings-tab-rules" type="button" role="tab" aria-selected="false" aria-controls="module-settings-panel-rules" data-settings-tab="rules"><i data-lucide="list-checks"></i><span>Reguli notificări</span></button></nav><div class="cn-module-settings-content"><section id="module-settings-panel-automation" role="tabpanel" aria-labelledby="module-settings-tab-automation" data-settings-panel="automation">${automationPanel}</section><section id="module-settings-panel-channels" role="tabpanel" aria-labelledby="module-settings-tab-channels" data-settings-panel="channels" hidden>${channelsPanel}</section><section id="module-settings-panel-templates" role="tabpanel" aria-labelledby="module-settings-tab-templates" data-settings-panel="templates" hidden>${templatesPanel}</section><section id="module-settings-panel-rules" role="tabpanel" aria-labelledby="module-settings-tab-rules" data-settings-panel="rules" hidden>${rulesPanel}</section></div></form>`,"module-settings");
   const settingsSaveButton=document.getElementById("moduleSettingsSaveBtn");
@@ -1481,14 +1449,27 @@ document.addEventListener("click",event=>{
   if(realPayment){openRealPaymentForm(realPayment.dataset.addRealPayment);return}
   const settleEntry=event.target.closest("[data-settle-real-advance]");
   if(settleEntry){settleRealAdvanceEntry(settleEntry.dataset.settleRealAdvance,settleEntry);return}
-  if(event.target.closest("[data-select-client]"))selectedRealVehicleId=null;
+  /* închiderea modalelor, paginarea și filele folosesc aceeași delegare */
+  const close=event.target.closest("[data-close-modal]");
+  if(close){closeModal(document.getElementById(close.dataset.closeModal));return}
+  const page=event.target.closest("[data-page]");
+  if(page){currentPage=Number(page.dataset.page);renderTable();lucide.createIcons();return}
+  const tab=event.target.closest("[data-tab]");
+  if(tab){activeDossierTab=tab.dataset.tab;renderRealDossier();lucide.createIcons();return}
+  const action=event.target.closest("[data-action]");
+  if(!action)return;
+  if(action.dataset.action==="edit-real-client"){
+    const row=clientVehicleRows.find(item=>String(item.vehicleId)===String(selectedRealVehicleId));
+    if(row)openRealClientModal(row);
+  }
+  if(action.dataset.action==="add-real-vehicle")openRealVehicleModal();
+  if(action.dataset.action==="new-real-advance")openRealAdvanceForm();
+  if(action.dataset.action==="new-real-constatare")openNewConstatareFromCn();
 });
 /* selecția din tastatură rămâne disponibilă și pentru rândurile conectate */
 document.addEventListener("keydown",event=>{
   if((event.key==="Enter"||event.key===" ")&&event.target.matches("tr[data-select-real-vehicle]")){event.preventDefault();event.target.click()}
 });
-
-document.addEventListener("click",event=>{const close=event.target.closest("[data-close-modal]");if(close){closeModal(document.getElementById(close.dataset.closeModal));return}const page=event.target.closest("[data-page]");if(page){currentPage=Number(page.dataset.page);renderTable();lucide.createIcons();return}const select=event.target.closest("[data-select-client]");if(select){selectedClientId=Number(select.dataset.selectClient);selectedVehicleId=Number(select.dataset.selectVehicle)||getClient()?.vehicles[0]?.id;renderTable();renderDossier();lucide.createIcons();return}const tab=event.target.closest("[data-tab]");if(tab){activeDossierTab=tab.dataset.tab;if(selectedRealVehicleId!==null&&clientListState==="ready")renderRealDossier();else renderDossier();lucide.createIcons();return}const financial=event.target.closest("[data-toggle-financial]");if(financial){toggleFinancialCompletion(financial.dataset.toggleFinancial);return}const openAdvances=event.target.closest("[data-open-advances]");if(openAdvances){openAdvanceManager(openAdvances.dataset.openAdvances);return}const service=event.target.closest("[data-service-id]");if(service){const item=getSelectedVehicle().service.find(entry=>entry.id===service.dataset.serviceId);showActionModal(item.type,"DETALIU SERVICE DEMO",`<div class="cn-preview-box"><div class="cn-preview-meta"><span>Data</span><strong>${formatDate(item.date)}</strong><span>Vehicul</span><strong>${escapeHtml(getSelectedVehicle().plate)}</strong><span>Status</span><strong>${escapeHtml(item.status)}</strong></div><p class="cn-preview-message">${escapeHtml(item.description)}</p></div>`);return}const addPayment=event.target.closest("[data-add-payment]");if(addPayment){openPaymentForm(addPayment.dataset.addPayment);return}const editPayment=event.target.closest("[data-edit-payment]");if(editPayment){openPaymentForm(editPayment.dataset.advanceId,editPayment.dataset.editPayment);return}const editAdvance=event.target.closest("[data-edit-advance]");if(editAdvance){openAdvanceForm(advances.find(item=>item.id===Number(editAdvance.dataset.editAdvance)));return}const archive=event.target.closest("[data-archive-advance]");if(archive){archiveAdvance(archive.dataset.archiveAdvance);return}const action=event.target.closest("[data-action]");if(!action)return;const client=getClient();if(action.dataset.action==="edit-real-client"){const row=clientVehicleRows.find(item=>String(item.vehicleId)===String(selectedRealVehicleId));if(row)openRealClientModal(row)}if(action.dataset.action==="add-real-vehicle")openRealVehicleModal();if(action.dataset.action==="edit-client")openClientModal(client);if(action.dataset.action==="add-vehicle"){realVehicleFormClientId=null;dom.vehicleForm.reset();document.getElementById("vehicleModalClient").textContent=client?.name||"Client demo";openModal(dom.vehicleModal)}if(action.dataset.action==="add-note")openNoteForm(client);if(action.dataset.action==="add-reminder")openReminderModal();if(action.dataset.action==="new-advance")openAdvanceForm();if(action.dataset.action==="new-real-advance")openRealAdvanceForm();if(action.dataset.action==="new-real-constatare")openNewConstatareFromCn();if(["whatsapp","email","offer"].includes(action.dataset.action))previewAction(action.dataset.action);if(action.dataset.action==="view-automation-settings")showAutomationSettings()});
 
 /* controalele statice pentru filtre, creare și automatizare */
 document.getElementById("addCustomDeadlineBtn").addEventListener("click",()=>addCustomDeadlineRow());
@@ -1501,16 +1482,15 @@ document.getElementById("activityScopeFilter").addEventListener("click",event=>{
   renderTable();renderRealDossier();lucide.createIcons();
 });
 
-dom.search.addEventListener("input",()=>{currentPage=1;renderTable();lucide.createIcons()});[dom.typeFilter,dom.channelFilter,dom.statusFilter].forEach(select=>select.addEventListener("change",()=>{currentPage=1;renderTable();lucide.createIcons()}));document.getElementById("deadlineTabs").addEventListener("click",event=>{const button=event.target.closest("[data-window]");if(!button)return;activeWindow=button.dataset.window;currentPage=1;document.querySelectorAll("[data-window]").forEach(item=>item.classList.toggle("is-active",item===button));renderTable();lucide.createIcons()});document.getElementById("resetFiltersBtn").addEventListener("click",()=>{activeWindow="all";activityScope="active";currentPage=1;dom.search.value="";dom.typeFilter.value=dom.channelFilter.value=dom.statusFilter.value="all";document.querySelectorAll("[data-window]").forEach(item=>item.classList.toggle("is-active",item.dataset.window==="all"));document.querySelectorAll("[data-activity-scope]").forEach(item=>item.classList.toggle("is-active",item.dataset.activityScope==="active"));const visible=filteredRows();selectedRealVehicleId=visible[0]?.vehicleId||null;renderTable();renderRealDossier();lucide.createIcons()});document.getElementById("newClientBtn").addEventListener("click",()=>clientListState==="ready"?openRealClientModal():openClientModal());automationSettingsButton?.addEventListener("click",showAutomationSettings);document.getElementById("reminderType").addEventListener("change",event=>{const custom=event.target.value==="Personalizat";document.getElementById("customReminderNameField").hidden=!custom;dom.reminderForm.elements.label.required=custom});
+dom.search.addEventListener("input",()=>{currentPage=1;renderTable();lucide.createIcons()});document.getElementById("resetFiltersBtn").addEventListener("click",()=>{activityScope="active";currentPage=1;dom.search.value="";document.querySelectorAll("[data-activity-scope]").forEach(item=>item.classList.toggle("is-active",item.dataset.activityScope==="active"));const visible=filteredRows();selectedRealVehicleId=visible[0]?.vehicleId||null;renderTable();renderRealDossier();lucide.createIcons()});document.getElementById("newClientBtn").addEventListener("click",()=>{if(clientListState==="ready")openRealClientModal();else showToast("Așteaptă încărcarea datelor înainte de a adăuga un client.")});automationSettingsButton?.addEventListener("click",showAutomationSettings);
 
 /* click-ul pe fundal și tastele rapide închid sigur dialogurile */
-[dom.clientModal,dom.vehicleModal,dom.reminderModal,dom.advanceModal,dom.advanceFormModal,dom.paymentModal,dom.actionModal].forEach(modal=>modal.addEventListener("mousedown",event=>{if(event.target===modal)closeModal(modal)}));document.addEventListener("keydown",event=>{if(event.key==="/"&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){event.preventDefault();dom.search.focus()}if(event.key==="Escape")[dom.paymentModal,dom.advanceFormModal,dom.advanceModal,dom.actionModal,dom.reminderModal,dom.vehicleModal,dom.clientModal].find(modal=>!modal.hidden)&&closeModal([dom.paymentModal,dom.advanceFormModal,dom.advanceModal,dom.actionModal,dom.reminderModal,dom.vehicleModal,dom.clientModal].find(modal=>!modal.hidden));if((event.key==="Enter"||event.key===" ")&&event.target.matches("tr[data-select-client]"))event.target.click()});
+[dom.clientModal,dom.vehicleModal,dom.advanceFormModal,dom.paymentModal,dom.actionModal].forEach(modal=>modal.addEventListener("mousedown",event=>{if(event.target===modal)closeModal(modal)}));document.addEventListener("keydown",event=>{if(event.key==="/"&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){event.preventDefault();dom.search.focus()}if(event.key==="Escape")[dom.paymentModal,dom.advanceFormModal,dom.actionModal,dom.vehicleModal,dom.clientModal].find(modal=>!modal.hidden)&&closeModal([dom.paymentModal,dom.advanceFormModal,dom.actionModal,dom.vehicleModal,dom.clientModal].find(modal=>!modal.hidden));});
 
 /* recalcularea temporizată adaptează paginarea după redimensionarea monitorului */
 window.addEventListener("resize",()=>{clearTimeout(tableResizeTimer);tableResizeTimer=setTimeout(()=>{currentPage=1;renderTable();lucide.createIcons()},120)});window.addEventListener("load",()=>{renderTable();lucide.createIcons()});
 
-/* funcțiile demo pornesc separat, iar lista principală este recitită din Supabase */
-renderModuleDevelopmentProgress();
+/* inițializarea folosește exclusiv lista și formularele reale */
 applyAutomationSettingsPermission();
 refreshAll();
 loadClientVehicleRows();

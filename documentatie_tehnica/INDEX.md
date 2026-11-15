@@ -23,7 +23,7 @@ rezultatele sale din 21.10.2026 rămân istorice. Autorizarea funcțională RLS,
 rolurile de business, compatibilitatea frontendului publicat și comportamentul
 în browser rămân **NEEDS_REVIEW**.
 
-Inventar: 31 de fișiere Markdown sub acest director, inclusiv indexul. Căile din
+Inventar: 32 de fișiere Markdown sub acest director, inclusiv indexul. Căile din
 inventar sunt relative la rădăcina repository-ului; linkurile sunt relative la
 acest fișier. Artefactele istorice absente sunt indicate prin căi în cod inline,
 fără linkuri locale spre fișiere inexistente.
@@ -64,6 +64,7 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 | Query-uri sau schemă Supabase | [03](03_SUPABASE.md), [09](09_MATRICE_ACCES.md), [22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md), [06](06_DEPENDENTE_SI_INTEGRARI.md) | Catalog, politici, granturi și consumatori actuali; schema cere aprobare explicită |
 | Autentificare, roluri sau RLS | [22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md), [04](04_ROLURI_SI_ACCES.md), [09](09_MATRICE_ACCES.md), [12](12_TESTE_ACCES.md); [10](10_PLAN_RLS.md)/[11](11_PLAN_ROLLBACK.md) pentru pachete | Aprobare explicită; nu reactiva planurile AUTH suspendate sau seriile vechi |
 | Deviz Final sau Avansuri | [17](17_MODIFICARI_AVANSURI_2026-10-14_15.md), [05](05_FLUXURI_PRINCIPALE.md), [03](03_SUPABASE.md); [20 ciorne](20_DEVIZ_FINAL_CIORNE_LOCALE_2026-10-17.md) dacă e relevant | RPC, import, totaluri și print; ciornele locale sunt distincte de datele salvate |
+| Clienți & Notificări | [24](24_CLIENTI_NOTIFICARI.md), [02](02_MODULE.md), [03](03_SUPABASE.md) | Canonic C&N: flux clienți/vehicule, avansuri, termene, istoric service, șabloane și limite live |
 | Manager Dashboard | [18 redesign](18_MANAGER_DASHBOARD_REDESIGN.md), [19](19_MANAGER_V2_FISIERE_DEPLOY.md), [09](09_MATRICE_ACCES.md); [15](15_OPTIMIZARI_IMPLEMENTATE.md) pentru performanță | Sursele active din modules/manager/ și integrarea HUB; nu prototipul obsolete |
 | Evidență Facturi & Piese | [Plan/stadiu candidat](evidenta_piese/PLAN_EVIDENTA_PIESE.md), [handoff](../HANDOFF_CODEX.md), [02](02_MODULE.md), [03](03_SUPABASE.md) | Transfer local efectuat; backend EP instalat/verificat read-only, acceptanță browser restantă |
 | Deploy sau transfer în producție | [23](23_INVENTAR_TRANSFER_PRODUCTIE.md), [19](19_MANAGER_V2_FISIERE_DEPLOY.md), documentul funcției | 23 este comparație istorică LAB; generează un inventar nou și compară ținta înainte de transfer; aprobare explicită obligatorie |
@@ -87,6 +88,7 @@ Numerele din tabel sunt linkuri către fișierele complete din inventarul de mai
 |---|---|---|
 | [documentatie_tehnica/01_ARHITECTURA.md](01_ARHITECTURA.md) | REFERENCE | Arhitectură statică locală reconciliată; arborele LAB și stările DB din corp sunt istorice, fără inventar live nou. |
 | [documentatie_tehnica/02_MODULE.md](02_MODULE.md) | NEEDS_REVIEW | Inventar static reconciliat: Manager/căutare/ciorne, acces frontend Admin și frontendul EP transferat/backendul instalat. Browserul rămâne neverificat; probele DB EP sunt în 03. |
+| [documentatie_tehnica/24_CLIENTI_NOTIFICARI.md](24_CLIENTI_NOTIFICARI.md) | CURRENT | Referință tehnică și canonică pentru modulul Clienți & Notificări: arhitectură, fluxuri, tabele Supabase, avansuri, termene, limite și diferențiere stare live vs. demo. |
 
 ### UI și sistem vizual
 

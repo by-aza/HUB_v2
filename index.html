@@ -770,15 +770,6 @@
               </div>
             </div>
 
-            <!-- AI Chat -->
-            <button
-              type="button"
-              class="group relative flex items-center gap-2 overflow-hidden rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:-translate-y-0.5 opacity-50 cursor-not-allowed"
-            >
-              <i data-lucide="sparkles" class="size-4"></i>
-              <span class="hidden sm:inline">AI Chat</span>
-            </button>
-
             <!-- Notifications -->
             <button
               id="notificationsBtn"
@@ -970,8 +961,8 @@
             { id: "telefoane", label: "Registru Telefoane", icon: "phone", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
             { id: "deviz-final", label: "Deviz Final", icon: "receipt-text", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
             { id: "cautare", label: "Căutare Deviz", icon: "file-search", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
-            /* Registru nou în BIROU, imediat sub Căutare Deviz; accesul rămâne identic. */
-            { id: "evidenta-piese", label: "Evidență Facturi & Piese", icon: "package-search", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese", isNew: true },
+            /* Registru BIROU, imediat sub Căutare Deviz; accesul rămâne identic. */
+            { id: "evidenta-piese", label: "Evidență Facturi & Piese", icon: "package-search", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese" },
             { id: "contracte", label: "Contracte", icon: "folder-open", url: "modules/devize/contracte.html", permission: "contracte" },
             { id: "comenzi-piese-sh", label: "Comenzi Piese SH", icon: "shopping-cart", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
             /* modul BETA cu accesul existent */
@@ -1013,12 +1004,6 @@
         critical: "bg-destructive/15 text-destructive",
         success: "bg-success/15 text-success",
       };
-      const badgeTone = {
-        primary: "bg-primary/15 text-primary",
-        warning: "bg-warning/15 text-warning ring-1 ring-warning/30",
-        critical: "bg-destructive/15 text-destructive ring-1 ring-destructive/30 animate-neon",
-        success: "bg-success/15 text-success",
-      };
       const glowMap = {
         primary: ["rgba(45,212,207,0.55)", "rgba(45,212,207,0.45)"],
         warning: ["rgba(245,179,43,0.55)", "rgba(245,179,43,0.45)"],
@@ -1026,28 +1011,32 @@
         success: ["rgba(39,199,154,0.55)", "rgba(39,199,154,0.45)"],
       };
 
+      /* Carduri BIROU: numai navigare, cu descrieri statice și accesul existent. */
       const birouCards = [
-        { id: "devize", title: "Deviz Estimativ", meta: "—", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
-        { id: "avansuri", title: "Evidență Avansuri", meta: "—", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
-        { id: "cereri-plata", title: "Cereri de plată", meta: "—", icon: "wallet", tone: "neutral", url: "modules/devize/plati.html", permission: "plati" },
+        { id: "devize", title: "Deviz Estimativ", meta: "Estimări și oferte", icon: "file-text", tone: "primary", url: "modules/devize/deviz.html", permission: "deviz_estimativ" },
+        { id: "avansuri", title: "Evidență Avansuri", meta: "Avansuri și încasări", icon: "banknote", tone: "neutral", url: "modules/devize/avans.html", permission: "avansuri" },
+        { id: "cereri-plata", title: "Cereri de plată", meta: "Solicitări și plăți", icon: "wallet", tone: "neutral", url: "modules/devize/plati.html", permission: "plati" },
         { id: "telefoane", title: "Registru Telefoane", meta: "Contacte rapide", icon: "phone", tone: "neutral", url: "modules/formulare/telefoane-clienti.html", permission: "telefoane" },
-        { id: "deviz-final", title: "Deviz Final", meta: "—", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
-        { id: "cautare", title: "Căutare Deviz", meta: "—", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
-        /* Card BIROU în aceeași poziție, cu accent turcoaz și marcaj NEW. */
-        { id: "evidenta-piese", title: "Evidență Facturi & Piese", meta: "Facturi, alocări, retururi și magazie", icon: "package-search", tone: "neutral", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese", badge: { label: "NEW", tone: "primary" } },
-        { id: "contracte", title: "Contracte", meta: "—", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
-        { id: "comenzi-piese-sh", title: "Comenzi Piese SH", meta: "—", icon: "shopping-cart", tone: "neutral", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
-        { id: "manager-dashboard-card", title: "Manager Dashboard", meta: "—", icon: "layout-dashboard", tone: "neutral", url: MANAGER_DASHBOARD_URL, permission: "manager_dashboard" },
+        { id: "deviz-final", title: "Deviz Final", meta: "Devize și facturare", icon: "receipt-text", tone: "neutral", url: "modules/devize/deviz_final.html", permission: "deviz_final" },
+        { id: "cautare", title: "Căutare Deviz", meta: "Caută devize salvate", icon: "file-search", tone: "neutral", url: "modules/devize/cautare_devize.html", permission: "cautare_deviz" },
+        /* Registrul păstrează poziția și dimensiunile comune, fără badge. */
+        { id: "evidenta-piese", title: "Evidență Facturi & Piese", meta: "Facturi, alocări și retururi", icon: "package-search", tone: "neutral", url: "modules/stocuri/evidenta_piese.html", permission: "evidenta_piese" },
+        { id: "contracte", title: "Contracte", meta: "Documente și contracte", icon: "folder-open", tone: "warning", url: "modules/devize/contracte.html", permission: "contracte" },
+        { id: "comenzi-piese-sh", title: "Comenzi Piese SH", meta: "Comenzi și piese SH", icon: "shopping-cart", tone: "neutral", url: "modules/devize/comenzi_piese_sh.html", permission: "comenzi_piese_sh" },
+        /* Modul existent, cu ruta și permisiunea Clienți & Notificări. */
+        { id: "clienti-notificari", title: "Clienți & Notificări", meta: "Clienți, mașini și termene", icon: "users-round", tone: "neutral", url: "modules/devize/clienti-notificari.html", permission: "clienti_notificari" },
+        { id: "manager-dashboard-card", title: "Manager Dashboard", meta: "Rapoarte și activitate", icon: "layout-dashboard", tone: "neutral", url: MANAGER_DASHBOARD_URL, permission: "manager_dashboard" },
       ];
 
+      /* Carduri Service: descrierile nu depind de datele live din alerte. */
       const serviceCards = [
         /* cardul Dezmembrari ramane primul in zona Service si pastreaza dimensiunile comune */
         { id: "dezmembrari", title: "Dezmembrări", meta: "Gestionare piese mari", icon: "cog", tone: "primary", url: "modules/stocuri/dezmembrari.html", mobileUrl: "/modules/stocuri/dezmembrari_capture.html", permission: "dezmembrari_manage" },
-        { id: "masini", title: "Listă Mașini", meta: "—", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
-        { id: "awb", title: "Evidență AWB", meta: "—", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
+        { id: "masini", title: "Listă Mașini", meta: "Flotă și vehicule", icon: "clipboard-list", tone: "primary", url: "modules/flota/lista_masini.html", permission: "lista_masini" },
+        { id: "awb", title: "Evidență AWB", meta: "Expedieri și transport", icon: "truck", tone: "neutral", url: "modules/formulare/evidenta-awb.html", permission: "awb" },
         { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
-        { id: "consumabile", title: "Consumabile", meta: "—", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
-        { id: "generator", title: "Generator", meta: "—", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
+        { id: "consumabile", title: "Consumabile", meta: "Stocuri și consumabile", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
+        { id: "generator", title: "Generator", meta: "Utilizare și alimentări", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
       ];
 
       const heroCards = [
@@ -1084,7 +1073,6 @@
         generatorState: "off",
         generatorStart: null,
         generatorDuration: null,
-        generatorLitri: 0,
       };
       const constatariBadges = { inLucru: null, asteptarePiese: null };
       const padConstatariCount = (value) => value == null ? "—" : String(value).padStart(2, "0");
@@ -1094,15 +1082,10 @@
       const sb = supabase.createClient(dbUrl, dbKey);
 
       const todayISO = () => new Date().toLocaleDateString("sv-SE");
-      const monthPrefix = () => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      };
       const parseUTC = (dateStr) => {
         if (!dateStr) return null;
         return new Date(dateStr.includes("Z") || dateStr.includes("+") ? dateStr : dateStr + "Z");
       };
-      const formatLei = (n) => new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 }).format(n);
       const extractLei = (text) => {
         const matches = String(text ?? "").match(/\d+(?:[.,]\d+)?/g);
         if (!matches) return 0;
@@ -1112,11 +1095,6 @@
         if (!row || typeof row !== "object") return "";
         return String(row.mesaj ?? row.message ?? row.text ?? row.continut ?? row.content ?? row.titlu ?? "").trim();
       };
-
-      function patchCard(arr, id, patch) {
-        const card = arr.find((c) => c.id === id);
-        if (card) Object.assign(card, patch);
-      }
 
       function getPermittedItems(items) {
         try {
@@ -1319,15 +1297,10 @@
       }
 
       function cardHTML(card) {
-        const glow = card.badge ? glowMap[card.badge.tone] : null;
-        const dotClass =
-          card.statusDot === "running"
-            ? "bg-success animate-pulse shadow-[0_0_8px_rgba(39,199,154,0.8)]"
-            : "bg-destructive shadow-[0_0_6px_#ef4757]";
+        /* Card static; titlul lung al registrului se poate împărți pe două rânduri. */
         return `
           <a href="${resolveNavigationUrl(card)}"
             class="mobile-compact-card shimmer-on-hover group relative flex h-full w-full flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-lg shadow-black/20 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/30">
-            ${card.statusDot ? `<span class="absolute right-3 top-3 size-2.5 rounded-full ${dotClass}"></span>` : ""}
             <div class="flex items-start justify-between">
               <span class="compact-card-icon grid size-11 place-items-center rounded-xl transition-transform group-hover:scale-105 ${iconTone[card.tone]}">
                 <i data-lucide="${card.icon}" ${officeIconColors[card.id] ? `style="--office-icon-color:${officeIconColors[card.id]}"` : ""} class="size-5 ${officeIconColors[card.id] ? "office-icon" : ""}"></i>
@@ -1335,15 +1308,9 @@
               <i data-lucide="arrow-up-right" class="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"></i>
             </div>
             <div class="min-w-0">
-              <h3 class="truncate text-[15px] font-semibold text-foreground">${card.title}</h3>
-              <p class="mt-0.5 truncate text-xs text-muted-foreground">${card.meta}</p>
+              <h3 class="${card.id === "evidenta-piese" ? "text-[13px] leading-4" : "truncate text-[15px]"} font-semibold text-foreground">${card.title}</h3>
+              <p class="mt-0.5 ${card.id === "evidenta-piese" ? "text-[11px] leading-4" : "truncate text-xs"} text-muted-foreground">${card.meta}</p>
             </div>
-            ${
-              card.badge
-                ? `<span style="--glow-soft:${glow[0]};--glow-strong:${glow[1]}"
-                     class="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeTone[card.badge.tone]}">${card.badge.label}</span>`
-                : ""
-            }
           </a>`;
       }
 
@@ -1640,7 +1607,7 @@
           `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
       }
 
-      /* ---------------- SUPABASE LOADERS ---------------- */
+      /* Citirile live de mai jos alimentează numai zona de sus și alertele. */
       async function loadAdminAnnouncement() {
         try {
           const { data, error } = await sb
@@ -1672,10 +1639,10 @@
         return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
 
+      /* Păstrează starea și ultima sesiune a generatorului în Centrul de Alerte. */
       async function loadGeneratorBadge() {
         const { data, error } = await sb.from("generator_logs").select("*").order("id", { ascending: false });
         if (error) {
-          patchCard(serviceCards, "generator", { meta: "—" });
           return;
         }
 
@@ -1695,33 +1662,9 @@
         } else {
           alertMetrics.generatorDuration = "N/A";
         }
-
-        const prefix = monthPrefix();
-        let totalMins = 0;
-        let totalLitri = 0;
-
-        data.forEach((l) => {
-          if (!l.data || !String(l.data).startsWith(prefix)) return;
-          if (l.litri_motorina && l.observatii?.includes("Alimentare")) {
-            totalLitri += parseFloat(l.litri_motorina) || 0;
-          }
-          if (l.ora_start && l.ora_stop && !l.observatii?.includes("Alimentare")) {
-            totalMins += Math.floor((parseUTC(l.ora_stop) - parseUTC(l.ora_start)) / 60000);
-          }
-        });
-
-        if (running && String(running.data).startsWith(prefix)) {
-          totalMins += Math.floor((Date.now() - parseUTC(running.ora_start).getTime()) / 60000);
-        }
-
-        const hours = Math.floor(totalMins / 60);
-        alertMetrics.generatorLitri = Math.round(totalLitri);
-
-        patchCard(serviceCards, "generator", {
-          meta: `${hours}h | ${Math.round(totalLitri)}L luna asta`,
-        });
       }
 
+      /* Stocul sub prag rămâne live numai în Centrul de Alerte. */
       async function loadConsumabileBadge() {
         try {
           const { data, error } = await sb.from("stoc_view_curent").select("*");
@@ -1729,131 +1672,12 @@
 
           const probleme = (data || []).filter((item) => item.stoc_actual <= item.prag_minim);
           alertMetrics.consumabile = probleme.length;
-
-          if (probleme.length > 0) {
-            patchCard(serviceCards, "consumabile", {
-              meta: `⚠️ ${probleme.length} produse necesită atenție`,
-              tone: "critical",
-              badge: null,
-            });
-          } else {
-            patchCard(serviceCards, "consumabile", {
-              meta: "Stoc OK",
-              tone: "success",
-              badge: null,
-            });
-          }
-        } catch {
-          patchCard(serviceCards, "consumabile", { meta: "Eroare conexiune", badge: null });
+        } catch (error) {
+          console.warn("loadConsumabileBadge failed:", error);
         }
       }
 
-      async function loadAvansBadge() {
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        const endOfToday = new Date(startOfToday);
-        endOfToday.setDate(endOfToday.getDate() + 1);
-
-        const { data, error } = await sb
-          .from("evidente_avansuri_plati")
-          .select("suma, data_platii")
-          .gte("data_platii", startOfToday.toISOString())
-          .lt("data_platii", endOfToday.toISOString());
-
-        if (error) {
-          console.error(error);
-          patchCard(birouCards, "avansuri", { meta: "Azi: 0 Lei" });
-          return;
-        }
-
-        const sum = (data || []).reduce((acc, r) => acc + (Number(r?.suma) || 0), 0);
-        patchCard(birouCards, "avansuri", { meta: `Azi: ${formatLei(sum)} Lei` });
-      }
-
-      async function loadCereriPlataBadge() {
-        const { count, error } = await sb
-          .from("plati_manager")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "neplatit");
-
-        if (error) {
-          console.error(error);
-          patchCard(birouCards, "cereri-plata", {
-            meta: "Nicio cerere activă",
-            tone: "neutral",
-            badge: null,
-          });
-          return;
-        }
-
-        const activeCount = count || 0;
-        if (activeCount > 0) {
-          patchCard(birouCards, "cereri-plata", {
-            meta: `${activeCount} cereri active`,
-            tone: "warning",
-            badge: null,
-          });
-        } else {
-          patchCard(birouCards, "cereri-plata", {
-            meta: "Nicio cerere activă",
-            tone: "success",
-            badge: null,
-          });
-        }
-      }
-
-      async function loadAwbBadge() {
-        const { data, error } = await sb
-          .from("evidenta_awb")
-          .select("pret, stare, is_archived")
-          .eq("stare", "in_tranzit")
-          .eq("is_archived", false);
-
-        if (error) {
-          patchCard(serviceCards, "awb", { meta: "—" });
-          return;
-        }
-
-        const sum = (data || []).reduce((acc, a) => acc + (Number(a.pret) || 0), 0);
-        patchCard(serviceCards, "awb", { meta: `În tranzit: ${formatLei(sum)} Lei` });
-      }
-
-      async function loadUltimulDeviz() {
-        const { data, error } = await sb
-          .from("devize")
-          .select("id_deviz")
-          .order("id_deviz", { ascending: false })
-          .limit(1);
-
-        if (error || !data?.length) {
-          patchCard(birouCards, "devize", { meta: "—" });
-          return;
-        }
-
-        patchCard(birouCards, "devize", { meta: `Ultimul: ${data[0].id_deviz}` });
-      }
-
-      async function loadUltimulDevizFinal() {
-        try {
-          const { data, error } = await sb
-            .from("deviz_final_header")
-            .select("id_deviz_final")
-            .order("id_deviz_final", { ascending: false })
-            .limit(1);
-
-          if (error) throw error;
-
-          if (data?.length) {
-            const formattedId = `DF-${String(data[0].id_deviz_final).padStart(3, "0")}`;
-            patchCard(birouCards, "deviz-final", { meta: `Ultimul: ${formattedId}` });
-          } else {
-            patchCard(birouCards, "deviz-final", { meta: "Niciun deviz final" });
-          }
-        } catch {
-          patchCard(birouCards, "deviz-final", { meta: "Eroare la încărcare" });
-        }
-      }
-
+      /* Numărul contractelor incomplete alimentează alerta de sus. */
       async function loadContracteBadge() {
         const { count, error } = await sb
           .from("contracte")
@@ -1862,23 +1686,10 @@
 
         if (error) {
           alertMetrics.contracte = 0;
-          patchCard(birouCards, "contracte", { meta: "—", badge: null });
           return;
         }
 
         alertMetrics.contracte = count || 0;
-
-        if (alertMetrics.contracte > 0) {
-          patchCard(birouCards, "contracte", {
-            meta: `⚠️ ${alertMetrics.contracte} incomplete`,
-            badge: null,
-          });
-        } else {
-          patchCard(birouCards, "contracte", {
-            meta: "Toate la zi",
-            badge: null,
-          });
-        }
       }
 
       /* numara exclusiv articolele Dezmembrari cu status draft */
@@ -1890,30 +1701,10 @@
 
         if (error) {
           alertMetrics.dezmembrariDrafts = 0;
-          patchCard(serviceCards, "dezmembrari", { meta: "Gestionare piese mari" });
           return;
         }
 
         alertMetrics.dezmembrariDrafts = count || 0;
-        patchCard(serviceCards, "dezmembrari", {
-          meta: alertMetrics.dezmembrariDrafts > 0
-            ? `${alertMetrics.dezmembrariDrafts} de completat`
-            : "Gestionare piese mari",
-        });
-      }
-
-      async function loadTotalDevize() {
-        const { count, error } = await sb.from("devize").select("*", { count: "exact", head: true });
-        patchCard(birouCards, "cautare", {
-          meta: error ? "—" : `Total salvate: ${count || 0}`,
-        });
-      }
-
-      async function loadMasiniBadge() {
-        const { count, error } = await sb.from("flota_auto").select("*", { count: "exact", head: true });
-        patchCard(serviceCards, "masini", {
-          meta: error ? "—" : `Total: ${count || 0} mașini`,
-        });
       }
 
       async function loadDetailingBadge() {
@@ -1978,16 +1769,9 @@
           loadAdminAnnouncement().catch(e => console.warn("loadAdminAnnouncement failed:", e)),
           loadGeneratorBadge().catch(e => console.warn("loadGeneratorBadge failed:", e)),
           loadConsumabileBadge().catch(e => console.warn("loadConsumabileBadge failed:", e)),
-          loadAvansBadge().catch(e => console.warn("loadAvansBadge failed:", e)),
-          loadCereriPlataBadge().catch(e => console.warn("loadCereriPlataBadge failed:", e)),
-          loadAwbBadge().catch(e => console.warn("loadAwbBadge failed:", e)),
-          loadUltimulDeviz().catch(e => console.warn("loadUltimulDeviz failed:", e)),
           loadContracteBadge().catch(e => console.warn("loadContracteBadge failed:", e)),
           loadDezmembrariBadge().catch(e => console.warn("loadDezmembrariBadge failed:", e)),
-          loadTotalDevize().catch(e => console.warn("loadTotalDevize failed:", e)),
-          loadMasiniBadge().catch(e => console.warn("loadMasiniBadge failed:", e)),
           loadDetailingBadge().catch(e => console.warn("loadDetailingBadge failed:", e)),
-          loadUltimulDevizFinal().catch(e => console.warn("loadUltimulDevizFinal failed:", e)),
           loadConstatariBadges().catch(e => console.warn("loadConstatariBadges failed:", e)),
         ]);
         try { rebuildAlerts(); } catch (e) { console.warn("rebuildAlerts failed:", e); }
@@ -2244,16 +2028,10 @@
 
       sb.channel("dashboard_badges")
         .on("postgres_changes", { event: "*", schema: "public", table: "generator_logs" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "evidente_avansuri_plati" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "plati_manager" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "evidenta_awb" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "admin_announcements" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "contracte" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "dezmembrari_items" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "detailing" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "devize" }, refreshDashboard)
-        .on("postgres_changes", { event: "*", schema: "public", table: "flota_auto" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "stoc_view_curent" }, refreshDashboard)
         .on("postgres_changes", { event: "*", schema: "public", table: "constatari" }, refreshDashboard)
         .subscribe();

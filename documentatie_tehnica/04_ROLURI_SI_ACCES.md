@@ -169,8 +169,11 @@ Adminul are bypass în logica dashboardului. Acest bypass UI nu înlocuiește ce
 | Dezmembrări | `dezmembrari_manage` |
 | Audit | `admin_audit` |
 | Utilizatori | Checkout principal: mapare `admin_useri`; verificarea listei acceptă Admin sau bifa. Istoric LAB: Admin-only |
+| TODO | Exclusiv Admin (`rol_id = 1`), fără cheie separată în `auth_profiles.permissions` |
 
-Tabul TODO nu apare cu o cheie distinctă în maparea observată. Clarificarea de business stabilește că `todo_tasks` este modulul personal al administratorului și trebuie să fie accesibil numai Adminului. La nivel SQL, starea actuală este nealiniată: tabelul permite CRUD tuturor utilizatorilor autentificați.
+Tabul TODO este vizibil și accesibil în frontend exclusiv utilizatorilor cu rol Admin (`rol_id = 1`). Nu are permission flag separat în `auth_profiles.permissions` și nu există bifă TODO în Gestionare Useri. Utilizatorii non-Admin nu văd tabul și nu îl pot deschide direct, inclusiv prin apelarea navigării către secțiunea TODO; tentativa de acces direct îi redirecționează către primul tab Admin permis.
+
+Restricția este prezentă în sursa locală `modules/admin/admin.html`; comportamentul în browser și versiunea publicată nu au fost reverificate aici. La nivel SQL, constatarea istorică privind CRUD pentru toți utilizatorii autentificați rămâne distinctă de această restricție frontend; starea live nu a fost reverificată în această actualizare documentară.
 
 `panou_control.html` este un al doilea punct de administrare. În sursa curentă acceptă Admin sau `permissions.panou_control === true`; observația Admin-only descrie numai codul LAB recitit la 22.10. În ambele pagini există cod pentru editarea profilurilor/rolurilor/bifelor, iar creare și ștergere sunt placeholder-uri „Funcționalitate viitoare”, conform [02, §8](02_MODULE.md#8-administrare). Nicio autorizare DB nu este confirmată prin această reconciliere.
 
