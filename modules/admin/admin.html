@@ -1541,7 +1541,8 @@
             <button id="tab-useri" onclick="schimbaTab('sectiune-useri', 'tab-useri')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>👤</span> Gestionare Useri
             </button>
-            <button id="tab-todo" onclick="schimbaTab('sectiune-todo', 'tab-todo')" class="sidebar-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
+            <!-- Butonul TODO rămâne ascuns până la confirmarea rolului Admin. -->
+            <button id="tab-todo" onclick="schimbaTab('sectiune-todo', 'tab-todo')" class="sidebar-btn hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium cursor-pointer">
                 <span>☑️</span> TODO
             </button>
         </nav>
@@ -3058,8 +3059,14 @@
             return profile?.permissions?.[permissionKey] === true;
         }
 
+        // TODO este exclusiv Admin, fără o bifă nouă în permisiunile utilizatorilor.
+        function canAccessAdminTab(tabId, profile = currentAdminProfile) {
+            if (tabId === 'tab-todo') return profile?.rol_id === 1;
+            return hasAdminTabPermission(adminTabPermissionMap[tabId], profile);
+        }
+
         function getVisibleAdminTabIds(profile = currentAdminProfile) {
-            return Object.keys(adminTabPermissionMap).filter((tabId) => hasAdminTabPermission(adminTabPermissionMap[tabId], profile));
+            return Object.keys(adminTabSectionMap).filter((tabId) => canAccessAdminTab(tabId, profile));
         }
 
         function showNoAdminAccessState() {
@@ -3127,10 +3134,10 @@
                     permissions: profile?.permissions && typeof profile.permissions === 'object' ? profile.permissions : {}
                 };
 
-                Object.keys(adminTabPermissionMap).forEach((tabId) => {
+                Object.keys(adminTabSectionMap).forEach((tabId) => {
                     const button = document.getElementById(tabId);
                     if (!button) return;
-                    button.classList.toggle('hidden', !hasAdminTabPermission(adminTabPermissionMap[tabId]));
+                    button.classList.toggle('hidden', !canAccessAdminTab(tabId));
                     button.classList.remove('active');
                 });
 
@@ -3163,8 +3170,9 @@
         // Schimbă secțiunea vizibilă din Admin
         async function schimbaTab(sectiuneId, butonId, options = {}) {
             try {
-                const permissionKey = adminTabPermissionMap[butonId];
-                if (!hasAdminTabPermission(permissionKey)) {
+                // Protejează și deschiderea directă a TODO cu alt ID de buton.
+                const accessTabId = sectiuneId === 'sectiune-todo' ? 'tab-todo' : butonId;
+                if (!canAccessAdminTab(accessTabId)) {
                     const firstTabId = await applyAdminTabPermissions();
                     const redirectedSectionId = firstTabId ? adminTabSectionMap[firstTabId] : null;
                     if (redirectedSectionId && firstTabId) {

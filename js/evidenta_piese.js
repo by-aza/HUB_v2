@@ -2687,6 +2687,21 @@
     };
   };
 
+  /* Leagă alocarea numai de un vehicul unic și vizibil în 'clienti_vehicule'; lipsa lui nu blochează atribuirea. */
+  const lookupAssignmentVehicleId = async (value) => {
+    const plate = normalizePlate(value);
+    if (!plate) return null;
+    try {
+      const { data, error } = await supabaseClient.from("clienti_vehicule")
+        .select("id").eq("nr_inmatriculare", plate).limit(2);
+      if (error) throw error;
+      return data?.length === 1 ? data[0].id : null;
+    } catch (error) {
+      console.warn("Vehiculul alocării nu a putut fi identificat; atribuirea continuă fără vehicle_id.", error);
+      return null;
+    }
+  };
+
   /* Atribuirea individuală/bulk și corecția păstrează UUID-urile surselor. */
   const saveAssignment = async (event) => {
     event.preventDefault();
@@ -2697,13 +2712,16 @@
     }
     const v = validateAssignmentDraft();
     if (!v.ok) { showAssignmentErrors(v.errors, v.firstInvalid); return; }
-    const payload = { items: v.parts.map((part) => ({
-      id: assignmentUi.mode === "reassign" ? allocationsForPart(part)[assignmentUi.allocationIndex].id : assignmentUi.ids.get(part.id),
-      linie_id: part.id, expected_revision: assignmentUi.revisions.get(part.invoiceId),
-      cantitate: v.quantity ?? remainingQty(part), nr_inmatriculare: v.plate, model: v.model
-    })) };
     assignmentUi.saving = true; els.assignmentSave.disabled = true;
     try {
+      /* Rezolvă o singură dată mașina pentru atribuirea individuală/bulk; numărul original rămâne în payload. */
+      const vehicleId = await lookupAssignmentVehicleId(v.plate);
+      const payload = { items: v.parts.map((part) => ({
+        id: assignmentUi.mode === "reassign" ? allocationsForPart(part)[assignmentUi.allocationIndex].id : assignmentUi.ids.get(part.id),
+        linie_id: part.id, expected_revision: assignmentUi.revisions.get(part.invoiceId),
+        cantitate: v.quantity ?? remainingQty(part), nr_inmatriculare: v.plate, model: v.model,
+        vehicle_id: vehicleId
+      })) };
       await API.write("ep_save_allocations", payload);
       assignmentUi.saving = false; state.checkedPartIds.clear();
       closeAssignmentModal({ restoreFocus: false }); renderAll();

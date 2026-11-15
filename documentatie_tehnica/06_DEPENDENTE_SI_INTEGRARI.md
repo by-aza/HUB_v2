@@ -34,6 +34,13 @@ Politicile publice și ACL-urile auditate sunt aliniate între LAB/producție; 3
 
 Nu se propune sau instalează nicio integrare nouă. Nu s-au schimbat Edge, cron, Apps Script, Storage, frontend sau configurații în această sarcină.
 
+## Dependențe Dashboard HUB — actualizare locală 15.11.2026
+
+Eliminarea citirilor exclusive pentru cardurile inferioare nu elimină
+dependențele căutării comune sau ale alertelor live. Delimitarea actuală este
+în [02, §2](02_MODULE.md#2-nucleu-și-autentificare); matricea din arhiva de mai jos
+rămâne o descriere istorică.
+
 ---
 
 ## Arhivă documentară — stări și planuri anterioare

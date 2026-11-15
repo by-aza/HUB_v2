@@ -23,21 +23,36 @@ Confirmările de test LAB/producție datate din corp sunt dovezi istorice distin
 |---|---|---|---|
 | Login | `modules/admin/login.html` | autentificare prin email sau poreclă; redirecționare pe rol | `auth_profiles` S; Supabase Auth sign-in; `audit_logs` I prin helper |
 | Resetare parolă | `modules/admin/resetare-parola.html` | finalizează sesiunea de recovery Supabase | Supabase Auth U parolă |
-| Dashboard HUB | `index.html` | navigare, alerte, căutare globală, badge-uri | S din profile, anunțuri, devize, plăți, AWB, stoc, flotă, contracte, constatări, detailing, dezmembrări, avansuri și generator |
+| Dashboard HUB | `index.html` | navigare, alerte live (Centru de Alerte, Detailing, Constatări), căutare globală | S din `auth_profiles`, `admin_announcements`, `generator_logs`, `stoc_view_curent`, `contracte`, `dezmembrari_items`, `detailing`, `constatari`; `devize` prin head count pentru verificarea conexiunii; citiri suplimentare la căutare prin helperul comun din `modules/manager/manager.js` |
 | Timeout sesiune | `js/session-timeout.js` | logout după 30 minute pentru non-Admin | `auth_profiles` S; Supabase Auth sign-out |
 | Audit comun | `js/audit.js` | expune `addAuditLog` | `audit_logs` I |
 
-Dashboardul nu este un backend intermediar: el interoghează direct Supabase. Căutarea și badge-urile depind de disponibilitatea și permisiunile tabelelor respective.
+Dashboardul nu este un backend intermediar: el interoghează direct Supabase.
+Centrul de Alerte, Detailing și Constatări rămân live, cu citirile și actualizarea
+periodică/Realtime existente. Cardurile inferioare din Birou & Financiar și
+Service & Logistică conțin numai icon, titlu și descriere statică pentru navigare.
+Au fost eliminate valorile live și interogările/abonările folosite exclusiv pentru
+aceste carduri; citirile comune cu alertele și căutarea globală sunt păstrate.
+Căutarea poate citi în continuare devize, avansuri, plăți, AWB și flotă, conform
+permisiunilor; eliminarea contoarelor nu elimină aceste dependențe.
+
+Butonul „AI Chat” din header a fost eliminat. Data/ora, notificările, utilizatorul,
+statusul online, grila și responsive-ul existente sunt păstrate. Noul card
+„Clienți & Notificări” are descrierea „Clienți, mașini și termene”, ruta
+`modules/devize/clienti-notificari.html` și permisiunea existentă `clienti_notificari`.
+Modificarea descrie indexul local, fără a confirma versiunea publicată sau accesul
+cu o sesiune Supabase reală (**NEEDS_REVIEW**).
 
 ## 3. Birou și devize
 
-**Navigare BIROU — actualizare locală 05.11.2026.** În meniul din
+**Navigare și carduri BIROU — actualizare locală 15.11.2026.** În sidebar și în cardurile de navigare din
 [index.html](../index.html), ordinea este: Deviz Estimativ → Evidență Avansuri →
 Cereri de plată → Registru Telefoane → Deviz Final → Căutare Deviz → Evidență Facturi & Piese → Contracte →
-Comenzi Piese SH → Clienți & Notificări. Vizibilitatea păstrează regulile de acces existente.
+Comenzi Piese SH → Clienți & Notificări (urmate în carduri de Manager Dashboard).
+Vizibilitatea păstrează regulile de acces existente.
 Culorile iconițelor și tooltip-ul sidebar-ului sunt descrise în
 [regulile vizuale de navigare](DESIGN_SYSTEM_HUB.md#sidebar-hub--actualizare-locală-04112026).
-Ordinea este confirmată în sursa locală; versiunea publicată rămâne **NEEDS_REVIEW**.
+Ordinea și cardurile sunt confirmate în sursa locală; versiunea publicată rămâne **NEEDS_REVIEW**.
 
 ### 3.1 Deviz estimativ
 
@@ -114,9 +129,11 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 
 ### 3.8 Clienți & Notificări
 
+- documentație detaliată: [24_CLIENTI_NOTIFICARI.md](24_CLIENTI_NOTIFICARI.md);
 - fișiere: `modules/devize/clienti-notificari.html`, `js/clienti-notificari.js`, `css/clienti-notificari.css`;
-- stare: implementare hibridă; pagina este etichetată încă „DEMO” în navigație, dar execută citiri și scrieri live;
+- stare: funcțional pe date reale Supabase (clienți, vehicule, termene, avansuri, istoric service, configurare și șabloane notificări); păstrează blocuri de cod demo/mock inactive în JS și controale ascunse în HTML;
 - date principale:
+  - `auth_profiles` S;
   - `clienti` S/I/U;
   - `clienti_vehicule` S/I/U;
   - `clienti_contacte` S/I/U;
@@ -124,10 +141,11 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
   - `clienti_notificari_istoric` S/I/U;
   - `clienti_notificari_config` S/U;
   - `clienti_notificari_sabloane` S/U;
-  - `evidente_avansuri` S/I/U/D și `evidente_avansuri_plati` S/I;
-  - `constatari`, `devize`, `deviz_final_header`, `comenzi_piese_sh`, `constatari_departamente` S;
+  - `evidente_avansuri` S/I/U/D (D exclusiv rollback compensator la crearea plății inițiale);
+  - `evidente_avansuri_plati` S/I;
+  - `constatari`, `constatari_departamente`, `devize`, `deviz_final_header`, `comenzi_piese_sh`, `ep_alocari`, `ep_factura_linii`, `ep_facturi` S;
 - permisiuni de date: `clienti_notificari` și `clienti_notificari_config` în RLS;
-- neclaritate: anumite note/acțiuni rămân în memorie și nu toate componentele vizuale sunt dovedite ca persistente.
+- limită activă: programările sunt salvate în `clienti_notificari_istoric` cu statusul `programata`, dar expedierea automată (dispatch) nu este implementată în aplicație.
 
 ## 4. Service și formulare
 
@@ -265,7 +283,7 @@ schimbări de furnizor, corectare, resetarea formularului și salvare.
   **backendul EP este instalat și verificat read-only; frontendul nu este publicat**.
 - Runtime: pagina/CSS/JS EP, `js/evidenta_piese_api.js`, `js/ep_df_import.js` și
   deltele punctuale HUB/Admin/DF/print; destinația folosește configurația sa existentă.
-- În sidebar și carduri: **BIROU, imediat după Căutare Deviz**, accent turcoaz și NEW,
+- În sidebar și carduri: **BIROU, imediat după Căutare Deviz**, accent turcoaz al iconului, fără badge NEW; descrierea cardului este „Facturi, alocări și retururi”, fără mărirea cardului sau a grilei,
   fără intrare în SERVICE sau duplicare; linkul `.ep-back-hub` este păstrat.
 - Admin are acces automat; ceilalți necesită JSON boolean `evidenta_piese: true`.
   Bifa este adăugată prin mecanismul existent Admin; autentificarea nu este schimbată.
@@ -318,7 +336,7 @@ Fotografiile sunt proiectate ca private în Google Drive/Cloudflare R2 și sunt 
 - dezmembrări (`dezmembrari_manage`);
 - audit (`admin_audit`);
 - utilizatori și permisiuni (`admin_useri`);
-- TODO; în maparea observată, acest tab nu are o permisiune separată explicită.
+- TODO; vizibil și accesibil exclusiv Adminului (`rol_id = 1`), fără permisiune separată în `auth_profiles.permissions` și fără bifă TODO în Gestionare Useri. Utilizatorii non-Admin nu văd tabul și nu îl pot deschide direct; tentativa de acces direct îi redirecționează către primul tab Admin permis. Regula de acces frontend este detaliată în [04, §6](04_ROLURI_SI_ACCES.md#6-acces-în-admin).
 
 Date accesate: `service_personal` S/I/U, `auth_profiles` S/U, `devize` S/U/D, `deviz_final_header` și `deviz_final_linii` S/D, `dezmembrari_items` S, `todo_tasks` CRUD, `audit_logs` S, `stoc_produse` S/U, `stoc_miscari` S/D, `admin_announcements` CRUD, `comenzi_piese_sh` S/U/D, `config_alerte` S/U și `flota_auto` S/U.
 
@@ -348,13 +366,13 @@ Admin poate edita profilurile existente, rolurile și permisiunile prin operați
 | Sursă | Consumator | Legătură confirmată |
 |---|---|---|
 | Clienți/vehicule | Constatare, Avansuri, Notificări | ID client/vehicul și număr de înmatriculare |
-| Constatare | Deviz final | FK și RPC atomic |
+| Constatare | Deviz final, Dashboard | FK și RPC atomic către Deviz final; contoare live în zona superioară a dashboardului |
 | Comenzi piese SH | Deviz final | linie de deviz poate referi comanda folosită |
 | Avansuri | Clienți & Notificări, Manager | vehicul și plăți |
-| Produse + mișcări | Consumabile, Dashboard, Manager | view-ul `stoc_view_curent` |
-| Flotă | Dashboard, Edge alerte | date expirare și șofer |
+| Produse + mișcări | Consumabile, Dashboard (alertă stoc), Manager | view-ul `stoc_view_curent` |
+| Flotă | Dashboard (căutare), Edge alerte | căutare după vehicul; date expirare și șofer pentru alertele Edge |
 | Fotografii dezmembrări | Edge Function | metadate DB + obiecte private externe |
-| Toate modulele majore | Dashboard/Admin audit | badge-uri/căutare și jurnalizare, unde helperul este inclus |
+| Toate modulele majore | Dashboard/Admin audit | căutare globală, alerte pentru modulele din zona superioară și jurnalizare, unde helperul este inclus |
 
 Nu există o dependență de cod între proiectul React de referință și aplicația principală.
 
