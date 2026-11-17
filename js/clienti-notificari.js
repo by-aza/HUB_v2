@@ -148,15 +148,10 @@ function profileVisualState(row){
   return Number.isFinite(createdTime)&&ageDays>=0&&ageDays<=5?"new":"regular";
 }
 
-/* ordonarea respectă prioritatea de completare, apoi recența pentru rândurile complete */
+/* lista urmează exclusiv data introducerii clientului, cu ID descrescător la egalitate */
 function sortClientVehicleRows(a,b){
-  const rank={incomplete:0,new:1,regular:2},rankDiff=rank[a.profileState]-rank[b.profileState];
-  if(rankDiff)return rankDiff;
-  if(a.profileState!=="incomplete"){
-    const dateDiff=(new Date(b.createdAt).getTime()||0)-(new Date(a.createdAt).getTime()||0);
-    if(dateDiff)return dateDiff;
-  }
-  return a.name.localeCompare(b.name,"ro",{sensitivity:"base"})||a.plate.localeCompare(b.plate,"ro",{numeric:true});
+  const dateDiff=(new Date(b.clientCreatedAt).getTime()||0)-(new Date(a.clientCreatedAt).getTime()||0);
+  return dateDiff||String(b.clientId).localeCompare(String(a.clientId),"ro",{numeric:true});
 }
 
 /* sumarul este pregătit pentru viitoarele remindere reale, fără a crea date fictive */
@@ -277,7 +272,7 @@ async function loadClientVehicleRows(){
       const yearColumn=supportedColumn("clienti_vehicule",["an_fabricatie","an"]);
       const clientStatus=String(client.status_activitate||"activ"),vehicleStatus=String(vehicle.status_vehicul||"activ");
       const reminders=vehicleStatus==="activ"?(vehicleDeadlinesByVehicle.get(String(vehicle.id))||[]).filter(deadline=>deadline.activ===true&&deadline.data_termen):[];
-      const row={clientId:client.id,vehicleId:vehicle.id,clientStatus,vehicleStatus,code:String(client.cod_client||"").trim(),name:String(client.nume||"").trim(),phone:preferredContact(contacts,"telefon"),email:preferredContact(contacts,"email"),notes:String(client.observatii||"").trim(),channels,consent:client.acord_notificari===true,timing,plate:String(vehicle.nr_inmatriculare||"").trim(),makeModel:String(vehicle.marca_model||"").trim(),year:yearColumn?vehicle[yearColumn]||"":"",vin:String(vehicle.serie_vin||"").trim(),vehicleNotes:String(vehicle.observatii||"").trim(),createdAt:latestCreatedAt(client.created_at,vehicle.created_at),reminders};
+      const row={clientId:client.id,vehicleId:vehicle.id,clientStatus,vehicleStatus,code:String(client.cod_client||"").trim(),name:String(client.nume||"").trim(),phone:preferredContact(contacts,"telefon"),email:preferredContact(contacts,"email"),notes:String(client.observatii||"").trim(),channels,consent:client.acord_notificari===true,timing,plate:String(vehicle.nr_inmatriculare||"").trim(),makeModel:String(vehicle.marca_model||"").trim(),year:yearColumn?vehicle[yearColumn]||"":"",vin:String(vehicle.serie_vin||"").trim(),vehicleNotes:String(vehicle.observatii||"").trim(),clientCreatedAt:client.created_at,createdAt:latestCreatedAt(client.created_at,vehicle.created_at),reminders};
       row.profileState=profileVisualState(row);row.nextReminder=nearestReminderSummary(row.reminders);row.hasEligibleScheduled=(scheduledByVehicle.get(String(row.vehicleId))||[]).some(notification=>isScheduledNotificationEligible(notification,row,listNotificationConfig));return row;
     }).filter(Boolean).sort(sortClientVehicleRows);
     const scopedRows=clientVehicleRows.filter(row=>activityScope==="all"||(activityScope==="active"?isOperationalRow(row):!isOperationalRow(row)));
@@ -399,11 +394,19 @@ function renderTable(){
   document.getElementById("visibleCount").textContent=shown.length;document.getElementById("allRowsCount").textContent=rows.length;document.getElementById("clientTotal").textContent=`${new Set(clientVehicleRows.map(row=>String(row.clientId))).size} clienți`;pagination.innerHTML=rows.length?Array.from({length:pages},(_,index)=>`<button class="${index+1===currentPage?"is-active":""}" data-page="${index+1}">${index+1}</button>`).join(""):"";
 }
 
-/* antetul dosarului real păstrează vehiculul curent și navigarea între file */
+/* numai valorile prezente primesc acțiunea de copiere, fără iconițe suplimentare */
+function dossierCopyValue(value,kind,placeholder="—"){
+  const text=String(value??"").trim();
+  if(!text||/^(nespecificat|—|-)$/i.test(text))return escapeHtml(text||placeholder);
+  const labels={phone:"telefonul",plate:"numărul de înmatriculare",vin:"VIN-ul"};
+  return`<span class="cn-copy-value" data-copy-value="${escapeHtml(text)}" data-copy-kind="${kind}" title="Copiază ${labels[kind]}">${escapeHtml(text)}</span>`;
+}
+
+/* antetul păstrează filele și afișează sub Editare data introducerii clientului */
 function realDossierHeader(row){
   const tabs=[["general","General"],["advances","Avansuri"],["service","Istoric service"],["notifications","Notificări"]];
   const activityBadges=`${row.clientStatus!=="activ"?`<em class="cn-activity-badge is-inactive">Client ${escapeHtml(clientActivityLabel(row.clientStatus))}</em>`:""}${row.vehicleStatus!=="activ"?`<em class="cn-activity-badge is-inactive">Vehicul ${escapeHtml(vehicleActivityLabel(row.vehicleStatus))}</em>`:""}`;
-  return`<header class="cn-dossier-header"><div class="cn-dossier-title"><div><span class="cn-eyebrow">DOSAR CLIENT</span><h2 class="cn-client-name is-${row.profileState}">${escapeHtml(row.name||"—")}</h2><p class="cn-client-code">${escapeHtml(row.code||"Cod client indisponibil")}</p><div class="cn-dossier-activity">${activityBadges}</div></div><button type="button" class="cn-dossier-edit-button" data-action="edit-real-client"><i data-lucide="pencil"></i> Editare</button></div><div class="cn-selected-vehicle"><i data-lucide="car-front"></i><span><strong>${escapeHtml(row.makeModel||"Vehicul nespecificat")}</strong><small>${escapeHtml(row.plate||"Fără număr auto")}</small></span><button type="button" class="cn-button cn-button-small cn-new-finding-button" data-action="new-real-constatare">+ Constatare nouă</button></div></header><nav class="cn-dossier-tabs">${tabs.map(([id,label])=>`<button class="${activeDossierTab===id?"is-active":""}" data-tab="${id}">${label}</button>`).join("")}</nav>`;
+  return`<header class="cn-dossier-header"><div class="cn-dossier-title"><div><span class="cn-eyebrow">DOSAR CLIENT</span><h2 class="cn-client-name is-${row.profileState}">${escapeHtml(row.name||"—")}</h2><p class="cn-client-code">${escapeHtml(row.code||"Cod client indisponibil")}</p><div class="cn-dossier-activity">${activityBadges}</div></div><div class="cn-dossier-actions"><button type="button" class="cn-dossier-edit-button" data-action="edit-real-client"><i data-lucide="pencil"></i> Editare</button><span class="cn-client-created ${row.profileState==="incomplete"?"is-incomplete":""}">Adăugat: ${formatDate(row.clientCreatedAt)}</span></div></div><div class="cn-selected-vehicle"><i data-lucide="car-front"></i><span><strong>${escapeHtml(row.makeModel||"Vehicul nespecificat")}</strong><small>${dossierCopyValue(row.plate,"plate","Fără număr auto")}</small></span><button type="button" class="cn-button cn-button-small cn-new-finding-button" data-action="new-real-constatare">+ Constatare nouă</button></div></header><nav class="cn-dossier-tabs">${tabs.map(([id,label])=>`<button class="${activeDossierTab===id?"is-active":""}" data-tab="${id}">${label}</button>`).join("")}</nav>`;
 }
 
 /* fila General reală păstrează datele de contact și lista de vehicule existentă */
@@ -412,7 +415,7 @@ function realGeneralTab(row,vehicles){
   const timing=row.timing?.length?row.timing.map(value=>value===0?"În ziua termenului":`${value} zile`):["Nespecificat"];
   const deadlines=[...(row.reminders||[])].sort((a,b)=>String(a.data_termen).localeCompare(String(b.data_termen)));
   const deadlineRows=deadlines.map(deadline=>`<div class="cn-general-deadline"><strong>${escapeHtml(deadlineDisplayName(deadline))}</strong><span>${formatDate(deadline.data_termen)}</span></div>`).join("")||'<span class="cn-preview-message">Fără termene setate</span>';
-  return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><h3>Date de contact</h3><span class="cn-consent ${row.consent?"":"cn-no-consent"}">${row.consent?"Acord confirmat":"Fără acord"}</span></div><div class="cn-contact-grid"><div class="cn-info-row"><i data-lucide="phone"></i>${escapeHtml(row.phone||"Nespecificat")}</div><div class="cn-info-row"><i data-lucide="mail"></i>${escapeHtml(row.email||"Nespecificat")}</div></div><!-- canalele și pragurile rămân pe același rând pe desktop --><div class="cn-contact-preferences"><div class="cn-preference-group"><strong>Canale selectate</strong><div class="cn-channel-list">${channels.map(channel=>`<span class="cn-chip">${escapeHtml(channel)}</span>`).join("")}</div></div><div class="cn-preference-group cn-preference-group-right"><strong>Preferințe notificări</strong><div class="cn-timing-list">${timing.map(item=>`<span class="cn-chip">${escapeHtml(item)}</span>`).join("")}</div></div></div>${row.notes?`<p class="cn-note cn-client-observations">${escapeHtml(row.notes)}</p>`:""}</section><section class="cn-card"><div class="cn-card-header"><h3>Vehicule (${vehicles.length})</h3><button type="button" class="cn-button cn-button-small cn-button-primary" data-action="add-real-vehicle"><i data-lucide="plus"></i> Adaugă mașină</button></div><div class="cn-vehicle-list">${vehicles.map(vehicle=>`<button class="cn-vehicle-card ${String(vehicle.vehicleId)===String(row.vehicleId)?"is-selected":""}" data-select-real-vehicle="${escapeHtml(vehicle.vehicleId)}"><span><strong>${escapeHtml(vehicle.makeModel||"Vehicul nespecificat")}</strong><small>${vehicle.year?`${escapeHtml(vehicle.year)} · `:""}VIN ${escapeHtml(vehicle.vin||"nespecificat")}</small></span><span class="cn-vehicle-card-status"><strong class="cn-plate">${escapeHtml(vehicle.plate||"—")}</strong>${vehicle.vehicleStatus!=="activ"?`<em class="cn-activity-badge is-inactive">${escapeHtml(vehicleActivityLabel(vehicle.vehicleStatus))}</em>`:""}</span></button>`).join("")}</div></section><section class="cn-card cn-general-deadlines"><div class="cn-card-header"><h3>Termene · <span class="cn-plate">${escapeHtml(row.plate||"—")}</span></h3></div><div class="cn-general-deadline-list">${deadlineRows}</div></section></div>`;
+  return`<div class="cn-tab-stack"><section class="cn-card"><div class="cn-card-header"><h3>Date de contact</h3><span class="cn-consent ${row.consent?"":"cn-no-consent"}">${row.consent?"Acord confirmat":"Fără acord"}</span></div><div class="cn-contact-grid"><div class="cn-info-row"><i data-lucide="phone"></i>${dossierCopyValue(row.phone,"phone","Nespecificat")}</div><div class="cn-info-row"><i data-lucide="mail"></i>${escapeHtml(row.email||"Nespecificat")}</div></div><!-- canalele și pragurile rămân pe același rând pe desktop --><div class="cn-contact-preferences"><div class="cn-preference-group"><strong>Canale selectate</strong><div class="cn-channel-list">${channels.map(channel=>`<span class="cn-chip">${escapeHtml(channel)}</span>`).join("")}</div></div><div class="cn-preference-group cn-preference-group-right"><strong>Preferințe notificări</strong><div class="cn-timing-list">${timing.map(item=>`<span class="cn-chip">${escapeHtml(item)}</span>`).join("")}</div></div></div>${row.notes?`<p class="cn-note cn-client-observations">${escapeHtml(row.notes)}</p>`:""}</section><section class="cn-card"><div class="cn-card-header"><h3>Vehicule (${vehicles.length})</h3><button type="button" class="cn-button cn-button-small cn-button-primary" data-action="add-real-vehicle"><i data-lucide="plus"></i> Adaugă mașină</button></div><div class="cn-vehicle-list">${vehicles.map(vehicle=>`<button class="cn-vehicle-card ${String(vehicle.vehicleId)===String(row.vehicleId)?"is-selected":""}" data-select-real-vehicle="${escapeHtml(vehicle.vehicleId)}"><span><strong>${escapeHtml(vehicle.makeModel||"Vehicul nespecificat")}</strong><small>${vehicle.year?`${escapeHtml(vehicle.year)} · `:""}VIN ${dossierCopyValue(vehicle.vin,"vin","nespecificat")}</small></span><span class="cn-vehicle-card-status"><strong class="cn-plate">${dossierCopyValue(vehicle.plate,"plate","—")}</strong>${vehicle.vehicleStatus!=="activ"?`<em class="cn-activity-badge is-inactive">${escapeHtml(vehicleActivityLabel(vehicle.vehicleStatus))}</em>`:""}</span></button>`).join("")}</div></section><section class="cn-card cn-general-deadlines"><div class="cn-card-header"><h3>Termene · <span class="cn-plate">${dossierCopyValue(row.plate,"plate","—")}</span></h3></div><div class="cn-general-deadline-list">${deadlineRows}</div></section></div>`;
 }
 
 /* totalul unei fișe reale provine exclusiv din plățile asociate în Supabase */
@@ -828,6 +831,15 @@ function refreshAll(){renderKpis();renderAttention();renderTable();if(clientList
 function openModal(modal){modal.hidden=false;document.body.style.overflow="hidden";lucide.createIcons()}
 function closeModal(modal){modal.hidden=true;if(Object.values(dom).filter(item=>item?.classList?.contains("cn-modal-overlay")).every(item=>item.hidden))document.body.style.overflow=""}
 function showToast(message){clearTimeout(toastTimer);dom.toast.textContent=message;dom.toast.classList.add("is-visible");toastTimer=setTimeout(()=>dom.toast.classList.remove("is-visible"),2600)}
+/* confirmarea apare numai după copierea reușită prin Clipboard API */
+async function copyDossierValue(element){
+  try{
+    await navigator.clipboard.writeText(element.dataset.copyValue);
+    showToast({phone:"Telefon copiat",plate:"Număr înmatriculare copiat",vin:"VIN copiat"}[element.dataset.copyKind]);
+  }catch{
+    showToast("Valoarea nu a putut fi copiată.");
+  }
+}
 function showActionModal(title,eyebrow,body,variant=""){
   const actionDialog=dom.actionModal.querySelector(".cn-action-modal");
   const settingsSaveButton=document.getElementById("moduleSettingsSaveBtn");
@@ -1425,6 +1437,9 @@ async function showAutomationSettings(){
 
 /* delegarea evenimentelor controlează elementele randate dinamic */
 document.addEventListener("click",event=>{
+  /* copierea din cardul unui vehicul nu schimbă selecția și nu rerandează dosarul */
+  const copyValue=event.target.closest("[data-copy-value]");
+  if(copyValue&&dom.drawer.contains(copyValue)){event.preventDefault();void copyDossierValue(copyValue);return}
   const notificationPreview=event.target.closest("[data-preview-real-notification]");
   if(notificationPreview){previewRealNotification(notificationPreview.dataset.previewRealNotification,notificationPreview.dataset.previewThreshold??null);return}
   const clearDeadline=event.target.closest("[data-clear-standard-deadline]");
