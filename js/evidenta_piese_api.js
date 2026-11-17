@@ -2,7 +2,7 @@
 (() => {
   "use strict";
   const PROJECT = "xyovkxmtbvgcwavuyxxu";
-  const allowed = new Set(["ep_save_supplier", "ep_save_invoice", "ep_save_allocations", "ep_register_movement", "ep_set_default", "ep_release_quantity", "ep_delete_invoice"]);
+  const allowed = new Set(["ep_save_supplier", "ep_save_invoice", "ep_save_allocations", "ep_register_movement", "ep_set_default", "ep_release_quantity", "ep_delete_invoice", "ep_associate_df"]);
   let client, profile = null, defaults = { tva_proc: 21, coeficient_df: 1.53 };
   let pending = null, busy = false, stale = true, callbacks = {}, authSubscription;
   const uuid = () => {
@@ -24,7 +24,7 @@
   });
   const accessLost = (message) => {
     profile = null; stale = true;
-    callbacks.onData?.({ suppliers: [], invoices: [], parts: [], returns: [], warehouseTransfers: [], dfImports: [] });
+    callbacks.onData?.({ suppliers: [], invoices: [], parts: [], returns: [], warehouseTransfers: [], dfImports: [], dfAssociations: [], associationSupported: false });
     notify(message);
   };
   const authorize = async () => {
@@ -102,6 +102,16 @@
         id: f.id, revision: f.revision, number: f.numar, supplierId: f.furnizor_id,
         date: f.data_factura, status: f.status_document, note: f.observatii || "", ...activity(f)
       })),
+      /* Asocierea consumă cantitatea separat de import și păstrează actorul real înregistrat. */
+      associationSupported: Array.isArray(s.associations),
+      dfAssociations: (s.associations || []).map(r => {
+        const allocation = s.allocations.find(a => a.id === r.alocare_id);
+        const part = partMap.get(allocation?.linie_id);
+        if (!part) throw new Error("Sursa unei asocieri DF nu a putut fi încărcată.");
+        return { id:r.id, dfId:r.df_id, reference:`DF-${String(r.df_id).padStart(3,"0")}`,
+          partId:part.id, invoiceId:part.invoiceId, allocationId:r.alocare_id,
+          qty:Number(r.cantitate), plate:r.nr_inmatriculare_original, ...activity(r) };
+      }),
       parts, dfImports: (s.imports || []).map(r => ({
         id:r.id,dfId:r.df_id,reference:`DF-${String(r.df_id).padStart(3,"0")}`,
         partId:r.part_id,invoiceId:partMap.get(r.part_id)?.invoiceId,allocationId:r.allocation_id,
@@ -126,7 +136,7 @@
   /* Poreclele se citesc numai pentru UUID-urile autorilor salvați, cu RLS existent. */
   const loadAuthors = async (s) => {
     const ids = [...new Set([...(s.invoices || []), ...(s.allocations || []), ...(s.returns || []),
-      ...(s.transfers || []), ...(s.imports || [])].flatMap(r => [r.created_by, r.anulat_de]).filter(Boolean))];
+      ...(s.transfers || []), ...(s.imports || []), ...(s.associations || [])].flatMap(r => [r.created_by, r.anulat_de]).filter(Boolean))];
     const authors = new Map();
     for (let start = 0; start < ids.length; start += 100) {
       try {
@@ -221,7 +231,16 @@
     });
     await load();
   };
-  window.HubEpApi = { init, load, write, recover, getDefaults, uuid,
+  /* DF-urile eligibile vin din backend, cu aceleași verificări EP și DF ca la salvare. */
+  const listAssociationDfs = async (allocationIds) => {
+    await authorize();
+    const viewerId = profile.id;
+    const { data, error } = await client.rpc("ep_list_association_dfs", { p_allocation_ids: allocationIds });
+    if (error) throw new Error(error.code === "PGRST202" ? "Asocierea necesită migrarea Supabase pregătită local." : error.message);
+    if (!profile || profile.id !== viewerId) throw new Error("Sesiunea HUB s-a schimbat. Reîncarcă registrul.");
+    return data || [];
+  };
+  window.HubEpApi = { init, load, write, recover, getDefaults, uuid, listAssociationDfs,
     get profile() { return profile; }, get defaults() { return { ...defaults }; },
     get busy() { return busy; }, get stale() { return stale; }, get pending() { return Boolean(pending); } };
 })();

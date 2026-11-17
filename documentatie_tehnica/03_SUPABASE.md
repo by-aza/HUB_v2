@@ -1,5 +1,62 @@
 # Integrarea Supabase
 
+## EP: asociere DF fără import — 17.11.2026, APLICAT ÎN PRODUCȚIE
+
+**Statut producție: APPLIED.** Migrarea
+[`20261117085755_ep_associate_df_without_import.sql`](../supabase/migrations/20261117085755_ep_associate_df_without_import.sql)
+este aplicată cu succes în HUB `xyovkxmtbvgcwavuyxxu`, conform confirmării
+utilizatorului. Nu se reaplică. Gărzile MD5 din fișier descriu contractele
+inspectate read-only înainte de aplicare. Această actualizare documentară
+nu execută SQL și nu face o nouă verificare a producției.
+
+**Date și trasabilitate:** `public.ep_asocieri_df` păstrează `id` UUID,
+`alocare_id` → `ep_alocari.id`, `df_id` → `deviz_final_header.id_deviz_final`,
+`cantitate` întreagă pozitivă și `nr_inmatriculare_original`.
+`UNIQUE(df_id, alocare_id)` interzice o a doua asociere a aceleiași surse la
+același DF; părți din cantitate pot merge la DF-uri diferite. FK-urile folosesc
+RESTRICT. `created_by` referă `auth_profiles.id` și vine din utilizatorul HUB
+verificat server-side; `created_at` este timestamp server (`clock_timestamp()`).
+`load_registry` livrează separat `associations`; frontendul rezolvă porecla
+autorului salvat și afișează timestamp-ul în ora locală, fără a folosi sesiunea
+curentă drept autor al unei operații vechi.
+
+**RPC-uri publice:**
+
+- `ep_list_association_dfs(p_allocation_ids uuid[])`: citire a DF-urilor
+  compatibile cu toate alocările cerute și cu disponibil pozitiv. Identitatea
+  refolosește resolverul DF; alocările fără `vehicle_id` folosesc fallback-ul
+  existent prin număr normalizat. Lista nu rezervă cantități.
+- `ep_associate_df(p_request uuid, p jsonb)`: payload cu `df_id`,
+  `expected_df_revision` și `items[{id, alocare_id, cantitate, expected_revision}]`.
+  Ultima revizie este cea a facturii sursă. Salvează lotul atomic prin
+  `begin_request`/`finish_request`, cu auditul actorului și stările before/after.
+  Retry-ul păstrează același UUID și payload. Nu apelează salvarea financiară DF.
+
+Ambele RPC-uri cer `require_access()` + `require_df()` (permisiunile EP și DF
+sau Admin), cu wrapper public invoker și implementare privată definer.
+Tabela are RLS pentru citirea EP; clientului nu i se acordă DML direct.
+
+**Disponibil per alocare:** cantitate alocată − retururi − transferuri active
+în magazie − importuri DF − asocieri DF. Transferurile anulate nu se scad.
+`capacity` este sursa comună pentru eligibilitatea importului, returului,
+magaziei și asocierii. Scrierea revalidează mașina, istoricul protejat,
+reviziile, sursele duplicate și cantitatea sub blocarea comună EP/DF
+`pg_advisory_xact_lock(19520,7001)`, apoi apelează `validate_line`.
+Cantitatea asociată nu mai poate fi importată, returnată sau trimisă în magazie;
+restul liber rămâne utilizabil. `save_allocations`/`release_quantity` protejează
+sursa asociată împotriva corectării/resetării, iar triggerul
+`ep_associated_df_identity` păstrează identitatea mașinii DF.
+
+**Probe și limite:** [ep_df_association_contract.py](../tests/ep_df_association_contract.py)
+are 44 verificări anterioare de contract static și expresii SELECT pe PostgreSQL
+temporar cu date sintetice; nu instalează funcțiile și nu execută migrarea.
+Regulile funcționale, probele Chrome și rezultatul real confirmat sunt în
+[secțiunea EP](evidenta_piese/PLAN_EVIDENTA_PIESE.md#asociere-cu-df-fără-import--stare-la-17112026).
+**NEEDS_REVIEW:** curse între sesiuni independente (asociere/import/retur/magazie),
+replay după răspuns pierdut și autorizarea efectivă pentru combinațiile de roluri
+cu sesiuni reale. Cazul real confirmat nu dovedește aceste scenarii; probele
+locale nu au fost rerulate în această intervenție documentară.
+
 ## Bază VIN — eliminat la 12.11.2026
 
 `public.baza_vin` și datele sale au fost șterse din Supabase producție
