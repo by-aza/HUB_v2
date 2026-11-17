@@ -2,7 +2,7 @@
 
 Document canonic de analiză și referință tehnică pentru modulul Clienți & Notificări.  
 Surse de adevăr analizate: `modules/devize/clienti-notificari.html`, `js/clienti-notificari.js`, `css/clienti-notificari.css`.  
-Data analizei: 15.11.2026.
+Data analizei: 15.11.2026. Ultima actualizare: 17.11.2026.
 
 ---
 
@@ -45,13 +45,27 @@ Modulul **Clienți & Notificări** (C&N) centralizează gestiunea relației cu c
    - Paginare adaptivă dinamică calculată pe baza înălțimii viewport-ului (`calculateRowsPerPage`).
    - Căutare combinată în timp real: nume client, telefon, email, VIN, marcă/model, cod client și număr înmatriculare (cu normalizare caractere).
    - Filtru de activitate: *Active* (client activ + vehicul activ), *Inactive / Arhivă* (client inactiv sau vehicul inactiv/vândut/casat), *Toate*.
-   - Indicatori vizuali de profil: complet (`is-regular`), de completat (`is-incomplete`), nou în ultimele 5 zile (`is-new`).
-   - Sortare prioritară: profile incomplete primele, apoi noutate, apoi alfabetic.
-4. **Dosar client — Fila General:**
-   - Afișare date contact (telefon preferat, email preferat, stare acord comunicare).
-   - Canale selectate (WhatsApp, Email, SMS) și praguri de notificare (30, 15, 5, 0 zile).
+   - Indicatori vizuali de profil (rol strict vizual, nu influențează ordinea):
+     - profil incomplet (`is-incomplete`) — portocaliu;
+     - client recent introdus în ultimele 5 zile (`is-new`) — albastru / etichetă NEW;
+     - profil normal / client mai vechi (`is-regular`) — alb.
+   - Sortare cronologică:
+     - Ordonare după `clienti.created_at DESC` (clientul introdus cel mai recent apare primul);
+     - La egalitate de dată se aplică sortare secundară după `clientId DESC`;
+     - Lista nu mai prioritizează clienții incompleți sau pe cei recenți (NEW).
+4. **Dosar client — Antet și Fila General:**
+   - Afișare dată introducere client: poziționată în antetul dosarului (sub acțiunea „Editare”), în format `DD.MM.YYYY`, preluată din `clienti.created_at`.
+   - Culoare contextuală dată: nuanță teal/verde (`var(--cyan)`) pentru profil normal (`is-regular` / `new`) și portocalie (`var(--amber)`, clasa `is-incomplete`) pentru profil incomplet.
+   - Copiere în clipboard prin click direct pe valori:
+     - Număr de telefon (secțiunea de contact a clientului);
+     - Număr de înmatriculare (vehiculul selectat în antet și cardurile de vehicul din lista clientului);
+     - Serie de șasiu (VIN).
+     - Clasa `.cn-copy-value` oferă indicator de cursor și efect hover discret;
+     - Copierea este confirmată prin componenta toast existentă (`showToast`): „Telefon copiat”, „Număr înmatriculare copiat”, respectiv „VIN copiat”.
+   - Tratare valori lipsă: valorile inexistente, goale sau marcate „Nespecificat” / „—” nu primesc clasă de copiere și nu sunt clickabile.
+   - Date contact și canale: afișare telefon preferat, email preferat, stare acord comunicare, canale selectate (WhatsApp, Email, SMS) și praguri de notificare (30, 15, 5, 0 zile).
    - Observații text client.
-   - Listă compactă a tuturor vehiculelor clientului cu badge-uri de stare și comutare rapidă a vehiculului activ.
+   - Listă compactă a tuturor vehiculelor clientului cu badge-uri de stare și comutare rapidă a vehiculului activ (fără a declanșa re-randarea sau schimbarea selecției la copiere).
    - Listă sumară a termenelor scadente pentru mașina selectată.
    - Buton „Editare” dosar și buton „+ Constatare nouă” (cu redirecționare spre `modules/formulare/constatari_v2.html?action=new-from-cn&client_id=...&vehicle_id=...`).
 5. **Dosar client — Fila Avansuri (Gestiune financiară per vehicul):**
@@ -181,7 +195,7 @@ Modulul interacționează cu un total de **18 tabele Supabase**:
 | Tabel Supabase | Operații | Câmpuri utilizate | Scop în modul |
 |---|---|---|---|
 | `auth_profiles` | SELECT | `rol_id`, `permissions` | Verificare drept de configurare setări modul (`rol_id === 1` sau permisiunea `clienti_notificari_config`). |
-| `clienti` | SELECT, INSERT, UPDATE | `id`, `cod_client`, `nume`, `status_activitate`, `status_profil`, `tip_client`, `sursa_creare`, `created_at`, `updated_at`, `acord_notificari`, `canal_whatsapp`, `canal_email`, `canal_sms`, `prag_30`, `prag_15`, `prag_5`, `prag_0`, `observatii` (opțional) | Datele principale de identificare ale clientului, starea profilului și preferințele globale de comunicare. |
+| `clienti` | SELECT, INSERT, UPDATE | `id`, `cod_client`, `nume`, `status_activitate`, `status_profil`, `tip_client`, `sursa_creare`, `created_at`, `updated_at`, `acord_notificari`, `canal_whatsapp`, `canal_email`, `canal_sms`, `prag_30`, `prag_15`, `prag_5`, `prag_0`, `observatii` (opțional) | Datele principale de identificare ale clientului, data introducerii (afișată în dosar și folosită la sortarea descrescătoare a listei), starea profilului și preferințele globale de comunicare. |
 | `clienti_vehicule` | SELECT, INSERT, UPDATE | `id`, `client_id`, `nr_inmatriculare`, `marca_model`, `serie_vin`, `status_vehicul`, `created_at`, `updated_at`, `an_fabricatie` / `an` (opțional), `observatii` (opțional) | Vehiculele asociate fiecărui client, status operațional/arhivă și date tehnice de identificare. |
 | `clienti_contacte` | SELECT, INSERT, UPDATE | `id`, `client_id`, `tip` (`telefon`, `email`), `valoare`, `este_principal`, `eticheta`, `updated_at` | Contactele de comunicare ale clienților. Se salvează și se actualizează contactul marcat principal. |
 | `clienti_vehicule_termene` | SELECT, INSERT, UPDATE | `id`, `vehicle_id`, `tip` (`itp`, `rca`, `revizie`, `schimb_ulei`, `personalizat`), `denumire`, `data_termen`, `activ`, `updated_at` | Termenele scadente ale fiecărui vehicul. Ștergerea se realizează logic prin `activ = false`. |
