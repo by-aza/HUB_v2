@@ -136,9 +136,12 @@
             </button>
           </div>
 
+          <!-- Selectarea vizibilă este disponibilă numai în Piese; atribuirea bulk rămâne separată. -->
+          <button type="button" class="ep-button ep-button-ghost" id="partsSelectAll">Selectează toate vizibile</button>
           <div class="ep-bulk-bar" id="bulkBar" hidden>
             <span class="ep-bulk-count" id="bulkCount" aria-live="polite">0 poziții selectate</span>
             <div class="ep-bulk-actions">
+              <button type="button" class="ep-button ep-button-primary" id="bulkAssociateBtn" hidden>Asociază cu DF</button>
               <button type="button" class="ep-button ep-button-primary ep-bulk-assign" id="bulkAssignBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="m5 16-1-4 2.2-4.5A2 2 0 0 1 8 6h8a2 2 0 0 1 1.8 1.5L20 12l-1 4"></path>
@@ -467,6 +470,21 @@
   </div>
 
   <!-- Dialog istoric păstrat inactiv; importul real pornește numai din Deviz Final. -->
+  <!-- Asocierea fără import folosește un dialog nativ, cu focus și Escape gestionate de browser. -->
+  <dialog class="ep-modal ep-association-modal" id="associationModal" aria-labelledby="associationTitle" aria-describedby="associationNote">
+    <header class="ep-modal-head"><div><span class="ep-eyebrow">Deviz Final</span><h2 id="associationTitle">Asociază cu DF · fără import</h2><p id="associationNote" class="ep-df-head-note">Asociază cantitățile cu un DF existent. Nu adaugă linii și nu schimbă totalurile.</p></div><button type="button" class="ep-icon-button" id="associationClose" aria-label="Închide asocierea">✕</button></header>
+    <form id="associationForm" class="ep-df-form" novalidate>
+      <div class="ep-modal-body ep-df-body">
+        <div class="ep-form-alert" id="associationError" role="alert" hidden></div>
+        <div class="ep-association-fields"><label class="ep-field"><span>Mașină comună</span><select id="associationVehicle"></select></label><label class="ep-field"><span>Deviz Final existent</span><select id="associationDf" required></select></label></div>
+        <p id="associationStatus" role="status" aria-live="polite"></p>
+        <div class="ep-df-table-wrap"><table class="ep-df-table"><thead><tr><th>Piesă / factură / mașină</th><th>Disponibil</th><th>Cantitate de asociat</th></tr></thead><tbody id="associationRows"></tbody></table></div>
+        <p class="ep-detail-note">Poți asocia o parte din cantitatea disponibilă. Cantitatea 0 exclude alocarea din operație.</p>
+      </div>
+      <footer class="ep-modal-foot"><button type="button" class="ep-button ep-button-ghost" id="associationCancel">Anulează</button><button type="submit" class="ep-button ep-button-primary" id="associationSave">Confirmă asocierea</button></footer>
+    </form>
+  </dialog>
+
   <div class="ep-modal-overlay" id="dfModal" hidden>
     <div class="ep-modal ep-df-modal" role="dialog" aria-modal="true" aria-labelledby="dfModalTitle" aria-describedby="dfModalNote">
       <header class="ep-modal-head">
@@ -656,8 +674,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../js/config.js"></script>
   <!-- Istoricul HUB încarcă metadatele reale ale autorilor și acțiunilor. -->
-  <script src="../../js/evidenta_piese_api.js?v=20261112-history"></script>
-  <script src="../../js/evidenta_piese.js?v=20261112-history"></script>
+  <script src="../../js/evidenta_piese_api.js?v=20261117-association"></script>
+  <script src="../../js/evidenta_piese.js?v=20261117-association"></script>
   <!-- Timeout-ul HUB existent păstrează delogarea după inactivitate pentru non-Admin. -->
   <script src="../../js/session-timeout.js?v=2"></script>
 </body>

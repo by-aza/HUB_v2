@@ -11,6 +11,53 @@
 
 > **Regula principală:** la fiecare sarcină se verifică directorul, branch-ul activ, mediul și fișierele autorizate. Repository-ul principal este `/media/aza/Depozit_Mint/HUB_v2`; mirror-ul `/home/aza/HUB AUTO/HUB_v2-LAB` este separat. Folosirea obligatorie a LAB din etapele vechi descrie acele intervenții și nu autorizează transferuri sau modificări în alt mediu.
 
+### Asociere cu DF fără import — stare la 17.11.2026
+
+Scopul este legarea cantitativă a pieselor din facturi de un **DF existent al
+aceleiași mașini**, fără import financiar. „Importat în DF” adaugă poziții în
+DF și participă la calculul financiar. „Asociat cu DF” înregistrează numai
+legătura și cantitatea: nu adaugă linii și nu schimbă prețurile sau totalurile.
+Detaliile și istoricul păstrează distinct cele două operații.
+
+**Flux și selecție:**
+
+- În **Piese** se pot selecta individual mai multe poziții, inclusiv din facturi
+  diferite. Selectarea/deselectarea globală operează pe lista filtrată curentă,
+  fără resetarea filtrelor; contorul numără pozițiile selectate, separat de bucăți.
+  Consultarea detaliilor nu schimbă selecția.
+- Selectarea globală omite rândurile cu importuri/asocieri existente, istoric
+  protejat sau fără cantități eligibile; acestea nu întrerup selectarea celorlalte.
+  Resturile disponibile ale unei alocări folosite pot fi selectate individual.
+- Se alege mașina comună și un DF compatibil. Cantitatea propusă poate fi redusă;
+  0 exclude alocarea din lot. Fără mașină comună disponibilă operația este oprită.
+  O alocare deja asociată aceluiași DF nu poate fi asociată din nou.
+- Cantitățile confirmate ies din disponibilul pentru import/retur/magazie;
+  numai restul liber poate fi folosit ulterior. Regulile server-side,
+  trasabilitatea utilizatorului HUB/timestamp-ului și **migrarea APPLIED** sunt în
+  [03 Supabase](../03_SUPABASE.md#ep-asociere-df-fără-import--17112026-aplicat-în-producție).
+- Confirmarea vine după RPC. Un răspuns incert se recuperează cu același UUID și
+  payload; nu se trimite o operație nouă. Atribuirea bulk din **De atribuit**
+  rămâne un flux separat, păstrat. Regulile sunt generale, fără cazuri auto/DF fixe.
+
+**Caz real confirmat de utilizator — B946BIO / DF-250:** 22 poziții,
+39 unități asociate, **0 unități disponibile pentru reimport**; totalul financiar
+DF-250 a rămas **3.486 lei**, neschimbat. Confirmarea este consemnată la
+17.11.2026 și este distinctă de probele locale simulate; nu s-a refăcut o
+interogare live în această actualizare documentară.
+
+**Probe locale anterioare:** [ep_df_association_ui.cjs](../../tests/ep_df_association_ui.cjs),
+30 verificări Chrome pentru asociere, parțiale, duplicate/refuz, retry și istoric;
+[ep_parts_selection_ui.cjs](../../tests/ep_parts_selection_ui.cjs), 35 verificări
+pentru selectare/deselectare, filtre, contor și cazul B946BIO/DF-250 **sintetic**.
+Transportul/Auth sunt simulate; aceste probe nu înlocuiesc confirmarea reală de
+mai sus. Reluare: Node + Playwright în `NODE_PATH`, `CHROME_BIN` sau
+`/usr/bin/google-chrome`. Probele SQL și limitele live/concurență sunt în 03.
+
+**NEEDS_REVIEW:** acoperirea scenariilor live rămase din 03 și starea publicării
+frontendului. Confirmarea cazului real nu stabilește versiunea exactă publicată.
+Această intervenție modifică numai documentația; nu rulează SQL sau teste și nu
+schimbă date, aplicație ori migrare.
+
 ### Înmatriculare implicită, preț DF editabil și zero clar — candidat local 07.11.2026
 
 Implementare locală pe `feature-responsive`, fără commit, push sau deploy.
