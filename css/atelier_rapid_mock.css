@@ -1,0 +1,118 @@
+/* culorile principale — aceleași ca în Constatări v2 */
+:root {
+  --bg: #070c14;      /* fundalul paginii */
+  --panel: #0c1421;   /* antet / sheet */
+  --card: #101a29;    /* fundal carduri */
+  --line: #213047;    /* borduri subțiri */
+  --text: #edf4ff;
+  --muted: #8fa0b8;
+  --cyan: #22d3ee;    /* accent principal */
+  --blue: #3b82f6;    /* status În lucru */
+  --amber: #f59e0b;   /* status Așteaptă piese */
+  --green: #22c55e;   /* status Finalizat */
+  --slate: #64748b;   /* status De făcut */
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: radial-gradient(circle at 40% 0, #102431 0, transparent 30%), var(--bg); /* fundalul paginii */
+  color: var(--text);
+  font: 15px/1.35 Inter, "Segoe UI", sans-serif; /* font de bază */
+  overflow: hidden;
+}
+button, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.ar-hidden { display: none !important; }
+
+/* layout pe înălțimea reală a ecranului (dvh se adaptează la tastatură) */
+.ar-app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; max-width: 520px; margin: 0 auto; }
+
+/* antet */
+.ar-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; background: #080f19; border-bottom: 1px solid var(--line); flex: none; }
+.ar-title { font-size: 18px; font-weight: 800; } /* dimensiune font titlu */
+.ar-user { font-size: 12px; color: var(--cyan); border: 1px solid #22d3ee55; background: #22d3ee14; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+
+.ar-screen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ar-scroll { flex: 1; overflow-y: auto; padding: 14px; }
+.ar-h1 { margin: 0; font-size: 22px; font-weight: 800; }
+.ar-sub { margin: 2px 0 14px; color: var(--muted); }
+.ar-foot { margin: 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); text-align: center; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+/* card mașină */
+.ar-cards { display: flex; flex-direction: column; gap: 12px; }
+.ar-card { width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--slate); border-radius: 12px; padding: 14px; min-height: 96px; display: block; }
+.ar-card:active { border-color: var(--cyan); }
+.ar-card-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ar-card-reg { font-size: 20px; font-weight: 800; letter-spacing: .3px; }
+.ar-card-model { margin-top: 2px; color: var(--text); }
+.ar-card-sheet { color: var(--muted); font-size: 13px; }
+.ar-card-upd { margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+/* badge status — culori per status */
+.ar-badge { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.st-todo   { --c: var(--slate); }
+.st-work   { --c: var(--blue); }
+.st-wait   { --c: var(--amber); }
+.st-done   { --c: var(--green); }
+.ar-card[class*="st-"] { border-left-color: var(--c); }
+.ar-badge { color: var(--c); border-color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); }
+
+/* ecran detaliu: antet */
+.ar-dhead { flex: none; padding: 0 14px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+/* bara de navigare compactă (înapoi / prenume / info) */
+.ar-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 48px; padding-top: env(safe-area-inset-top); }
+.ar-back { justify-self: start; min-height: 44px; padding: 0 8px 0 0; background: none; border: 0; color: var(--cyan); font-weight: 700; font-size: 16px; }
+.ar-nav-user { font-weight: 800; font-size: 16px; text-align: center; }
+/* buton rotund „i” pentru sesizarea clientului */
+.ar-info { justify-self: end; width: 36px; height: 36px; margin: 4px; border-radius: 50%; border: 1.5px solid var(--cyan); background: #22d3ee14; color: var(--cyan); font-weight: 800; font-size: 18px; font-family: Georgia, serif; font-style: italic; line-height: 1; }
+.ar-reg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ar-reg-box { min-width: 0; }
+.ar-reg { font-size: 24px; font-weight: 800; letter-spacing: .3px; }
+.ar-meta { color: var(--muted); font-size: 13px; padding-bottom: 2px; }
+.ar-ctrls { display: flex; align-items: center; gap: 8px; flex: none; }
+/* buton compact „Secții” */
+.ar-sect { min-height: 44px; padding: 0 12px; font-weight: 700; font-size: 14px; color: var(--cyan); border: 1px solid #22d3ee66; background: #22d3ee14; border-radius: 10px; }
+
+/* butonul cu trei linii + punct de status */
+.ar-menu { position: relative; width: 48px; height: 44px; display: grid; place-items: center; background: #152238; border: 1px solid var(--line); border-radius: 10px; }
+.ar-burger { display: grid; gap: 4px; }
+.ar-burger i { display: block; width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
+.ar-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--slate)); box-shadow: 0 0 0 2px var(--panel); }
+
+/* corpul detaliului: câmpurile mari ocupă spațiul rămas */
+.ar-dbody { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ar-field { display: flex; flex-direction: column; gap: 4px; }
+.ar-grow { flex: 1 1 0; min-height: 120px; }
+.ar-label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.ar-ta { flex: 1; width: 100%; min-height: 96px; resize: none; padding: 10px 12px; font-size: 16px; /* 16px evită zoom-ul pe mobil */ background: #0b1522; border: 1px solid var(--line); border-radius: 10px; outline: none; white-space: pre-wrap; }
+.ar-ta:focus { border-color: var(--cyan); }
+.ar-ta-note { height: 100px; min-height: 100px; max-height: 40dvh; resize: vertical; overflow-y: auto; }
+.ar-expand { flex: none; min-height: 44px; text-align: left; padding: 0 12px; font-weight: 700; color: var(--cyan); background: transparent; border: 1px dashed #22d3ee66; border-radius: 10px; }
+.ar-note { flex: none; width: 90%; margin: 0 auto; } /* nota: mai îngustă, centrată */
+
+/* zona de salvare lipită jos */
+.ar-savebar { flex: none; padding: 8px 14px calc(8px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--line); }
+.ar-save { width: 100%; min-height: 52px; font-size: 17px; font-weight: 800; background: #0891b2; border: 1px solid #0e7490; border-radius: 12px; color: #fff; }
+.ar-save:active { filter: brightness(1.15); }
+.ar-mocknote { margin-top: 5px; text-align: center; font-size: 11px; color: var(--muted); }
+.ar-toast { min-height: 0; margin-bottom: 0; text-align: center; font-weight: 700; color: #bbf7d0; background: #166534; border: 1px solid #15803d; border-radius: 8px; padding: 0 10px; max-height: 0; overflow: hidden; opacity: 0; transition: opacity .15s, max-height .15s, margin .15s, padding .15s; }
+.ar-toast.show { opacity: 1; max-height: 44px; padding: 8px 10px; margin-bottom: 8px; }
+
+/* modale: fundal + panou (bottom sheet pe mobil) */
+.ar-backdrop { position: fixed; inset: 0; background: rgba(2, 6, 12, .72); z-index: 50; }
+.ar-modal { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; max-width: 520px; margin: 0 auto; max-height: 85dvh; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0; padding: 16px 14px calc(14px + env(safe-area-inset-bottom)); }
+.ar-modal h2 { margin: 0 0 10px; font-size: 18px; }
+.ar-modal-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ar-ro-label { margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.ar-dept-head { font-weight: 800; color: var(--cyan); }
+.ar-dept-sub { font-size: 12px; color: var(--muted); }
+.ar-actions { display: grid; gap: 8px; margin-top: 14px; }
+.ar-actions.two { grid-template-columns: 1fr 1fr; }
+.ar-mbtn { min-height: 48px; padding: 0 12px; font-weight: 700; background: #152238; border: 1px solid var(--line); border-radius: 10px; }
+.ar-mbtn.primary { background: #0891b2; border-color: #0e7490; color: #fff; }
+.ar-mbtn.danger { background: #881337; border-color: #9f1239; color: #fff; }
+
+/* opțiuni status în bottom sheet */
+.ar-opt { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; margin-bottom: 8px; padding: 0 14px; text-align: left; font-weight: 700; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.ar-opt .ar-dot { position: static; box-shadow: none; flex: none; }
+.ar-opt[aria-checked="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card)); }

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Atelier Rapid — prototip mobil (MOCK)</title>
+  <!-- stilurile prototipului (relative, merge și la deschidere directă din fișier) -->
+  <link rel="stylesheet" href="../../css/atelier_rapid_mock.css">
+</head>
+<body>
+<div class="ar-app">
+  <!-- antetul fix: titlu pagină + utilizator mock -->
+  <header class="ar-top" id="arTop">
+    <div class="ar-title">Atelier Rapid</div>
+    <div class="ar-user" id="arUser"></div>
+  </header>
+
+  <!-- ecranul 1: lista mașinilor repartizate -->
+  <main class="ar-screen" id="screenList">
+    <div class="ar-scroll">
+      <h1 class="ar-h1">Mașinile mele</h1>
+      <p class="ar-sub" id="arCount"></p>
+      <div class="ar-cards" id="arCards"></div>
+    </div>
+    <p class="ar-foot">Vezi numai mașinile repartizate ție</p>
+  </main>
+
+  <!-- ecranul 2: detaliul mașinii (completat din JS) -->
+  <main class="ar-screen ar-hidden" id="screenDetail">
+    <div class="ar-dhead">
+      <!-- bara de navigare compactă: Înapoi / prenume utilizator / info sesizare -->
+      <nav class="ar-nav">
+        <button type="button" class="ar-back" id="arBack">← Înapoi</button>
+        <div class="ar-nav-user" id="dUser"></div>
+        <button type="button" class="ar-info" id="btnComplaint" aria-label="Vezi sesizarea clientului" aria-haspopup="dialog">i</button>
+      </nav>
+      <!-- număr înmatriculare + model/fișă (stânga), Secții și meniu status (dreapta) -->
+      <div class="ar-reg-row">
+        <div class="ar-reg-box">
+          <div class="ar-reg" id="dReg"></div>
+          <div class="ar-meta" id="dMeta"></div>
+        </div>
+        <div class="ar-ctrls">
+          <button type="button" class="ar-sect" id="btnDepts" aria-haspopup="dialog">Secții</button>
+          <button type="button" class="ar-menu" id="arMenuBtn" aria-label="Schimbă statusul" aria-haspopup="dialog">
+            <span class="ar-dot" id="dDot"></span>
+            <span class="ar-burger" aria-hidden="true"><i></i><i></i><i></i></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ar-dbody">
+      <label class="ar-field ar-grow" for="fDefects">
+        <span class="ar-label">Defecțiuni constatate</span>
+        <textarea id="fDefects" class="ar-ta" placeholder="Descrie defecțiunile constatate"></textarea>
+      </label>
+      <label class="ar-field ar-grow" for="fParts">
+        <span class="ar-label">Piese necesare</span>
+        <textarea id="fParts" class="ar-ta" placeholder="Câte o piesă pe rând"></textarea>
+      </label>
+
+      <button type="button" class="ar-expand" id="arNoteToggle" aria-expanded="false" aria-controls="arNoteWrap">+ Ce am făcut / Observație pentru colegi</button>
+      <!-- notă opțională, centrată și mai îngustă decât câmpurile principale -->
+      <div class="ar-note ar-hidden" id="arNoteWrap">
+        <textarea id="fNote" class="ar-ta ar-ta-note" placeholder="Ex: Am demontat alternatorul. Mufa este lăsată deconectată pentru verificare."></textarea>
+      </div>
+    </div>
+
+    <!-- zona de salvare, lipită jos pentru acces cu degetul mare -->
+    <div class="ar-savebar">
+      <div class="ar-toast" id="arToast" role="status" aria-live="polite"></div>
+      <button type="button" class="ar-save" id="arSave">Salvează actualizarea</button>
+      <div class="ar-mocknote">Demo local — nu se trimite nimic în HUB / Supabase</div>
+    </div>
+  </main>
+</div>
+
+<!-- container comun pentru ferestrele modale (conținut generat din JS) -->
+<div class="ar-backdrop ar-hidden" id="arBackdrop"></div>
+<div class="ar-modal ar-hidden" id="arModal" role="dialog" aria-modal="true" aria-labelledby="arModalTitle"></div>
+
+<script src="../../js/atelier_rapid_mock.js"></script>
+</body>
+</html>
