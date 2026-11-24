@@ -187,7 +187,13 @@
                 await window.HubLocalDrafts.mount({project:new URL(SUPABASE_URL).hostname,userId:data.user.id,
                     allowed:window.HubLocalDrafts.canUse(profile),client:supabaseClient});
             }
-            if (Number(profile.rol_id) === 8) {
+            // permisiunile active ale utilizatorului (folosite pentru a alege direct destinația finală)
+            const activePerms = Object.keys(profile.permissions || {}).filter((k) => profile.permissions[k] === true);
+            const atelierRapidOnly = activePerms.length === 1 && activePerms[0] === 'atelier_rapid';
+            if (Number(profile.rol_id) !== 1 && atelierRapidOnly) {
+                /* doar Atelier Rapid: merge direct, fără pagini intermediare (index / Constatări v2) */
+                window.location.href = '../../modules/formulare/atelier_rapid.html';
+            } else if (Number(profile.rol_id) === 8) {
                 window.location.href = '../../modules/formulare/constatari_v2.html';
             } else if (Number(profile.rol_id) === 6) {
                 window.location.href = '../../modules/formulare/detailing.html';
