@@ -158,7 +158,7 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
   - `audit_logs` S/I;
   - `clienti`, `clienti_contacte`, `clienti_vehicule` S/I;
   - `evidente_avansuri` S/U;
-  - `constatari` S/I/U;
+  - `constatari` S/I/U (include coloana `constatare_finala` și utilizarea `observatii` pentru recomandări client);
   - `constatari_departamente` S/I/U;
   - `constatari_asteptare_piese` S/I/U;
   - `constatari_repartizari` S;
@@ -166,7 +166,19 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
   - `deviz_final_header` S;
 - RPC: `create_deviz_final_from_constatare`;
 - funcții: căutare/creare client și vehicul, constatare pe departamente, repartizare, stare, așteptare piese, previzualizare și generare deviz final;
-- print: `constatare-print.html` prin `localStorage`.
+- flux birou constatare finală (verificat manual în browser live):
+  - constatările mecanicului rămân în `constatari_departamente.constatari` (departamentul Mecanică);
+  - biroul le importă manual prin buton dedicat, le reformulează și le salvează în `constatari.constatare_finala`;
+  - modificările ulterioare făcute de mecanic în departament nu suprascriu textul final al biroului;
+  - `constatari.observatii` este utilizat ca „Recomandări pentru client”;
+- tipărire fișă tehnică (`modules/formulare/constatare-print.html` prin `localStorage`, verificat manual în browser live):
+  - utilizează același fișier șablon cu două moduri de tipărire:
+    - `mode=intrare` (implicit): secțiunile finale („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân goale;
+    - `mode=electronic`: secțiunile sunt populate cu constatarea finală (`constatare_finala`) și recomandările pentru client (`observatii`);
+  - limite format electronic:
+    - maximum 14 linii nevide per secțiune (validat cu alertă și blocare tipărire la depășire);
+    - grilă 7×2: liniile 1–7 pe coloana din stânga, liniile 8–14 pe coloana din dreapta;
+    - transformarea în majuscule (`toLocaleUpperCase('ro-RO')`) are loc exclusiv la randarea pentru tipar, fără a modifica textul salvat în baza de date.
 
 ### 4.2 Detailing
 

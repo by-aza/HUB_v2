@@ -639,6 +639,8 @@ function getEditableCarPayload(options = {}) {
     defectiuni_client: normalizedComplaint || null,
     defectiuni_mecanic: getValue("mechanicDefects", currentCar.mechanicDefects || ""),
     observatii: getValue("observations"),
+    /* constatare finală redactată de birou - coloana constatari.constatare_finala */
+    constatare_finala: getValue("finalFinding") || null,
   };
   if (includeKmOut) {
     payload.km_iesire = parseNullableKm(getValue("kmOut"));
@@ -1256,6 +1258,7 @@ function mapCnPayloadToDraft(payload) {
     complaint: "",
     mechanicDefects: "",
     observations: "",
+    finalFinding: "",
     responsabili: "",
   };
 }
@@ -1620,6 +1623,7 @@ function mapCar(row) {
     complaint: row.defectiuni_client || "",
     mechanicDefects: row.defectiuni_mecanic || "",
     observations: row.observatii || "",
+    finalFinding: row.constatare_finala || "",
     exit: formatDateRO(row.data_finalizarii),
     created_at: row.created_at || "",
     completed_at: row.data_finalizarii || "",
@@ -1639,6 +1643,16 @@ function buildConstatarePrintPayload(c) {
     kmIntrare: c.kmIn || "",
     kmIesire: c.kmOut || "",
     defectiuniClient: c.complaint || "",
+  };
+}
+/* payload pentru fișa tehnică electronică: aceleași date + textele completate de birou */
+function buildElectronicPrintPayload(c) {
+  return {
+    ...buildConstatarePrintPayload(c),
+    /* constatari.constatare_finala → DEFECȚIUNI CONSTATATE ÎN TIMPUL REPARAȚIEI */
+    constatareFinala: c.finalFinding || "",
+    /* constatari.observatii → RECOMANDĂRI PENTRU CLIENT */
+    recomandari: c.observations || "",
   };
 }
 
@@ -2449,7 +2463,10 @@ function generalContent(c, isNew = false) {
   const complaintPlaceholder = MULTILINE_FIELD_CONFIG.complaint.placeholder;
   const complaintFieldHtml = `<div class="field full"><label>Defecțiuni reclamate</label><textarea class="control" data-key="complaint" placeholder="${escapeHtml(complaintPlaceholder)}" ${disabled}>${c.complaint || ""}</textarea>${buildMultilineHelperHtml("complaint")}</div>`;
 
-  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div>${isNew ? '<div id="plateLookupStatus" class="plate-lookup-status hidden" role="status" aria-live="polite"></div>' : ""}</div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="section"><div class="section-title">Observații</div><div class="grid two">${val("Observații", "observations", "textarea", "full")}</div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
+  /* secțiunea Constatare finală: textarea legată de constatari.constatare_finala + import din Mecanică */
+  const finalFindingSectionHtml = `<div class="section"><div class="section-title">Constatare finală</div><div class="grid two"><div class="field full"><label>Constatare finală</label><textarea class="control" data-key="finalFinding" ${disabled}>${escapeHtml(c.finalFinding || "")}</textarea><div class="helper-text">Text verificat și reformulat de birou pentru fișa tehnică.</div><div><button type="button" class="btn btn-ghost" id="importMechanicFinding" ${editing && !isNew ? "" : "disabled"}>Importă din Mecanică</button></div></div></div></div>`;
+
+  return `<div class="general-top-grid"><div class="section general-vehicle-card"><div class="section-title">Date vehicul ${!isNew && !editing ? '<button class="btn btn-ghost" id="editBtn">Editează</button>' : ""}</div><div class="grid">${val("Nr. înmatriculare", "plate")}${val("Marcă / Model", "model")}${val("Serie VIN", "vin")}${val("KM intrare", "kmIn")}${val("KM ieșire", "kmOut")}${val("Data intrării", "date")}</div>${isNew ? '<div id="plateLookupStatus" class="plate-lookup-status hidden" role="status" aria-live="polite"></div>' : ""}</div><div class="section general-client-card"><div class="section-title">Client și fișă</div><div class="grid client-grid">${val("Nume client", "client")}${val("Telefon", "phone")}<div class="field"><label>Număr fișă</label><div class="value">${isNew ? "Se generează la salvare" : "Fișa " + c.file}</div></div><div class="field"><label>Status general</label><select class="control" id="statusSelect" ${disabled}><option ${c.status === "work" ? "selected" : ""}>🔵 În lucru</option><option ${c.status === "wait" ? "selected" : ""}>🟠 Așteptare piese</option><option ${c.status === "done" ? "selected" : ""}>🟢 Finalizat</option><option ${c.status === "archived" ? "selected" : ""}>⚫ Arhivat</option></select></div><div class="field client-urgent"><label>Regim</label><div class="check-line"><input type="checkbox" ${c.urgent ? "checked" : ""} ${disabled}> Urgent</div></div></div></div></div><div class="section"><div class="section-title">Sesizarea clientului</div><div class="grid two">${complaintFieldHtml}</div></div><div class="general-notes-grid">${finalFindingSectionHtml}<div class="section"><div class="section-title">Observații</div><div class="grid two"><div class="field full"><label>Observații</label><textarea class="control" data-key="observations" ${disabled}>${c.observations || ""}</textarea><div class="helper-text">Acest text apare pe fișa tehnică la Recomandări pentru client.</div></div></div></div></div>${isNew || editing ? `<div class="section"><div class="section-title">Repartizare inițială</div><div class="grid two"><div class="field"><label>Mecanică</label>${renderAssignmentSelect("mechanic", selectedAssignments)}</div><div class="field"><label>Electrică</label>${renderAssignmentSelect("electric", selectedAssignments)}</div><div class="field"><label>Vopsitorie</label>${renderAssignmentSelect("paint", selectedAssignments)}</div><div class="field"><label>Pregătire</label>${renderAssignmentSelect("prep", selectedAssignments)}</div></div></div>` : ""}`;
 }
 function deptContent(key, c) {
   const d = deptData[key];
@@ -2502,11 +2519,13 @@ function deptContent(key, c) {
     return `<div class="field ${extra}"><label>${label}</label><textarea class="control" data-dept-key="${dataKey}"${placeholderAttr}>${escapeHtml(row[dataKey] || "")}</textarea>${helperHtml}</div>`;
   };
 
+  /* eticheta câmpului piese_materiale; numai Mecanica folosește „Piese necesare / de înlocuit” */
+  const pieseLabel = key === "mechanic" ? "Piese necesare / de înlocuit" : "Piese / materiale folosite";
   const fields = d.compactFields
     ? `${field("Starea vehiculului / Defecțiuni constatate", "constatari")}${field("Servicii / lucrări efectuate", "lucrari_efectuate")}`
     : d.hasElements
-      ? `${field("Elemente lucrate", "elemente_lucrate")}${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale")}`
-      : `${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field("Piese / materiale folosite", "piese_materiale", "parts-half")}`;
+      ? `${field("Elemente lucrate", "elemente_lucrate")}${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field(pieseLabel, "piese_materiale")}`
+      : `${field("Defecțiuni constatate", "constatari")}${field("Lucrare efectuată", "lucrari_efectuate")}${field(pieseLabel, "piese_materiale", "parts-half")}`;
   /* Detailing afișează numai controalele departamentale cerute, fără date generale sau poze */
   const complaintNote = d.compactFields
     ? ""
@@ -2610,7 +2629,7 @@ function renderDetail() {
   const finalEstimateButton = canGenerateFinalEstimate
     ? `<button class="btn btn-primary final-estimate-trigger" id="finalEstimateBtn" type="button" ${Number.isFinite(Number(c.id)) ? "" : "disabled"}><i data-lucide="${linkedFinalEstimateLabel ? "external-link" : "receipt-text"}" aria-hidden="true"></i>${linkedFinalEstimateLabel ? `Deschide devizul ${linkedFinalEstimateLabel}` : "Generează deviz final"}</button>`
     : "";
-  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools">${finalEstimateButton}<div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" disabled>Fișă tehnică electronică <small>În curând</small></button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
+  pane.innerHTML = `<div class="detail-header"><div class="vehicle-title-line"><div><div class="vehicle-title">${c.plate} · ${c.model}</div><div class="vehicle-summary">${c.client} · Intrare: ${c.date} · ${c.days} în service</div></div><span class="status ${statusClass(c.status)}">${c.statusText}</span><span class="file-no">Fișa ${c.file}</span><div class="header-tools">${finalEstimateButton}<div class="print-menu-wrap"><button class="btn btn-ghost" id="printMenuBtn">Tipărește fișa</button><div class="print-menu hidden" id="printMenu"><button type="button" data-print="rar">Fișă RAR – intrare</button><button type="button" data-print="electronic">Fișă tehnică electronică</button></div></div></div></div></div><nav class="tabs">${tabNames.map(([k, n]) => `<button class="tab ${activeTab === k ? "active" : ""} ${deptData[k] ? departmentTabClass(c.id, k) : ""}" data-tab="${k}">${n}</button>`).join("")}</nav><div class="content">${activeTab === "general" ? generalContent(c) : activeTab === "history" ? historyContent(c) : deptContent(activeTab, c)}</div><div class="footer-actions"><span id="dirtyLabel" class="dirty-label ${hasUnsavedChanges ? "" : "hidden"}">Modificări nesalvate</span>${activeTab === "general" ? (editing ? '<button class="btn btn-ghost" id="cancelEdit">Anulează</button><button class="btn btn-primary" id="saveEdit">Salvează modificările</button>' : "") : activeTab !== "history" ? '<button class="btn btn-primary" id="saveDept">Salvează</button>' : ""}</div>`;
   const finalEstimateBtn = document.querySelector("#finalEstimateBtn");
   if (finalEstimateBtn) {
     finalEstimateBtn.onclick = handleFinalEstimateAction;
@@ -2625,18 +2644,36 @@ function renderDetail() {
     };
     printMenu.onclick = (event) => {
       event.stopPropagation();
-      if (event.target.closest('[data-print="rar"]')) {
-        const selectedCar = cars.find((car) => car.id === selectedId);
-        if (!selectedCar) {
-          alert("Nu există mașină selectată pentru printare.");
-          return;
-        }
-        printMenu.classList.add("hidden");
+      const printKind = event.target.closest("[data-print]")?.dataset.print;
+      if (!printKind) return;
+      const selectedCar = cars.find((car) => car.id === selectedId);
+      if (!selectedCar) {
+        alert("Nu există mașină selectată pentru printare.");
+        return;
+      }
+      printMenu.classList.add("hidden");
+      if (printKind === "rar") {
+        /* Fișă RAR – intrare: payload neschimbat, secțiunile mecanicului rămân goale */
         localStorage.setItem(
           "currentConstatarePrint",
           JSON.stringify(buildConstatarePrintPayload(selectedCar)),
         );
-        window.open("constatare-print.html", "_blank");
+        window.open("constatare-print.html?mode=intrare", "_blank");
+      } else if (printKind === "electronic") {
+        /* Fișă tehnică electronică: blochează printarea dacă o secțiune depășește 14 linii */
+        const printPayload = buildElectronicPrintPayload(selectedCar);
+        const countLines = (text) => String(text || "").split(/\r?\n/).filter((line) => line.trim()).length;
+        const overflow = [
+          ["Defecțiuni constatate în timpul reparației (Constatare finală)", countLines(printPayload.constatareFinala)],
+          ["Recomandări pentru client (Observații)", countLines(printPayload.recomandari)],
+        ].filter(([, n]) => n > 14);
+        if (overflow.length) {
+          const details = overflow.map(([name, n]) => `• ${name}: ${n} linii`).join("\n");
+          alert(`Fișa tehnică electronică nu poate fi tipărită: maximum 14 linii nevide pe secțiune.\n${details}\n\nScurtează textul și încearcă din nou.`);
+          return;
+        }
+        localStorage.setItem("currentConstatarePrint", JSON.stringify(printPayload));
+        window.open("constatare-print.html?mode=electronic", "_blank");
       }
     };
   }
@@ -2658,6 +2695,43 @@ function renderDetail() {
         renderDetail();
       }),
   );
+  /* import manual din Mecanică: citește constatari_departamente (departament Mecanica, coloana constatari), fără salvare automată */
+  const importBtn = document.querySelector("#importMechanicFinding");
+  if (importBtn) {
+    importBtn.onclick = async () => {
+      const target = document.querySelector('[data-key="finalFinding"]');
+      if (!target || !selectedId) return;
+      importBtn.disabled = true;
+      try {
+        const { data, error } = await supabaseClient
+          .from("constatari_departamente")
+          .select("constatari")
+          .eq("constatare_id", selectedId)
+          .eq("departament", deptData.mechanic.db)
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        const mechanicText = String(data?.constatari || "");
+        if (!mechanicText.trim()) {
+          alert("Nu există text de importat în departamentul Mecanică.");
+          return;
+        }
+        if (
+          target.value.trim() &&
+          !confirm("Constatarea finală conține deja text. Îl înlocuiești cu textul din Mecanică?")
+        ) {
+          return;
+        }
+        target.value = mechanicText;
+        markDirty();
+      } catch (error) {
+        console.error(error);
+        alert("Nu s-a putut citi textul din Mecanică.");
+      } finally {
+        importBtn.disabled = false;
+      }
+    };
+  }
   const eb = document.querySelector("#editBtn");
   if (eb)
     eb.onclick = () => {
@@ -2929,7 +3003,7 @@ async function loadCars(preferredSelectedId = null, options = {}) {
     try {
       const { data, error } = await supabaseClient
         .from("constatari")
-        .select("id, created_at, client_id, vehicle_id, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
+        .select("id, created_at, client_id, vehicle_id, nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, constatare_finala, status, este_urgent, client, telefon, km_iesire, nr_fisa, data_finalizarii, responsabili")
         .order("created_at", { ascending: false });
       if (myGeneration !== loadCarsGeneration) return;
       if (error) throw error;

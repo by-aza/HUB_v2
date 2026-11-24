@@ -88,6 +88,22 @@ Număr de înmatriculare
 
 Modulul păstrează și câmpuri snapshot în `constatari` (număr, model, date client), în paralel cu `client_id` și `vehicle_id`. Pentru avansuri vechi găsite după număr, codul poate lega rândul la vehiculul central.
 
+### 3.1 Redactarea constatării finale și tipărirea fișei tehnice — 24.11.2026, VERIFICAT LIVE
+
+Fluxul a fost verificat manual în browser live:
+
+1. **Constatarea mecanicului:** textul introdus în atelier rămâne stocat în `constatari_departamente.constatari` (departamentul Mecanică).
+2. **Preluare și redactare birou:** operatorul din birou importă manual textul în fișa constatării (`modules/formulare/constatari_v2.html`), îl reformulează într-un limbaj clar pentru client și îl salvează în coloana dedicată `constatari.constatare_finala`.
+3. **Independență față de modificări ulterioare:** dacă mecanicul editează ulterior constatările din departament, textul final salvat de birou nu este suprascris.
+4. **Recomandări pentru client:** coloana `constatari.observatii` este utilizată drept „Recomandări pentru client”.
+5. **Tipărirea fișei tehnice (`constatare-print.html`):** același fișier HTML acoperă ambele stadii prin parametrul de mod:
+   - `mode=intrare` (implicit): secțiunile finale („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân necompletate (grid gol pentru completare olografă la primirea vehiculului);
+   - `mode=electronic`: secțiunile sunt populate cu textul constatării finale (`constatare_finala`) și recomandările redactate (`observatii`).
+6. **Limitări și așezare în pagină la tipărirea electronică:**
+   - maximum 14 linii nevide per secțiune (depășirea alertează utilizatorul și blochează tipărirea);
+   - grilă 7×2: liniile 1–7 sunt așezate în coloana din stânga, iar liniile 8–14 în coloana din dreapta;
+   - trecerea în majuscule (`toLocaleUpperCase('ro-RO')`) se execută doar în timpul randării pentru tipar, textul persistat în Supabase păstrând caracterele originale.
+
 ## 4. Constatare → Deviz final
 
 1. utilizatorul deschide o constatare eligibilă;
