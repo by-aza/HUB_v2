@@ -312,6 +312,16 @@
       width: 50%;
     }
 
+    /* text completat în celulele grilei: ~8pt, interlinie compactă, cu împachetare pe rânduri */
+    .blank-grid td {
+      font-size: 8pt;
+      line-height: 1.1;
+      padding: 0.3mm 1mm;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+
     /* === ACCEPT / REFUZ ===
        Controlează linia cu opțiunile clientului de acceptare/refuz/preluare vehicul. */
     .options {
@@ -464,7 +474,7 @@
         <tr>
           <td class="side-title" rowspan="7">DEFECTIUNI<br>CONSTATATE IN<br>TIMPUL REPARATIEI</td>
           <td>
-            <table class="blank-grid">
+            <table class="blank-grid" id="grid-constatare-finala">
               <tr><td class="split"></td><td></td></tr>
               <tr><td></td><td></td></tr>
               <tr><td></td><td></td></tr>
@@ -483,7 +493,7 @@
         <tr>
           <td class="side-title" rowspan="7">RECOMANDARI<br>PENTRU CLIENT</td>
           <td>
-            <table class="blank-grid">
+            <table class="blank-grid" id="grid-recomandari">
               <tr><td class="split"></td><td></td></tr>
               <tr><td></td><td></td></tr>
               <tr><td></td><td></td></tr>
@@ -548,6 +558,33 @@
       setText('print-vin', data.vin);
       setText('print-km-intrare', formatKm(data.kmIntrare));
       setText('print-defectiuni', data.defectiuniClient);
+
+      /* mod de print din URL: intrare (implicit, secțiunile rămân goale) sau electronic */
+      const modeParam = new URLSearchParams(window.location.search).get('mode');
+      const mode = modeParam === 'electronic' ? 'electronic' : 'intrare';
+
+      /* completează grila 7x2: o linie = o celulă, întâi coloana stângă, apoi dreapta; majuscule doar la afișare */
+      const toLines = (value) => String(value || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const fillGrid = (gridId, lines) => {
+        const rows = document.querySelectorAll('#' + gridId + ' tr');
+        lines.forEach((line, i) => {
+          const cell = rows[i % 7].children[i < 7 ? 0 : 1];
+          cell.textContent = line.toLocaleUpperCase('ro-RO');
+        });
+      };
+      if (mode === 'electronic') {
+        const findingLines = toLines(data.constatareFinala);
+        const recommendationLines = toLines(data.recomandari);
+        const tooLong = [];
+        if (findingLines.length > 14) tooLong.push('Defecțiuni constatate în timpul reparației: ' + findingLines.length + ' linii');
+        if (recommendationLines.length > 14) tooLong.push('Recomandări pentru client: ' + recommendationLines.length + ' linii');
+        if (tooLong.length) {
+          alert('Fișa tehnică electronică nu poate fi tipărită (maximum 14 linii pe secțiune):\n' + tooLong.join('\n') + '\n\nÎnchide fila, scurtează textul și încearcă din nou.');
+          return;
+        }
+        fillGrid('grid-constatare-finala', findingLines);
+        fillGrid('grid-recomandari', recommendationLines);
+      }
 
       setTimeout(() => window.print(), 250);
     });

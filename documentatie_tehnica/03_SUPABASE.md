@@ -1,5 +1,13 @@
 # Integrarea Supabase
 
+## Constatări: constatare_finala și drepturi pe coloană — 24.11.2026, VERIFICAT LIVE
+
+- **Coloană nouă:** `public.constatari.constatare_finala` (`text`), destinată constatării finale redactate de birou pentru fișa tehnică.
+- **Drepturi pe coloană:** rolul `authenticated` are `GRANT SELECT (constatare_finala), UPDATE (constatare_finala) ON TABLE public.constatari`.
+- **Relație cu departamentele:** constatările mecanicului rămân în `constatari_departamente.constatari`; biroul le importă manual la cerere, le reformulează și le salvează în `constatari.constatare_finala`. Modificările ulterioare făcute de mecanic nu suprascriu textul final al biroului.
+- **Recomandări:** coloana `constatari.observatii` este utilizată drept „Recomandări pentru client”.
+- **Verificare:** modificarea de schemă, granturile și fluxul au fost verificate manual în browser live. Detaliile de modul și modurile de tipărire sunt în [02_MODULE.md](02_MODULE.md#41-constatare-v2) și [05_FLUXURI_PRINCIPALE.md](05_FLUXURI_PRINCIPALE.md#3-client-și-vehicul--constatare).
+
 ## EP: asociere DF fără import — 17.11.2026, APLICAT ÎN PRODUCȚIE
 
 **Statut producție: APPLIED.** Migrarea
@@ -513,7 +521,7 @@ Absența INSERT/UPDATE din ACL-ul de tabel nu înseamnă că operația este inte
 | `private.deviz_final_avans_review` | — | — | avans_id, status |
 | `public.audit_logs` | user_id, user_name, modul, actiune, entitate, entitate_id, descriere | — | — |
 | `public.config_alerte` | — | valoare | — |
-| `public.constatari` | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, responsabili, client_id, vehicle_id | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, data_finalizarii, responsabili, client_id, vehicle_id | — |
+| `public.constatari` | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, responsabili, client_id, vehicle_id | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, constatare_finala, status, este_urgent, client, telefon, km_iesire, data_finalizarii, responsabili, client_id, vehicle_id | constatare_finala |
 | `public.constatari_asteptare_piese` | constatare_id, inceput, sfarsit | sfarsit | — |
 | `public.constatari_departamente` | constatare_id, departament, constatari, lucrari_efectuate, status, updated_at, finalizat_la, actualizat_de, piese_materiale, elemente_lucrate | constatare_id, departament, constatari, lucrari_efectuate, status, updated_at, finalizat_la, actualizat_de, piese_materiale, elemente_lucrate | — |
 | `public.deviz_final_header` | id_deviz_estimativ, data_deviz, client, auto, nr_inmatriculare, serie_vin, serie_motor, km, termen_executie, discount_global_piese, total_manopera, total_piese, total_general, created_by, constatare_id, vehicle_id, total_avans | id_deviz_estimativ, data_deviz, client, auto, nr_inmatriculare, serie_vin, serie_motor, km, termen_executie, discount_global_piese, total_manopera, total_piese, total_general, vehicle_id, total_avans | — |
@@ -627,7 +635,7 @@ Tipurile confirmate pentru termene includ `ITP`, `RCA`, revizie, ulei și termen
 
 | Tabel | Rol și coloane relevante | RLS |
 |---|---|---|
-| `constatari` | client/vehicul, număr/VIN/km, defecte, piese, observații, stare, urgență, responsabili, ora finală | dezactivat |
+| `constatari` | client/vehicul, număr/VIN/km, defecte, piese, observații (recomandări client), constatare_finala (text birou), stare, urgență, responsabili, ora finală | dezactivat |
 | `constatari_departamente` | constatare, departament, constatări, lucrări, materiale, elemente, status, utilizator/timestamps | dezactivat |
 | `constatari_asteptare_piese` | intervale start/final pentru o constatare | dezactivat |
 | `constatari_repartizari` | constatare, membru service, activ, alocat/retras și actor | dezactivat |
