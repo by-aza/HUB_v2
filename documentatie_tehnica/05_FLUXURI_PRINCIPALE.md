@@ -97,12 +97,43 @@ Fluxul a fost verificat manual în browser live:
 3. **Independență față de modificări ulterioare:** dacă mecanicul editează ulterior constatările din departament, textul final salvat de birou nu este suprascris.
 4. **Recomandări pentru client:** coloana `constatari.observatii` este utilizată drept „Recomandări pentru client”.
 5. **Tipărirea fișei tehnice (`constatare-print.html`):** același fișier HTML acoperă ambele stadii prin parametrul de mod:
-   - `mode=intrare` (implicit): secțiunile finale („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân necompletate (grid gol pentru completare olografă la primirea vehiculului);
-   - `mode=electronic`: secțiunile sunt populate cu textul constatării finale (`constatare_finala`) și recomandările redactate (`observatii`).
+   - `mode=intrare` (implicit): formularul RAR de intrare, unde secțiunile de completat ale mecanicului („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân necompletate (grid gol pentru completare olografă la primirea vehiculului);
+   - `mode=electronic`: formularul electronic populează secțiunile cu textul constatării finale (`constatare_finala`) și recomandările redactate (`observatii`).
 6. **Limitări și așezare în pagină la tipărirea electronică:**
    - maximum 14 linii nevide per secțiune (depășirea alertează utilizatorul și blochează tipărirea);
-   - grilă 7×2: liniile 1–7 sunt așezate în coloana din stânga, iar liniile 8–14 în coloana din dreapta;
+   - grilă 7×2: câte 7 linii pe coloană (liniile 1–7 sunt așezate în coloana din stânga, iar liniile 8–14 în coloana din dreapta);
    - trecerea în majuscule (`toLocaleUpperCase('ro-RO')`) se execută doar în timpul randării pentru tipar, textul persistat în Supabase păstrând caracterele originale.
+
+### 3.2 Repartizări structurate și sincronizare cu personalul service
+
+1. **Sincronizare în `constatari_v2`:** la salvarea constatării noi sau editate, selectorii de personal pe departamente sincronizează automat tabela `constatari_repartizari`.
+2. **Dezactivare fără DELETE:** repartizările eliminate nu se șterg din tabelă; ele devin inactive prin setarea `activ = false` și `retras_la = now()`, păstrând istoricul alocărilor.
+3. **Reactivare:** dacă o persoană eliminată este selectată din nou, rândul anterior inactiv este reactivat (`activ = true`, `retras_la = null`, `repartizat_la = now()`).
+4. **Compatibilitate retroactivă:** coloana de text concatenat `constatari.responsabili` este menținută în paralel pentru afișarea în liste și compatibilitate cu versiunile anterioare.
+
+### 3.3 Fluxul mobil Atelier Rapid (`modules/formulare/atelier_rapid.html`)
+
+1. **Acces direct:** utilizatorii care au exclusiv permisiunea `atelier_rapid` (fără alte module operaționale active și fără rol Admin) sunt redirecționați automat direct în Atelier Rapid la logare (cu excepția cazului în care URL-ul conține `?hub=1`).
+2. **Încărcare vehicule:** vehiculele apar în lista mobilă exclusiv pe baza repartizărilor structurate active (`constatari_repartizari` unde `activ = true`, `retras_la IS NULL` și `service_personal.user_id = auth.uid()`).
+3. **Control birou și mașini închise:** mașinile cu status general `Finalizat` sau `Arhivat` în `constatari` sunt ascunse din listă și protejate împotriva oricărei modificări; statusul global al vehiculului rămâne strict sub controlul biroului.
+4. **Multi-departament pe un singur card:**
+   - un cont HUB poate fi asociat la multiple departamente în `service_personal`;
+   - în lista mobilă apare un singur card per mașină, cu indicarea numărului de secții („N secții”) sau a departamentului unic;
+   - în ecranul de detaliu al mașinii este afișat un selector segmentat pentru comutarea între departamentele proprii.
+5. **Independență și mapare pe departamente:** câmpurile și statusul sunt complet independente pentru fiecare departament alocat:
+   - „Defecțiuni constatate” → `constatari_departamente.constatari`;
+   - „Piese necesare” → `constatari_departamente.piese_materiale`;
+   - „Ce am făcut / Observație pentru colegi” → `constatari_departamente.lucrari_efectuate`;
+   - „Status departament” → `constatari_departamente.status` (`De făcut`, `În lucru`, `Așteptare piese`, `Finalizat`).
+6. **Triggerul `finalizat_la`:** triggerul bazei `trg_atelier_dept_write_guard` gestionează automat timestamp-ul departamentului la salvare (setat la `now()` când statusul devine `Finalizat`, păstrat neschimbat la re-salvări în status `Finalizat`, și resetat la `NULL` când se revine din Finalizat).
+7. **Sesiune:** pagina nu încarcă scriptul de timeout de inactivitate (`session-timeout.js` nu este inclus), dar deconectarea sau revocarea autentificării (`SIGNED_OUT` pe `onAuthStateChange`) redirecționează utilizatorul la pagina de login.
+
+### 3.4 Asocierea conturilor HUB din Admin → Echipe & Departamente
+
+1. **Selector opțional:** administratorul poate asocia explicit un cont HUB fiecărui rând din `service_personal` prin selectorul dedicat.
+2. **Creare cu `user_id = NULL`:** persoanele noi create în `service_personal` au inițial `user_id = NULL` (politica forțează această valoare pentru a preveni asocierea automată cu administratorul logat).
+3. **Regula aceluiași angajat:** un cont HUB poate fi legat de multiple rânduri `service_personal` (pentru departamente diferite) numai dacă numele persoanei este același (același nume normalizat); interfața blochează asocierea aceluiași cont la persoane cu nume diferit.
+4. **Fără drept DELETE:** tabela `service_personal` nu oferă permisiuni de ștergere fizică.
 
 ## 4. Constatare → Deviz final
 

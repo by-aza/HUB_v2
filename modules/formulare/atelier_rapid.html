@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Atelier Rapid — prototip mobil (MOCK)</title>
-  <!-- stilurile prototipului (relative, merge și la deschidere directă din fișier) -->
-  <link rel="stylesheet" href="../../css/atelier_rapid_mock.css">
+  <title>Atelier Rapid</title>
+  <!-- stilurile paginii Atelier Rapid -->
+  <link rel="stylesheet" href="../../css/atelier_rapid.css">
 </head>
 <body>
 <div class="ar-app">
-  <!-- antetul fix: titlu pagină + utilizator mock -->
+  <!-- antetul fix: titlu pagină + utilizator + ieșire -->
   <header class="ar-top" id="arTop">
     <div class="ar-title">Atelier Rapid</div>
     <div class="ar-user" id="arUser"></div>
+    <button type="button" class="ar-logout" id="arLogout">Ieșire</button>
   </header>
 
   <!-- ecranul 1: lista mașinilor repartizate -->
@@ -48,6 +49,8 @@
           </button>
         </div>
       </div>
+      <!-- selector segmentat al secțiilor proprii (apare doar când mașina are mai multe secții ale utilizatorului) -->
+      <div class="ar-seg ar-hidden" id="arDeptSeg" role="group" aria-label="Secția"></div>
     </div>
 
     <div class="ar-dbody">
@@ -56,7 +59,7 @@
         <textarea id="fDefects" class="ar-ta" placeholder="Descrie defecțiunile constatate"></textarea>
       </label>
       <label class="ar-field ar-grow" for="fParts">
-        <span class="ar-label">Piese necesare</span>
+        <span class="ar-label">Piese necesare / de înlocuit</span>
         <textarea id="fParts" class="ar-ta" placeholder="Câte o piesă pe rând"></textarea>
       </label>
 
@@ -71,7 +74,6 @@
     <div class="ar-savebar">
       <div class="ar-toast" id="arToast" role="status" aria-live="polite"></div>
       <button type="button" class="ar-save" id="arSave">Salvează actualizarea</button>
-      <div class="ar-mocknote">Demo local — nu se trimite nimic în HUB / Supabase</div>
     </div>
   </main>
 </div>
@@ -80,6 +82,9 @@
 <div class="ar-backdrop ar-hidden" id="arBackdrop"></div>
 <div class="ar-modal ar-hidden" id="arModal" role="dialog" aria-modal="true" aria-labelledby="arModalTitle"></div>
 
-<script src="../../js/atelier_rapid_mock.js"></script>
+<!-- clientul Supabase existent al HUB; fără timeout de inactivitate (js/session-timeout.js nu se încarcă aici) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/config.js"></script>
+<script src="../../js/atelier_rapid.js"></script>
 </body>
 </html>

@@ -32,10 +32,10 @@ Admin este permis indiferent de bifă pentru operațiile implementate, fără a 
 | `clienti_vehicule_termene` | Admin sau clienti_notificari, SELECT/INSERT/UPDATE; dezactivare prin activ=false, fără DELETE. |
 | `comenzi_piese_sh` | SELECT/INSERT/UPDATE Admin sau comenzi_piese_sh; INSERT creator propriu; DELETE numai Admin; metadate protejate de triggere. |
 | `config_alerte` | Admin/admin_alerte: SELECT și UPDATE numai valoare; fără INSERT/DELETE/secvență. |
-| `constatari` | S/I/U Admin/constatari; citire și pentru clienti_notificari, deviz_final, comenzi_piese_sh, Manager/2 sau manager_dashboard; fără DELETE. |
+| `constatari` | S/I/U Admin/constatari; citire și pentru clienti_notificari, deviz_final, comenzi_piese_sh, Manager/2 sau manager_dashboard; citire mașini deschise repartizate pentru atelier_rapid; fără DELETE. |
 | `constatari_asteptare_piese` | S/I/U Admin/constatari, UPDATE numai sfarsit; citire și Manager/2 sau manager_dashboard. |
-| `constatari_departamente` | S/I/U Admin/constatari, citire și clienti_notificari; fără DELETE. |
-| `constatari_repartizari` | Numai SELECT Admin/constatari; responsabilitățile editabile sunt în constatari.responsabili. |
+| `constatari_departamente` | S/I/U Admin/constatari, citire și clienti_notificari; pentru atelier_rapid: SELECT mașini deschise repartizate, INSERT/UPDATE pe departamentul alocat activ; trigger guard pe finalizat_la și actualizat_de; fără DELETE. |
+| `constatari_repartizari` | S/I/U Admin/constatari; citire atelier_rapid pentru repartizările proprii; fără DELETE (retragere activ=false). |
 | `contracte` | Admin sau contracte, S/I/U/D; fără fallback devize în politica DB; text ->> true în implementarea existentă. |
 | `detailing` | Admin sau detailing, S/I/U/D; politica veche nu deduce fallback din constatari. |
 | `deviz_final_header` | S/I/U Admin sau deviz_final explicit; DELETE Admin/admin_devize; cititori suplimentari la secțiunea următoare. |
@@ -49,7 +49,7 @@ Admin este permis indiferent de bifă pentru operațiile implementate, fără a 
 | `flota_auto` | Admin sau flota, S/I/U/D; nu se presupune că bifa UI lista_masini înlocuiește cheia DB. |
 | `generator_logs` | EXCEPȚIE PERMISIVĂ NEREZOLVATĂ: ALL public true; anon poate CRUD cu GRANT-urile existente. Nu impune bifa generator. |
 | `plati_manager` | Admin/Manager acces global; plati vede/creează propriile cereri; manager_dashboard citește și marchează neplatit→platit; DELETE numai neplatit pentru Admin/Manager sau creator cu plati. |
-| `service_personal` | SELECT Admin/admin_echipe/constatari; INSERT/UPDATE administrativ Admin/admin_echipe; arhivare activ=false, fără DELETE. |
+| `service_personal` | SELECT Admin/admin_echipe/constatari și atelier_rapid (rânduri proprii); INSERT user_id=NULL Admin/admin_echipe; UPDATE Admin/admin_echipe (inclusiv user_id); arhivare activ=false, fără DELETE. |
 | `stoc_miscari` | SELECT consumabile (fallback magazie), admin_consumabile, Manager/2/manager_dashboard și Admin; INSERT consumabile/Admin; DELETE admin_consumabile/Admin; fără UPDATE. |
 | `stoc_produse` | SELECT ca la mișcări; INSERT consumabile/Admin; UPDATE admin_consumabile/Admin; fără DELETE. |
 | `telefoane_clienti` | Admin sau telefoane, S/I/U/D. |

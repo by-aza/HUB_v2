@@ -587,6 +587,110 @@ function buildResponsabiliValue() {
     .filter(Boolean)
     .join(" | ");
 }
+/* ID-urile service_personal selectate în formular (cele din option value), fără parsare de nume; null dacă personalul nu e încărcat */
+function getSelectedAssignmentPersonIds() {
+  if (!servicePeopleLoaded || servicePeopleError) return null;
+  const ids = Object.keys(deptData)
+    .map((key) => Number(document.querySelector(`[data-assignment="${key}"]`)?.value))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  return [...new Set(ids)];
+}
+/* sincronizează constatari_repartizari cu selecțiile din formular (toate departamentele); constatari.responsabili rămâne neschimbat */
+async function syncConstatareAssignments(constatareId, personIds) {
+  if (!Array.isArray(personIds)) {
+    throw new Error("lista personalului nu a putut fi încărcată");
+  }
+  const cid = Number(constatareId);
+  const desired = new Set(personIds.map(Number));
+  const actor = await getAuditActor();
+  const nowIso = new Date().toISOString();
+  const readRows = async () => {
+    const { data, error } = await supabaseClient
+      .from("constatari_repartizari")
+      .select("id, service_personal_id, activ, retras_la, repartizat_la")
+      .eq("constatare_id", cid);
+    if (error) throw error;
+    return data || [];
+  };
+  const rows = await readRows();
+  const activeByPerson = new Map();
+  rows.filter((r) => r.activ).forEach((r) => {
+    const list = activeByPerson.get(Number(r.service_personal_id)) || [];
+    list.push(r);
+    activeByPerson.set(Number(r.service_personal_id), list);
+  });
+
+  /* retrage repartizările active care nu mai sunt în formular */
+  const toRetire = rows
+    .filter((r) => r.activ && !desired.has(Number(r.service_personal_id)))
+    .map((r) => r.id);
+  if (toRetire.length) {
+    const { data, error } = await supabaseClient
+      .from("constatari_repartizari")
+      .update({ activ: false, retras_la: nowIso })
+      .in("id", toRetire)
+      .select("id");
+    if (error) throw error;
+    if ((data || []).length !== toRetire.length) {
+      throw new Error("retragerea repartizărilor nu a fost confirmată");
+    }
+  }
+
+  for (const personId of desired) {
+    if (activeByPerson.has(personId)) continue; /* deja activ: nu se dublează */
+    /* reactivează cea mai recentă repartizare inactivă, altfel inserează una nouă */
+    const inactive = rows
+      .filter((r) => !r.activ && Number(r.service_personal_id) === personId)
+      .sort((a, b) => String(b.repartizat_la).localeCompare(String(a.repartizat_la)))[0];
+    if (inactive) {
+      const { data, error } = await supabaseClient
+        .from("constatari_repartizari")
+        .update({
+          activ: true,
+          retras_la: null,
+          repartizat_la: nowIso,
+          repartizat_de: actor.user_id || null,
+        })
+        .eq("id", inactive.id)
+        .select("id");
+      if (error && error.code !== "23505") throw error;
+      if (!error && !(data || []).length) {
+        throw new Error("reactivarea repartizării nu a fost confirmată");
+      }
+    } else {
+      const { error } = await supabaseClient
+        .from("constatari_repartizari")
+        .insert({
+          constatare_id: cid,
+          service_personal_id: personId,
+          activ: true,
+          repartizat_la: nowIso,
+          repartizat_de: actor.user_id || null,
+        });
+      /* 23505 = există deja o repartizare activă (index unic parțial): nu se dublează */
+      if (error && error.code !== "23505") throw error;
+    }
+  }
+
+  /* verificare finală: setul activ trebuie să fie exact cel selectat */
+  const activeNow = (await readRows()).filter((r) => r.activ);
+  const activeIds = activeNow.map((r) => Number(r.service_personal_id));
+  const exact =
+    activeIds.length === desired.size &&
+    new Set(activeIds).size === activeIds.length &&
+    activeIds.every((id) => desired.has(id));
+  if (!exact) throw new Error("repartizările active nu corespund selecției");
+}
+/* rulează sincronizarea fără să arunce; întoarce textul erorii sau "" */
+async function trySyncConstatareAssignments(constatareId, personIds) {
+  try {
+    await syncConstatareAssignments(constatareId, personIds);
+    return "";
+  } catch (error) {
+    console.error("Sincronizare constatari_repartizari:", error);
+    return `Repartizările structurate (constatari_repartizari) nu au putut fi sincronizate: ${error?.message || "eroare necunoscută"}. Textul „Responsabili” a fost salvat; verifică repartizarea.`;
+  }
+}
 function renderAssignmentOptions(key, selectedName = "") {
   if (servicePeopleError) {
     return `<option value="">Nu s-a putut încărca personalul</option>`;
@@ -2576,6 +2680,8 @@ function renderDetail() {
       try {
         if (manualPlateLookupPromise) await manualPlateLookupPromise;
         const payload = getEditableCarPayload({ includeKmOut: false });
+        /* ID-urile personalului selectat, citite înainte de re-randare */
+        const assignmentPersonIds = getSelectedAssignmentPersonIds();
         /* păstrează legăturile exacte primite din dosarul C&N, fără identificare după text */
         const draftLinks = manualPlateLookupLinks || cnConstatareDraft;
         if (draftLinks?.clientId && draftLinks?.vehicleId) {
@@ -2583,6 +2689,8 @@ function renderDetail() {
           payload.vehicle_id = draftLinks.vehicleId;
         }
         const { id, cnWarning } = await createNewConstatareRecord(payload);
+        /* repartizările structurate pentru toate departamentele */
+        const assignmentWarning = await trySyncConstatareAssignments(id, assignmentPersonIds);
         clearDirtyState();
         clearManualPlateLookup();
         cnConstatareDraft = null;
@@ -2592,6 +2700,9 @@ function renderDetail() {
         await loadCars(id);
         if (cnWarning) {
           alert(`Constatarea a fost salvată, dar necesită verificare manuală. ${cnWarning}`);
+        }
+        if (assignmentWarning) {
+          alert(`Constatarea a fost salvată, dar sincronizarea repartizărilor a eșuat. ${assignmentWarning}`);
         }
       } catch (error) {
         console.error(error);
@@ -2770,6 +2881,8 @@ function renderDetail() {
           vehicleId: currentLinks?.vehicle_id || previousCar.vehicleId || null,
         };
         const formPayload = getEditableCarPayload();
+        /* ID-urile personalului selectat, citite înainte de re-randare */
+        const assignmentPersonIds = getSelectedAssignmentPersonIds();
         const validation = await validateLinkedVehicleIdentity(
           linkedCar,
           formPayload,
@@ -2876,9 +2989,14 @@ function renderDetail() {
             `Repartizare: ${repartizare}`,
           );
         }
+        /* sincronizează constatari_repartizari după salvarea reușită a constatării */
+        const assignmentWarning = await trySyncConstatareAssignments(currentId, assignmentPersonIds);
         clearDirtyState();
         editing = false;
         await loadCars(currentId);
+        if (assignmentWarning) {
+          alert(`Modificările constatării au fost salvate, dar sincronizarea repartizărilor a eșuat. ${assignmentWarning}`);
+        }
       } catch (error) {
         console.error(error);
         alert(error?.message || "Nu s-au putut salva modificările.");

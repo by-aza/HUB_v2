@@ -1,10 +1,59 @@
 # Integrarea Supabase
 
-## Constatări: constatare_finala și drepturi pe coloană — 24.11.2026, VERIFICAT LIVE
+## Constatări, Repartizări, Atelier Rapid și Echipe — 24.11.2026, APLICAT ÎN PRODUCȚIE ȘI VERIFICAT LIVE
 
-- **Coloană nouă:** `public.constatari.constatare_finala` (`text`), destinată constatării finale redactate de birou pentru fișa tehnică.
-- **Drepturi pe coloană:** rolul `authenticated` are `GRANT SELECT (constatare_finala), UPDATE (constatare_finala) ON TABLE public.constatari`.
-- **Relație cu departamentele:** constatările mecanicului rămân în `constatari_departamente.constatari`; biroul le importă manual la cerere, le reformulează și le salvează în `constatari.constatare_finala`. Modificările ulterioare făcute de mecanic nu suprascriu textul final al biroului.
+**Statut producție: APPLIED și VERIFICAT LIVE** pe proiectul Supabase de producție `xyovkxmtbvgcwavuyxxu`.
+Pachetul de migrări pentru modulul Constatări, repartizările structurate, pagina mobilă Atelier Rapid și asocierea conturilor în Admin → Echipe & Departamente este aplicat și verificat funcțional în producție cu utilizatori reali autentificați:
+- `CSN TEST` (`test_mecanic@csngarage.ro`) citește și actualizează mașina repartizată în Mecanică;
+- Schimbările de status la nivel de departament persistă în baza de date;
+- Timestamp-ul `finalizat_la` este setat automat de trigger la trecerea în `Finalizat` și este curățat (`NULL`) la redeschidere;
+- Protecția mașinilor închise/globale (status `Finalizat` sau `Arhivat` în `constatari`) rămâne activă și blochează modificările;
+- `Brinzeiu Cosmin` (`cosminjst19@gmail.com`) este asociat la două departamente (Vopsitorie și Tinichigerie/Pregatire);
+- Același vehicul apare o singură dată în lista Atelier Rapid, cu două secțiuni de departament accesibile prin selectorul segmentat;
+- Datele salvate pentru Vopsitorie și Pregătire sunt complet independente și apar în taburile corespunzătoare din Constatări.
+
+Această actualizare documentară nu a executat SQL și nu a aplicat migrări pe Supabase în timpul sarcinii curente.
+
+### 1. Fișiere de migrare aplicate
+
+- [`20261124120000_add_constatare_finala.sql`](../supabase/migrations/20261124120000_add_constatare_finala.sql):
+  - Adaugă coloana `public.constatari.constatare_finala` (`text`), destinată constatării finale redactate de birou pentru fișa tehnică;
+  - Acordă `GRANT SELECT (constatare_finala), UPDATE (constatare_finala) ON TABLE public.constatari TO authenticated`.
+- [`20261124122744_constatari_repartizari_write_access.sql`](../supabase/migrations/20261124122744_constatari_repartizari_write_access.sql):
+  - Acordă `GRANT INSERT (constatare_id, service_personal_id, activ, repartizat_la, repartizat_de)` și `UPDATE (activ, retras_la, repartizat_la, repartizat_de) ON TABLE public.constatari_repartizari TO authenticated`;
+  - Politici RLS noi `hub_const_4_insert` și `hub_const_4_update`: permit inserarea și actualizarea repartizărilor utilizatorilor cu rol Admin (`rol_id = 1`) sau permisiunea `constatari`;
+  - **Fără DELETE:** repartizările retrase se marchează logic prin `activ = false` și `retras_la = now()`, fără ștergere fizică din tabelă.
+- [`20261124122932_fix_service_personal_user_links.sql`](../supabase/migrations/20261124122932_fix_service_personal_user_links.sql):
+  - Resetare tranzacțională a legăturilor eronate: setează `service_personal.user_id = NULL` pe toate rândurile, apoi asociază punctual doar conturile reale de test confirmate (id 20 „CSN TEST” / Mecanica la `test_mecanic@csngarage.ro` și id 12 „Brinzeiu Cosmin” / Vopsitorie la `cosminjst19@gmail.com`).
+- [`20261124124129_grant_constatare_finala_insert.sql`](../supabase/migrations/20261124124129_grant_constatare_finala_insert.sql):
+  - Acordă `GRANT INSERT (constatare_finala) ON TABLE public.constatari TO authenticated`, necesar la crearea unei fișe noi cu text final direct din formular.
+- [`20261124130932_atelier_rapid_read_policies.sql`](../supabase/migrations/20261124130932_atelier_rapid_read_policies.sql):
+  - Politici RLS de citire dedicate pentru utilizatorii cu permisiunea `atelier_rapid`:
+    - `hub_atelier_read` pe `public.service_personal`: rândurile active legate de utilizatorul logat (`user_id = auth.uid()` și `activ = true`);
+    - `hub_atelier_read` pe `public.constatari_repartizari`: repartizările active (`activ = true`, `retras_la IS NULL`) ale utilizatorului;
+    - `hub_atelier_read` pe `public.constatari`: mașinile legate printr-o repartizare activă proprie;
+    - `hub_atelier_read` pe `public.constatari_departamente`: departamentele mașinilor repartizate activ utilizatorului.
+- [`20261124132400_atelier_rapid_write_policies.sql`](../supabase/migrations/20261124132400_atelier_rapid_write_policies.sql):
+  - Acordă `GRANT INSERT (constatare_id, departament, constatari, piese_materiale, lucrari_efectuate, status, updated_at, actualizat_de)` și `UPDATE (constatari, piese_materiale, lucrari_efectuate, status, updated_at, actualizat_de) ON TABLE public.constatari_departamente TO authenticated`;
+  - **Fără drept DELETE:** niciun utilizator nu primește DELETE pe departamente;
+  - Politici RLS `hub_atelier_insert` și `hub_atelier_update`: permit scrierea numai dacă apelantul are permisiunea `atelier_rapid`, mașina nu este închisă (`status NOT IN ('Finalizat', 'Arhivat')`), și utilizatorul are o repartizare activă exact pe acel departament al acelei constatări;
+  - Trigger și funcție de gardă `atelier_dept_write_guard()` pe `public.constatari_departamente` (trigger `trg_atelier_dept_write_guard` BEFORE INSERT OR UPDATE):
+    - pentru scriitori non-Admin / fără permisiunea `constatari`:
+      - impune `actualizat_de = auth.uid()`;
+      - interzice setarea sau modificarea câmpului `elemente_lucrate`;
+      - interzice modificarea `constatare_id` și `departament` la UPDATE;
+      - gestionează exclusiv coloana `finalizat_la`: la trecerea în status `Finalizat` setează `now()`, dacă rândul era deja Finalizat păstrează vechiul `finalizat_la`, iar dacă statusul devine diferit de Finalizat resetează la `NULL` (valoarea din payload-ul clientului este ignorată).
+- [`20261124142737_service_personal_user_link_admin.sql`](../supabase/migrations/20261124142737_service_personal_user_link_admin.sql):
+  - Acordă `GRANT UPDATE (user_id) ON TABLE public.service_personal TO authenticated` (sub politica existentă `hub_personal_update`, care cere Admin sau `admin_echipe`);
+  - Înlocuiește politica de inserare: `hub_personal_insert_unlinked` permite INSERT numai pentru Admin / `admin_echipe` și forțează `user_id IS NULL` la creare (persoanele se creează fără cont asociat);
+  - **Fără DELETE și fără UNIQUE pe user_id:** tabela nu primește DELETE, iar `user_id` nu are constrângere UNIQUE în DB (același cont poate fi asociat la multiple departamente ale aceluiași angajat; unicitatea pe persoană este validată de interfața Admin).
+
+### 2. Politici RLS și restricții pe operații
+- **Atelier Rapid:** SELECT (`hub_atelier_read`), INSERT (`hub_atelier_insert`) și UPDATE (`hub_atelier_update`) sunt strict izolate pe mașinile deschise și repartizate activ; nu se acordă DELETE;
+- **Asociere conturi personal:** legarea conturilor este permisă doar prin UPDATE de către administratori; inserarea forțează `user_id = NULL` prin `hub_personal_insert_unlinked`;
+- **Nicio permisiune DELETE:** niciuna dintre migrările aplicate nu acordă DELETE pentru `authenticated` pe `constatari`, `constatari_repartizari`, `constatari_departamente` sau `service_personal`.
+
+- **Relație birou / mecanic:** constatările mecanicului rămân în `constatari_departamente.constatari`; biroul le importă manual la cerere, le reformulează și le salvează în `constatari.constatare_finala`. Modificările ulterioare făcute de mecanic nu suprascriu textul final al biroului.
 - **Recomandări:** coloana `constatari.observatii` este utilizată drept „Recomandări pentru client”.
 - **Verificare:** modificarea de schemă, granturile și fluxul au fost verificate manual în browser live. Detaliile de modul și modurile de tipărire sunt în [02_MODULE.md](02_MODULE.md#41-constatare-v2) și [05_FLUXURI_PRINCIPALE.md](05_FLUXURI_PRINCIPALE.md#3-client-și-vehicul--constatare).
 
@@ -521,16 +570,17 @@ Absența INSERT/UPDATE din ACL-ul de tabel nu înseamnă că operația este inte
 | `private.deviz_final_avans_review` | — | — | avans_id, status |
 | `public.audit_logs` | user_id, user_name, modul, actiune, entitate, entitate_id, descriere | — | — |
 | `public.config_alerte` | — | valoare | — |
-| `public.constatari` | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, responsabili, client_id, vehicle_id | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, constatare_finala, status, este_urgent, client, telefon, km_iesire, data_finalizarii, responsabili, client_id, vehicle_id | constatare_finala |
+| `public.constatari` | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, status, este_urgent, client, telefon, km_iesire, nr_fisa, responsabili, client_id, vehicle_id, constatare_finala | nr_inmatriculare, model_masina, serie_vin, kilometraj, defectiuni_client, defectiuni_mecanic, observatii, constatare_finala, status, este_urgent, client, telefon, km_iesire, data_finalizarii, responsabili, client_id, vehicle_id | constatare_finala |
 | `public.constatari_asteptare_piese` | constatare_id, inceput, sfarsit | sfarsit | — |
 | `public.constatari_departamente` | constatare_id, departament, constatari, lucrari_efectuate, status, updated_at, finalizat_la, actualizat_de, piese_materiale, elemente_lucrate | constatare_id, departament, constatari, lucrari_efectuate, status, updated_at, finalizat_la, actualizat_de, piese_materiale, elemente_lucrate | — |
+| `public.constatari_repartizari` | constatare_id, service_personal_id, activ, repartizat_la, repartizat_de | activ, retras_la, repartizat_la, repartizat_de | — |
 | `public.deviz_final_header` | id_deviz_estimativ, data_deviz, client, auto, nr_inmatriculare, serie_vin, serie_motor, km, termen_executie, discount_global_piese, total_manopera, total_piese, total_general, created_by, constatare_id, vehicle_id, total_avans | id_deviz_estimativ, data_deviz, client, auto, nr_inmatriculare, serie_vin, serie_motor, km, termen_executie, discount_global_piese, total_manopera, total_piese, total_general, vehicle_id, total_avans | — |
 | `public.deviz_final_linii` | id_deviz_final, sectiune, nr_crt, denumire, detalii, um, cantitate, pret_unitar, discount, total, comanda_piesa_sh_id, avans_id | — | — |
 | `public.devize` | id_deviz, data_deviz, autovehicul, vin, nr_inmatriculare, piese, discount_global, total_general, created_by | id_deviz, data_deviz, autovehicul, vin, nr_inmatriculare, piese, discount_global, total_general, created_by | — |
 | `public.evidente_avansuri` | data_crearii, model_masina, nr_inmatriculare, detalii_avans, este_arhivat, observatii, vehicle_id | data_crearii, model_masina, nr_inmatriculare, este_arhivat, observatii, vehicle_id | — |
 | `public.evidente_avansuri_plati` | avans_id, suma, metoda_plata, observatii, data_platii | suma, metoda_plata, data_platii | — |
 | `public.plati_manager` | — | status, data_platii, platit_de | — |
-| `public.service_personal` | nume, departament, activ, ordine, user_id | nume, activ, ordine, updated_at | — |
+| `public.service_personal` | nume, departament, activ, ordine, user_id | nume, activ, ordine, updated_at, user_id | — |
 | `public.stoc_produse` | — | denumire, prag_minim, activ | — |
 
 ### VIEW și excepția privată

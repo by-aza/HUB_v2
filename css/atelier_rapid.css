@@ -116,3 +116,22 @@ button { cursor: pointer; }
 .ar-opt { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; margin-bottom: 8px; padding: 0 14px; text-align: left; font-weight: 700; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
 .ar-opt .ar-dot { position: static; box-shadow: none; flex: none; }
 .ar-opt[aria-checked="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--card)); }
+
+/* buton „Ieșire” din antet */
+.ar-logout { min-height: 36px; padding: 0 10px; font-size: 13px; font-weight: 700; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 8px; }
+/* mesaje de stare (neautentificat, fără acces, fără repartizări, eroare) */
+.ar-empty { padding: 24px 14px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; overflow-wrap: anywhere; }
+.ar-empty strong { display: block; margin-bottom: 4px; color: var(--text); font-size: 17px; }
+.ar-empty.err strong { color: #fda4af; }
+/* mesaj de eroare la salvare (confirmarea reușită folosește stilul .ar-toast existent) */
+.ar-toast.err { color: #fff; background: #881337; border-color: #9f1239; }
+.ar-save:disabled { opacity: .6; cursor: default; }
+
+/* mașină cu mai multe secții: indicație compactă + etichete secție · status */
+.ar-multi { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid #22d3ee66; color: var(--cyan); background: #22d3ee14; white-space: nowrap; }
+.ar-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ar-chip { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); }
+/* selector segmentat al secțiilor în detaliu */
+.ar-seg { display: flex; gap: 4px; margin: 6px 0 2px; padding: 3px; background: #0b1522; border: 1px solid var(--line); border-radius: 10px; }
+.ar-seg-btn { flex: 1; min-height: 40px; padding: 0 8px; font-size: 14px; font-weight: 700; color: var(--muted); background: transparent; border: 0; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-seg-btn.on { color: #fff; background: #0891b2; }

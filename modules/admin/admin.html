@@ -1892,6 +1892,7 @@
                                     <tr>
                                         <th class="px-4 py-3 text-left">Nume</th>
                                         <th class="px-4 py-3 text-left">Ordine</th>
+                                        <th class="px-4 py-3 text-left">Cont HUB</th>
                                         <th class="px-4 py-3 text-left">Status</th>
                                         <th class="px-4 py-3 text-right">Acțiuni</th>
                                     </tr>
@@ -2186,6 +2187,8 @@
                                             <div class="grid gap-2 sm:grid-cols-2">
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_detailing" class="rounded border-slate-600 bg-slate-900"> Detailing</label>
                                                 <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_constatari" class="rounded border-slate-600 bg-slate-900"> Constatări</label>
+                                                <!-- Permisiune separată pentru Atelier Rapid (mecanici); independentă de Constatări -->
+                                                <label class="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" id="perm_atelier_rapid" class="rounded border-slate-600 bg-slate-900"> Atelier Rapid</label>
                                             </div>
                                         </div>
                                         <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
@@ -2358,6 +2361,45 @@
         let servicePersonalRows = [];
         let activeServicePersonalTab = 'echipe-tab-mecanica';
         let servicePersonalEditingId = null;
+        /* conturile HUB (aceeași sursă ca Gestionare Utilizatori: auth_profiles) pentru asocierea opțională cu personalul */
+        let echipeHubAccounts = new Map();
+        let echipeHubAccountsLoaded = false;
+
+        /* nume comparabil: fără diacritice, litere mici, spații normalizate */
+        function normalizePersonName(value) {
+            return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+
+        /* eticheta contului: Nume Prenume — email (rol) */
+        function formatHubAccountLabel(account) {
+            const fullName = [account.nume, account.prenume].filter(Boolean).join(' ').trim() || account.porecla || '(fără nume)';
+            const role = account.auth_roles?.numire_rol || 'fără rol';
+            return `${fullName} — ${account.email || 'fără email'} (${role})`;
+        }
+
+        function getLinkedAccountLabel(userId) {
+            if (!userId) return '';
+            const account = echipeHubAccounts.get(userId);
+            return account ? formatHubAccountLabel(account) : `Cont necunoscut (${String(userId).slice(0, 8)}…)`;
+        }
+
+        async function loadHubAccountsForEchipe() {
+            try {
+                const { data, error } = await sb
+                    .from('auth_profiles')
+                    .select('id, nume, prenume, porecla, email, rol_id, auth_roles(id, numire_rol)')
+                    .order('nume', { ascending: true });
+                if (error) throw error;
+                echipeHubAccounts = new Map((data || []).map((account) => [account.id, account]));
+                echipeHubAccountsLoaded = true;
+            } catch (error) {
+                console.error(error);
+                echipeHubAccounts = new Map();
+                echipeHubAccountsLoaded = false;
+                setEchipeStatus('Conturile HUB nu au putut fi încărcate; asocierea contului nu este disponibilă.', 'error');
+            }
+        }
+
 
         function getActiveServicePersonalDepartment() {
             return servicePersonalDepartmentTabs[activeServicePersonalTab] || servicePersonalDepartmentTabs['echipe-tab-mecanica'];
@@ -2414,7 +2456,7 @@
             );
 
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Nu există persoane în departamentul selectat.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Nu există persoane în departamentul selectat.</td></tr>';
                 return;
             }
 
@@ -2438,6 +2480,14 @@
                             <td class="px-4 py-3">
                                 <input type="number" value="${escapeHtml(row.ordine ?? '')}" data-service-person-order-input class="echipe-inline-input">
                             </td>
+                            <td class="px-4 py-3">
+                                <label class="mb-1 block text-xs text-slate-400">Cont HUB asociat (opțional)</label>
+                                <select data-service-person-account-select class="echipe-inline-input" ${echipeHubAccountsLoaded ? '' : 'disabled'}>
+                                    <option value="">Fără cont asociat</option>
+                                    ${[...echipeHubAccounts.values()].map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === row.user_id ? 'selected' : ''}>${escapeHtml(formatHubAccountLabel(account))}</option>`).join('')}
+                                    ${row.user_id && !echipeHubAccounts.has(row.user_id) ? `<option value="${escapeHtml(row.user_id)}" selected>${escapeHtml(getLinkedAccountLabel(row.user_id))}</option>` : ''}
+                                </select>
+                            </td>
                             <td class="px-4 py-3">${statusHtml}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="echipe-actions">
@@ -2453,6 +2503,7 @@
                     <tr class="hover:bg-slate-800/40 transition-colors">
                         <td class="px-4 py-3 text-slate-100 font-medium">${escapeHtml(row.nume || '—')}</td>
                         <td class="px-4 py-3 text-slate-300">${escapeHtml(row.ordine ?? '—')}</td>
+                        <td class="px-4 py-3 text-slate-300">${row.user_id ? escapeHtml(getLinkedAccountLabel(row.user_id)) : '<span class="text-slate-500">Fără cont asociat</span>'}</td>
                         <td class="px-4 py-3">${statusHtml}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="echipe-actions">
@@ -2465,18 +2516,12 @@
             }).join('');
         }
 
-        async function getCurrentSessionUserId() {
-            const { data: { session } = {}, error } = await sb.auth.getSession();
-            if (error) throw error;
-            return session?.user?.id || null;
-        }
-
         // Încărcare personal pe toate departamentele
         async function loadServicePersonalRows() {
             const tbody = document.getElementById('service-personal-body');
             if (!tbody) return;
 
-            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">Se încarcă personalul...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Se încarcă personalul...</td></tr>';
             setEchipeStatus('Se încarcă personalul...');
 
             try {
@@ -2487,13 +2532,14 @@
                 if (error) throw error;
 
                 servicePersonalRows = Array.isArray(data) ? data : [];
+                await loadHubAccountsForEchipe();
                 renderServicePersonalRows();
                 const currentDepartment = getActiveServicePersonalDepartment();
                 const visibleCount = servicePersonalRows.filter((row) => row?.departament === currentDepartment.value).length;
                 setEchipeStatus(`Au fost încărcate ${visibleCount} persoane pentru ${currentDepartment.label}.`, 'success');
             } catch (error) {
                 console.error(error);
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca persoanele.')}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-rose-400">Eroare: ${escapeHtml(error.message || 'Nu s-au putut încărca persoanele.')}</td></tr>`;
                 setEchipeStatus(error.message || 'Nu s-au putut încărca persoanele.', 'error');
             }
         }
@@ -2519,7 +2565,7 @@
             try {
                 if (addButton) addButton.disabled = true;
                 const currentDepartment = getActiveServicePersonalDepartment();
-                const userId = await getCurrentSessionUserId();
+                /* persoana nouă nu este legată de niciun cont: user_id rămâne NULL (nu se folosește ID-ul adminului logat) */
                 const { error } = await sb
                     .from('service_personal')
                     .insert({
@@ -2527,7 +2573,7 @@
                         departament: currentDepartment.value,
                         activ: true,
                         ordine,
-                        user_id: userId
+                        user_id: null
                     });
 
                 if (error) throw error;
@@ -2575,13 +2621,40 @@
             }
 
             try {
+                /* asocierea contului se trimite NUMAI dacă administratorul a schimbat explicit selectorul */
+                const accountSelect = row.querySelector('[data-service-person-account-select]');
+                const currentRow = servicePersonalRows.find((item) => String(item.id) === String(personId));
+                const currentUserId = currentRow?.user_id || null;
+                const selectedUserId = accountSelect && !accountSelect.disabled ? (accountSelect.value || null) : undefined;
+                const accountChanged = selectedUserId !== undefined && selectedUserId !== currentUserId;
+                const nameChanged = normalizePersonName(nume) !== normalizePersonName(currentRow?.nume);
+
+                /* același cont poate fi legat de mai multe departamente doar pentru aceeași persoană (același nume normalizat) */
+                const finalUserId = accountChanged ? selectedUserId : currentUserId;
+                if (finalUserId && (accountChanged || nameChanged)) {
+                    const { data: linkedRows, error: linkedError } = await sb
+                        .from('service_personal')
+                        .select('id, nume, departament')
+                        .eq('user_id', finalUserId);
+                    if (linkedError) throw linkedError;
+                    const conflict = (linkedRows || []).find((item) =>
+                        String(item.id) !== String(personId) && normalizePersonName(item.nume) !== normalizePersonName(nume));
+                    if (conflict) {
+                        setEchipeStatus(`Contul selectat este deja asociat cu „${conflict.nume}” (${conflict.departament}). Un cont poate fi legat de mai multe departamente numai pentru aceeași persoană. Modificările nu au fost salvate.`, 'error');
+                        return;
+                    }
+                }
+
+                const updatePayload = {
+                    nume,
+                    ordine,
+                    updated_at: new Date().toISOString()
+                };
+                if (accountChanged) updatePayload.user_id = selectedUserId; /* null = „Fără cont asociat” (dezlegare) */
+
                 const { error } = await sb
                     .from('service_personal')
-                    .update({
-                        nume,
-                        ordine,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(updatePayload)
                     .eq('id', personId);
 
                 if (error) throw error;
@@ -2965,6 +3038,7 @@
             ['perm_dezmembrari_manage', 'dezmembrari_manage'],
             ['perm_detailing', 'detailing'],
             ['perm_constatari', 'constatari'],
+            ['perm_atelier_rapid', 'atelier_rapid'],
             ['perm_admin_megafon', 'admin_megafon'],
             ['perm_admin_alerte', 'admin_alerte'],
             ['perm_admin_devize', 'admin_devize'],
@@ -2995,6 +3069,7 @@
             dezmembrari_manage: 'Administrare Dezmembrări',
             detailing: 'Detailing',
             constatari: 'Constatări',
+            atelier_rapid: 'Atelier Rapid',
             admin_megafon: 'Admin Megafon',
             admin_alerte: 'Admin Alerte Email',
             admin_devize: 'Admin Gestiune Devize',
