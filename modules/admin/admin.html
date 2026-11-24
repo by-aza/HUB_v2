@@ -4256,9 +4256,17 @@
                 users.forEach((user) => {
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-slate-800/40 transition-colors';
+                    // text sigur (escape HTML) pentru nume complet și email din auth_profiles
+                    const escHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+                    const userNameEsc = escHtml([user.nume, user.prenume].filter((v) => v && String(v).trim()).join(' ').trim());
+                    const userEmailEsc = escHtml(String(user.email || '').trim());
                     // Înălțimea rândurilor se modifică prin clasele py din celule
                     row.innerHTML = `
-                        <td class="py-3 pr-4 text-slate-100">${user.nume || ''} ${user.prenume || ''}</td>
+                        <td class="py-3 pr-4 text-slate-100 max-w-[220px] sm:max-w-xs">
+                            <div>${userNameEsc || 'Profil necompletat'}</div>
+                            <!-- email sub nume: font mic, estompat, rupt pe rânduri dacă e lung -->
+                            <div class="text-xs text-slate-400 break-all">${userEmailEsc || 'Email necompletat'}</div>
+                        </td>
                         <td class="py-3 pr-4 text-slate-300">${user.porecla || '-'}</td>
                         <td class="py-3 pr-4 text-slate-300">${user.telefon || '-'}</td>
                         <td class="py-3 pr-4 text-slate-300">${user.auth_roles?.numire_rol || 'N/A'}</td>
