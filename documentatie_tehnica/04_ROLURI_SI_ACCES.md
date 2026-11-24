@@ -81,7 +81,8 @@ Clarificare de business confirmată: rolurile Mecanic, Electrician și Tinichigi
 6. Mecanic (`rol_id = 8`) este direcționat la Constatare v2;
 7. Vopsitor (`rol_id = 6`) este direcționat la Detailing;
 8. celelalte roluri ajung la dashboard;
-9. din dashboard, Managerul este direcționat la Manager Dashboard, exceptând accesul explicit cu `?hub=1`.
+9. din dashboard, Managerul este direcționat la Manager Dashboard, exceptând accesul explicit cu `?hub=1`;
+10. din dashboard, utilizatorii având exclusiv permisiunea `atelier_rapid` (fără alte module operaționale active și fără rol Admin) sunt direcționați automat către Atelier Rapid (`modules/formulare/atelier_rapid.html`), exceptând accesul explicit cu `?hub=1`.
 
 **Istoric:** la auditul inițial, lookup-ul anonim era posibil cu `auth_profiles` fără RLS. **Starea documentată la 21.10.2026:** RLS este ON; SELECT anonim este păstrat explicit pentru loginul existent. Expunerea profilurilor nu este eliminată prin simpla activare RLS; detalii și direcție în [22](22_STADIU_RLS_SI_DIRECTIE_SIMPLITATE.md).
 
@@ -97,6 +98,7 @@ admin_devize
 admin_echipe
 admin_megafon
 admin_useri
+atelier_rapid
 avansuri
 awb
 cautare_deviz
@@ -148,6 +150,7 @@ Nu există un catalog SQL separat al permisiunilor. Numele sunt implicit definit
 | Generator | `generator` | `magazie` |
 | Detailing | `detailing` | `constatari` |
 | Constatare | `constatari` | — |
+| Atelier Rapid | `atelier_rapid` | Redirecționare automată dacă este singura permisiune; fără timeout de inactivitate |
 | Admin | oricare permisiune `admin_*` sau Admin | `panou_admin`/`panou_control` sunt istorice |
 | Manager Dashboard | `manager_dashboard` | Admin și Manager acceptați direct |
 

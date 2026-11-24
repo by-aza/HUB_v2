@@ -161,11 +161,16 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
   - `constatari` S/I/U (include coloana `constatare_finala` și utilizarea `observatii` pentru recomandări client);
   - `constatari_departamente` S/I/U;
   - `constatari_asteptare_piese` S/I/U;
-  - `constatari_repartizari` S;
+  - `constatari_repartizari` S/I/U;
   - `service_personal` S;
   - `deviz_final_header` S;
 - RPC: `create_deviz_final_from_constatare`;
 - funcții: căutare/creare client și vehicul, constatare pe departamente, repartizare, stare, așteptare piese, previzualizare și generare deviz final;
+- repartizări structurate și sincronizare:
+  - selectorii de responsabili din formular sincronizează automat tabela `constatari_repartizari` pe toate departamentele la crearea și salvarea fișei;
+  - persoanele eliminate din selector sunt marcate inactive (`activ = false`, `retras_la = nowIso`), fără apel `DELETE`;
+  - dacă o persoană eliminată este adăugată din nou, repartizarea anterioară este reactivată (`activ = true`, `retras_la = null`, `repartizat_la = nowIso`);
+  - textul concatenat `constatari.responsabili` este menținut în paralel pentru compatibilitate retroactivă și afișare;
 - flux birou constatare finală (verificat manual în browser live):
   - constatările mecanicului rămân în `constatari_departamente.constatari` (departamentul Mecanică);
   - biroul le importă manual prin buton dedicat, le reformulează și le salvează în `constatari.constatare_finala`;
@@ -173,11 +178,11 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
   - `constatari.observatii` este utilizat ca „Recomandări pentru client”;
 - tipărire fișă tehnică (`modules/formulare/constatare-print.html` prin `localStorage`, verificat manual în browser live):
   - utilizează același fișier șablon cu două moduri de tipărire:
-    - `mode=intrare` (implicit): secțiunile finale („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân goale;
-    - `mode=electronic`: secțiunile sunt populate cu constatarea finală (`constatare_finala`) și recomandările pentru client (`observatii`);
+    - `mode=intrare` (implicit): formularul RAR de intrare, unde secțiunile de completat ale mecanicului („Defecțiuni constatate în timpul reparației” și „Recomandări pentru client”) rămân goale (grid gol pentru completare olografă);
+    - `mode=electronic`: formularul electronic populează secțiunile cu constatarea finală redactată (`constatare_finala`) și recomandările pentru client (`observatii`);
   - limite format electronic:
     - maximum 14 linii nevide per secțiune (validat cu alertă și blocare tipărire la depășire);
-    - grilă 7×2: liniile 1–7 pe coloana din stânga, liniile 8–14 pe coloana din dreapta;
+    - grilă 7×2: câte 7 linii pe coloană (liniile 1–7 pe coloana stângă, liniile 8–14 pe coloana dreaptă);
     - transformarea în majuscule (`toLocaleUpperCase('ro-RO')`) are loc exclusiv la randarea pentru tipar, fără a modifica textul salvat în baza de date.
 
 ### 4.2 Detailing
@@ -210,6 +215,37 @@ HUB, login pentru rolurile cu altă landing și pagina Manager oferă dialogul u
 - date: `generator_logs` S/I/U;
 - funcții: pornire/oprire sesiune, combustibil, durată și observații;
 - include cod pentru Realtime.
+
+### 4.6 Atelier Rapid
+
+- fișiere: `modules/formulare/atelier_rapid.html`, `js/atelier_rapid.js`, `css/atelier_rapid.css`;
+- permisiune UI: `atelier_rapid`;
+- acces direct: utilizatorii care dețin exclusiv permisiunea `atelier_rapid` (fără alte module operaționale active și fără rol Admin) sunt redirecționați automat din dashboard direct către Atelier Rapid la autentificare; parametrul URL `?hub=1` permite deschiderea dashboardului normal;
+- date:
+  - `auth_profiles` S (profil propriu, verificat pentru permisiunea `atelier_rapid`);
+  - `service_personal` S (rândurile active legate de `user_id = auth.uid()`);
+  - `constatari_repartizari` S (repartizările active `activ = true`, `retras_la IS NULL`);
+  - `constatari` S (mașini deschise `status NOT IN ('Finalizat', 'Arhivat')` unde utilizatorul are repartizare activă);
+  - `constatari_departamente` S/I/U (citire pentru toate secțiile mașinii; INSERT/UPDATE strict pe departamentul propriu repartizat activ);
+  - **Fără permisiune DELETE:** modulul nu conține nicio operație de ștergere;
+- flux și interfață mobilă:
+  - vehiculele sunt încărcate pe baza repartizărilor structurate active din `constatari_repartizari`;
+  - **suport multi-departament:** un cont HUB poate fi asociat la multiple rânduri/departamente în `service_personal` (ex. Mecanică și Electrică); pe ecranul principal al mașinii apare **un singur card per vehicul**, semnalizând numărul de secții („N secții”) sau departamentul unic; în ecranul de detaliu este afișat un selector segmentat pentru comutarea între departamentele proprii;
+  - câmpurile formularului și statusul sunt complet independente per departament;
+  - **maparea exactă a câmpurilor în `constatari_departamente`:**
+    - „Defecțiuni constatate” → `constatari`;
+    - „Piese necesare” → `piese_materiale`;
+    - „Ce am făcut / Observație pentru colegi” → `lucrari_efectuate`;
+    - „Status departament” → `status` (`De făcut`, `În lucru`, `Așteptare piese`, `Finalizat`);
+    - `updated_at` (timestamp actualizare), `actualizat_de` (`auth.uid()`);
+  - **comportament status `Finalizat` per departament și triggerul `finalizat_la`:**
+    - triggerul bazei `trg_atelier_dept_write_guard` gestionează automat timestamp-ul `finalizat_la`: la trecerea în `Finalizat` setează `now()`, la re-salvare în status `Finalizat` păstrează valoarea existentă, iar la schimbarea în alt status resetează la `NULL`; valoarea trimisă de client pentru `finalizat_la` este ignorată;
+  - **control status vehicul și mașini închise:**
+    - statusul global al mașinii (`constatari.status`) rămâne controlat exclusiv de birou;
+    - mașinile cu status general închis (`Finalizat` sau `Arhivat` în `constatari`) sunt ascunse din listă și protejate la scriere (verificare preflight și respingere la nivel de RLS/trigger);
+  - **sesiune și timeout:**
+    - pagina nu încarcă scriptul de timeout de inactivitate (`session-timeout.js` nu este prezent), prevenind deconectarea mecanicilor în timpul lucrului;
+    - ascultătorul de eveniment Supabase `SIGNED_OUT` (`onAuthStateChange`) redirecționează imediat utilizatorul către pagina de login la revocarea sesiunii sau la logout explicit.
 
 ## 5. Flotă
 
@@ -344,7 +380,12 @@ Fotografiile sunt proiectate ca private în Google Drive/Cloudflare R2 și sunt 
 - alerte și flotă (`admin_alerte`);
 - devize (`admin_devize`);
 - consumabile (`admin_consumabile`);
-- echipe/service (`admin_echipe`);
+- echipe/service (`admin_echipe`); include gestionarea personalului pe departamente și asocierea conturilor HUB:
+  - selector opțional de cont HUB pentru fiecare rând de personal;
+  - crearea unei persoane noi setează întotdeauna `user_id = NULL` (nu se mai leagă automat de administratorul logat);
+  - același cont HUB poate fi asociat la multiple departamente doar pentru aceeași persoană (același nume normalizat);
+  - partajarea unui cont între persoane diferite este blocată în UI cu mesaj de eroare;
+  - tabela `service_personal` nu are permisiune DELETE acordată;
 - dezmembrări (`dezmembrari_manage`);
 - audit (`admin_audit`);
 - utilizatori și permisiuni (`admin_useri`);

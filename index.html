@@ -34,6 +34,29 @@
     let isAdmin = false;
     let badgePollingIntervalId = null;
 
+    const ATELIER_RAPID_URL = "modules/formulare/atelier_rapid.html";
+
+    /* true doar dacă utilizatorul are permisiunea atelier_rapid și niciun alt modul sau drept admin utilizabil */
+    function shouldOpenAtelierRapidOnly() {
+        try {
+            if (Number(window.USER_DATA?.rol_id) === 1) return false;
+            if (window.USER_DATA?.permissions?.atelier_rapid !== true) return false;
+            if (hasAnyAdminPermission()) return false;
+            const groups = [
+                ...(typeof navSections !== 'undefined' ? navSections.flatMap((s) => s.items) : []),
+                ...(typeof birouCards !== 'undefined' ? birouCards : []),
+                ...(typeof serviceCards !== 'undefined' ? serviceCards : []),
+                ...(typeof heroCards !== 'undefined' ? heroCards : [])
+            ];
+            const otherUsable = groups.some((item) =>
+                item && item.permission && item.id !== 'atelier-rapid' && hasPermission(item.permission));
+            return !otherUsable;
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+    }
+
     async function loadDashboard() {
         // 1. Get Supabase session
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -68,6 +91,12 @@
                 allowed:window.HubLocalDrafts.canUse(data),client:supabaseClient});
             if (Number(data.rol_id) === 2 && new URLSearchParams(window.location.search).get('hub') !== '1') {
                 window.location.href = MANAGER_DASHBOARD_URL;
+                return;
+            }
+
+            // Utilizator cu Atelier Rapid și fără alte module utilizabile: intră direct în Atelier Rapid
+            if (new URLSearchParams(window.location.search).get('hub') !== '1' && shouldOpenAtelierRapidOnly()) {
+                window.location.href = ATELIER_RAPID_URL;
                 return;
             }
 
@@ -979,8 +1008,8 @@
             { id: "stoc", label: "Piese Stoc", icon: "package", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
             { id: "consumabile", label: "Consumabile", icon: "boxes", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
             { id: "generator", label: "Generator", icon: "zap", url: "modules/formulare/generator.html", permission: "generator" },
-            /* Atelier Rapid (prototip mobil): vizibil oricărui utilizator autentificat, fără permission */
-            { id: "atelier-rapid", label: "Atelier Rapid", icon: "wrench", url: "modules/formulare/atelier_rapid_mock.html" },
+            /* Atelier Rapid (mobil, doar citire): vizibil numai cu permisiunea atelier_rapid */
+            { id: "atelier-rapid", label: "Atelier Rapid", icon: "wrench", url: "modules/formulare/atelier_rapid.html", permission: "atelier_rapid" },
           ],
         },
         {
@@ -1039,8 +1068,8 @@
         { id: "stoc", title: "Piese Stoc", meta: "Gestionare piese", icon: "package", tone: "neutral", url: "modules/stocuri/piese_stoc.html", permission: "piese_stoc" },
         { id: "consumabile", title: "Consumabile", meta: "Stocuri și consumabile", icon: "boxes", tone: "neutral", url: "modules/stocuri/consumabile.html", permission: "consumabile" },
         { id: "generator", title: "Generator", meta: "Utilizare și alimentări", icon: "zap", tone: "neutral", url: "modules/formulare/generator.html", permission: "generator" },
-        /* Atelier Rapid (prototip mobil): fără permission, vizibil oricărui utilizator autentificat */
-        { id: "atelier-rapid", title: "Atelier Rapid", meta: "Mașinile repartizate", icon: "wrench", tone: "primary", url: "modules/formulare/atelier_rapid_mock.html" },
+        /* Atelier Rapid (mobil, doar citire): vizibil numai cu permisiunea atelier_rapid */
+        { id: "atelier-rapid", title: "Atelier Rapid", meta: "Mașinile repartizate", icon: "wrench", tone: "primary", url: "modules/formulare/atelier_rapid.html", permission: "atelier_rapid" },
       ];
 
       const heroCards = [
